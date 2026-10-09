@@ -1,0 +1,6303 @@
+KASHI VEDA
+
+Phase 1 — Supabase-Native Implementation Specification
+
+ERD • Database • RLS • RPC • Edge Functions • Storage • Realtime • Cron • Queues
+
+Version 1.0 • 05 October 2026
+
+Architecture decision: Phase 1 uses a Supabase-native backend. No Fastify or Drizzle layer is required for the approved scope. Supabase PostgreSQL is the system of record; Supabase Auth, RLS, Storage, Realtime, Edge Functions, Cron, Queues and PostGIS provide the backend platform services. External providers such as Razorpay, WhatsApp and the selected live-video service are integrated through server-side Edge Functions.
+
+Architecture decision: Phase 1 uses a Supabase-native backend. No Fastify or Drizzle layer is required for the approved scope. Supabase PostgreSQL is the system of record; Supabase Auth, RLS, Storage, Realtime, Edge Functions, Cron, Queues and PostGIS provide the backend platform services. External providers such as Razorpay, WhatsApp and the selected live-video service are integrated through server-side Edge Functions.
+
+1. Architecture Decision
+
+This revision supersedes the earlier ERD implementation assumption that migrations would be generated from Drizzle. The entity model remains relational, but the execution model is Supabase-native.
+
+Client applications: React Native mobile apps, customer-facing website and Admin web portal.
+
+Authentication: Supabase Auth.
+
+Database: Supabase PostgreSQL.
+
+Normal data access: Supabase client/PostgREST under RLS.
+
+Atomic business operations: PostgreSQL functions/RPCs called through authenticated server/client flows as appropriate.
+
+Privileged and third-party operations: Supabase Edge Functions with server-side secrets.
+
+File storage: Supabase Storage with private buckets and signed URLs for sensitive documents.
+
+Realtime: Supabase Realtime; durable state lives in PostgreSQL. Prefer Broadcast for ephemeral events and avoid subscribing to every table change.
+
+Scheduled work: Supabase Cron.
+
+Reliable asynchronous work: Supabase Queues for retryable/background processing.
+
+Geospatial filtering: PostGIS for Pandit service areas and customer-location matching.
+
+Migrations: Supabase SQL migrations managed with the Supabase CLI and committed to Git.
+
+The older product blueprint proposed Fastify and Drizzle, but this document intentionally replaces that implementation choice. The final Phase 1 business behavior remains the controlling requirement.
+
+2. Supabase-Native System Architecture
+
+Figure 1. Supabase-native Kashi Veda domain architecture.
+
+2.1 Runtime responsibilities
+
+Frontend clients may read/write only through authenticated Supabase APIs and RLS-protected operations.
+
+Client applications must never contain a Supabase service-role key, Razorpay secret, WhatsApp credential, live-provider secret or payout credential.
+
+Price calculation, booking confirmation, refunds, payout eligibility and other money/state transitions must be validated server-side in PostgreSQL functions and/or Edge Functions.
+
+PostgreSQL remains the source of truth for booking and payment state; client UI state is never authoritative.
+
+Storage paths and signed URLs are controlled by database authorization rules; customers and Pandits only receive files they are entitled to access.
+
+3. Phase 1 Business Rules Mapped to the Database
+
+Rule | Final Phase 1 behavior
+
+Rule
+
+Final Phase 1 behavior
+
+Home Puja | 10% advance at booking; remaining 90% after Puja completion.
+
+Home Puja
+
+10% advance at booking; remaining 90% after Puja completion.
+
+Remote Puja | 50% advance at booking; remaining 50% when the Puja starts.
+
+Remote Puja
+
+50% advance at booking; remaining 50% when the Puja starts.
+
+Temple Puja | Advance percentage remains configurable because the latest client discussion did not finalize a specific percentage.
+
+Temple Puja
+
+Advance percentage remains configurable because the latest client discussion did not finalize a specific percentage.
+
+Samagri | 100% paid in advance. Customer can choose a predefined package or build a custom package from priced Samagri items.
+
+Samagri
+
+100% paid in advance. Customer can choose a predefined package or build a custom package from priced Samagri items.
+
+Prasad | Optional per Puja; added to booking price as a line item.
+
+Prasad
+
+Optional per Puja; added to booking price as a line item.
+
+Pandit pricing | Pandit sets their own current price for each offered Puja. Booking stores a price snapshot.
+
+Pandit pricing
+
+Pandit sets their own current price for each offered Puja. Booking stores a price snapshot.
+
+Booking confirmation | Customer booking becomes automatically confirmed after required advance payment succeeds; Pandit acceptance is not required.
+
+Booking confirmation
+
+Customer booking becomes automatically confirmed after required advance payment succeeds; Pandit acceptance is not required.
+
+Pandit availability | Pandit can set future unavailable periods. A Pandit cannot block a slot that is already booked.
+
+Pandit availability
+
+Pandit can set future unavailable periods. A Pandit cannot block a slot that is already booked.
+
+Rescheduling | One reschedule per booking. Customer cannot change Pandit or Puja. Postpone has no additional charge; prepone may carry a configured fee.
+
+Rescheduling
+
+One reschedule per booking. Customer cannot change Pandit or Puja. Postpone has no additional charge; prepone may carry a configured fee.
+
+Kundli | 100% paid upfront. Customer chooses Pandit. Pandit uploads scanned PDF. Customer confirmation makes the order payable/eligible for Pandit payout.
+
+Kundli
+
+100% paid upfront. Customer chooses Pandit. Pandit uploads scanned PDF. Customer confirmation makes the order payable/eligible for Pandit payout.
+
+Astrology subscription | Admin-configured plan duration and price. Daily in-app and weekly WhatsApp delivery behavior is configurable/content-driven.
+
+Astrology subscription
+
+Admin-configured plan duration and price. Daily in-app and weekly WhatsApp delivery behavior is configurable/content-driven.
+
+Refunds | Refund slabs are configurable and must be finalized before enabling production cancellation flows.
+
+Refunds
+
+Refund slabs are configurable and must be finalized before enabling production cancellation flows.
+
+Live Puja | External live provider; Admin configures customer-facing per-minute rate. Provider cost/price calculation is handled server-side.
+
+Live Puja
+
+External live provider; Admin configures customer-facing per-minute rate. Provider cost/price calculation is handled server-side.
+
+Payouts | Kashi Veda receives customer payment and later pays the Pandit after the approved service/Kundli completion condition. Initial platform fee is 0% unless changed by Admin.
+
+Payouts
+
+Kashi Veda receives customer payment and later pays the Pandit after the approved service/Kundli completion condition. Initial platform fee is 0% unless changed by Admin.
+
+4. Master ERD — Domain Overview
+
+Figure 2. Core relational domains and their relationships.
+
+The previously reviewed 40-table relational model is retained, but the implementation responsibilities around those tables are now explicitly assigned to Supabase-native components rather than Drizzle/Fastify.
+
+5. Booking ERD & State Machine
+
+Figure 3. Booking domain relationships.
+
+Booking must be treated as a state machine. State transitions are authorized by PostgreSQL functions/Edge Functions, not by unrestricted client updates.
+
+State | Meaning
+
+State
+
+Meaning
+
+Draft | Optional pre-check state before payment order creation.
+
+Draft
+
+Optional pre-check state before payment order creation.
+
+Payment Pending | Required payment has been initiated but not successfully captured.
+
+Payment Pending
+
+Required payment has been initiated but not successfully captured.
+
+Confirmed | Required advance payment succeeded; slot is locked.
+
+Confirmed
+
+Required advance payment succeeded; slot is locked.
+
+Upcoming | Confirmed booking before start time; may be used for reminders/operations.
+
+Upcoming
+
+Confirmed booking before start time; may be used for reminders/operations.
+
+In Progress | Puja has started; remote sessions can be active here.
+
+In Progress
+
+Puja has started; remote sessions can be active here.
+
+Completed | Puja/service completed; payout eligibility can be evaluated.
+
+Completed
+
+Puja/service completed; payout eligibility can be evaluated.
+
+Rescheduled | One approved reschedule has moved the booking to a new slot.
+
+Rescheduled
+
+One approved reschedule has moved the booking to a new slot.
+
+Cancelled | Customer or authorized Admin cancellation recorded.
+
+Cancelled
+
+Customer or authorized Admin cancellation recorded.
+
+Disputed | Customer complaint is under Admin review.
+
+Disputed
+
+Customer complaint is under Admin review.
+
+Resolved | Dispute/refund/payout decision completed.
+
+Resolved
+
+Dispute/refund/payout decision completed.
+
+6. Supabase-Native Backend Primitives
+
+6.1 PostgreSQL RPC / database functions
+
+Function | Purpose
+
+Function
+
+Purpose
+
+create_or_validate_booking | Validates Pandit/Puja availability, prevents double-booking, calculates server-side totals and creates booking/payment obligation records atomically.
+
+create_or_validate_booking
+
+Validates Pandit/Puja availability, prevents double-booking, calculates server-side totals and creates booking/payment obligation records atomically.
+
+confirm_booking_payment | Idempotently moves a booking into Confirmed after a verified successful payment event.
+
+confirm_booking_payment
+
+Idempotently moves a booking into Confirmed after a verified successful payment event.
+
+calculate_booking_balance | Returns server-calculated outstanding amount; client never submits a balance amount as truth.
+
+calculate_booking_balance
+
+Returns server-calculated outstanding amount; client never submits a balance amount as truth.
+
+request_booking_reschedule | Enforces one-time reschedule, Pandit/Puja immutability and configured prepone/postpone rules.
+
+request_booking_reschedule
+
+Enforces one-time reschedule, Pandit/Puja immutability and configured prepone/postpone rules.
+
+cancel_booking_and_calculate_refund | Applies the active cancellation policy and creates the refund instruction snapshot.
+
+cancel_booking_and_calculate_refund
+
+Applies the active cancellation policy and creates the refund instruction snapshot.
+
+mark_booking_completed | Authorizes completion and transitions payout eligibility.
+
+mark_booking_completed
+
+Authorizes completion and transitions payout eligibility.
+
+create_kundli_order | Creates a fully paid Kundli order obligation and locks selected Pandit/price snapshot.
+
+create_kundli_order
+
+Creates a fully paid Kundli order obligation and locks selected Pandit/price snapshot.
+
+confirm_kundli_and_enable_payout | Marks the Kundli order confirmed and makes its payout eligible.
+
+confirm_kundli_and_enable_payout
+
+Marks the Kundli order confirmed and makes its payout eligible.
+
+calculate_pandit_earnings | Calculates payout amount from immutable service/payment snapshots.
+
+calculate_pandit_earnings
+
+Calculates payout amount from immutable service/payment snapshots.
+
+get_customer_pandits | Filters approved Pandits by service area, availability and optional specialty/location criteria.
+
+get_customer_pandits
+
+Filters approved Pandits by service area, availability and optional specialty/location criteria.
+
+6.2 Edge Functions
+
+Edge Function | Responsibility
+
+Edge Function
+
+Responsibility
+
+create-razorpay-order | Creates payment orders using secret credentials; validates authenticated user and server-calculated amount.
+
+create-razorpay-order
+
+Creates payment orders using secret credentials; validates authenticated user and server-calculated amount.
+
+razorpay-webhook | Receives and verifies Razorpay webhooks, enforces idempotency, then invokes the appropriate DB transition.
+
+razorpay-webhook
+
+Receives and verifies Razorpay webhooks, enforces idempotency, then invokes the appropriate DB transition.
+
+process-refund | Executes authorized refunds with provider credentials and writes immutable refund records.
+
+process-refund
+
+Executes authorized refunds with provider credentials and writes immutable refund records.
+
+process-pandit-payout | Releases approved Pandit payouts through the selected provider integration.
+
+process-pandit-payout
+
+Releases approved Pandit payouts through the selected provider integration.
+
+live-session-token | Issues short-lived access tokens for the selected live-video provider after checking booking eligibility.
+
+live-session-token
+
+Issues short-lived access tokens for the selected live-video provider after checking booking eligibility.
+
+send-whatsapp-message | Sends approved WhatsApp templates/content without exposing credentials to clients.
+
+send-whatsapp-message
+
+Sends approved WhatsApp templates/content without exposing credentials to clients.
+
+send-push-notification | Dispatches FCM/APNs notifications based on durable notification records.
+
+send-push-notification
+
+Dispatches FCM/APNs notifications based on durable notification records.
+
+process-astrology-delivery | Processes queued daily/weekly astrology deliveries and records provider results.
+
+process-astrology-delivery
+
+Processes queued daily/weekly astrology deliveries and records provider results.
+
+delete-account | Performs controlled account/data deletion if the Phase 1 account deletion flow is enabled.
+
+delete-account
+
+Performs controlled account/data deletion if the Phase 1 account deletion flow is enabled.
+
+6.3 Realtime, Cron and Queues
+
+Realtime Broadcast: use for ephemeral booking/availability/live-session UI events where subscribers need immediate updates but the event itself is not the source of truth.
+
+Postgres Changes: use selectively for durable notification badge updates or narrowly scoped state changes; do not subscribe every client to high-churn tables.
+
+Cron: daily subscription deactivation, scheduled astrology generation/delivery, reminders and housekeeping.
+
+Queues: retryable WhatsApp/push delivery, batch astrology delivery, deferred payout work and other asynchronous jobs.
+
+The database remains authoritative even when a realtime or queue message is delayed or duplicated; consumers must be idempotent.
+
+7. Storage Design
+
+Bucket | Visibility | Use
+
+Bucket
+
+Visibility
+
+Use
+
+pandit-documents | Private | Pandit credentials and verification documents.
+
+pandit-documents
+
+Private
+
+Pandit credentials and verification documents.
+
+kundli-documents | Private | Scanned handwritten Kundli PDFs; customer and authorized Pandit/Admin access only.
+
+kundli-documents
+
+Private
+
+Scanned handwritten Kundli PDFs; customer and authorized Pandit/Admin access only.
+
+profile-images | Controlled/public | Pandit/customer profile photos where appropriate.
+
+profile-images
+
+Controlled/public
+
+Pandit/customer profile photos where appropriate.
+
+puja-media | Controlled/private | Optional ceremony images/videos if included in Phase 1 operations.
+
+puja-media
+
+Controlled/private
+
+Optional ceremony images/videos if included in Phase 1 operations.
+
+samagri-images | Public/controlled | Catalog imagery used by the customer UI.
+
+samagri-images
+
+Public/controlled
+
+Catalog imagery used by the customer UI.
+
+service-media | Public/controlled | Puja/service descriptive media, if provided by client.
+
+service-media
+
+Public/controlled
+
+Puja/service descriptive media, if provided by client.
+
+Storage policies must be tied to auth.uid() and role/ownership checks. Private PDFs must be served through short-lived signed URLs rather than permanent public URLs.
+
+8. PostGIS / Pandit Location Matching
+
+Pandit service areas are stored as normalized location records and/or PostGIS geography values.
+
+Customer home-visit booking validates that the selected Pandit serves the customer location before a slot can be confirmed.
+
+A Pandit may be shown publicly as “Currently Unavailable” even when the profile remains visible; availability and service-area checks are separate concerns.
+
+A booked slot is excluded from future availability blocking so a Pandit cannot accidentally make an existing booking unavailable.
+
+Spatial indexes should be added for the chosen geography columns if radius-based search is used.
+
+9. RLS / Authorization Model
+
+Role | Baseline database permissions
+
+Role
+
+Baseline database permissions
+
+Customer | Read/write own profile, own addresses, own bookings and line items, own payments/refunds, own Kundli orders/documents, own subscriptions/deliveries, submit own reviews.
+
+Customer
+
+Read/write own profile, own addresses, own bookings and line items, own payments/refunds, own Kundli orders/documents, own subscriptions/deliveries, submit own reviews.
+
+Pandit | Read/write own Pandit profile/application fields permitted by workflow, own availability/service areas, assigned bookings, own Kundli work, own media and own payout records. Cannot alter locked booking prices after confirmation.
+
+Pandit
+
+Read/write own Pandit profile/application fields permitted by workflow, own availability/service areas, assigned bookings, own Kundli work, own media and own payout records. Cannot alter locked booking prices after confirmation.
+
+Admin | Manage Pandit verification, catalog, Samagri, Prasad, policies, subscriptions, operational bookings, reviews, refunds/payout approvals and configuration within assigned permissions.
+
+Admin
+
+Manage Pandit verification, catalog, Samagri, Prasad, policies, subscriptions, operational bookings, reviews, refunds/payout approvals and configuration within assigned permissions.
+
+Super Admin | All Admin capabilities plus Admin account creation/deactivation and privileged configuration/audit access.
+
+Super Admin
+
+All Admin capabilities plus Admin account creation/deactivation and privileged configuration/audit access.
+
+RLS is the database enforcement layer. UI hiding is not security. Service-role access is limited to Edge Functions and never used in mobile/web client code.
+
+10. Data Dictionary — Existing 40 Core Tables
+
+The column-level definitions below are carried forward from the reviewed ERD. The important implementation change is that these tables are now implemented directly in Supabase PostgreSQL and protected with RLS, functions, triggers, storage policies and Edge Functions rather than through Drizzle.
+
+Identity & access
+
+profiles
+
+Base application profile linked to Supabase Auth.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | auth.users.id | PK / FK | Application user identifier.
+
+id
+
+uuid
+
+NO
+
+auth.users.id
+
+PK / FK
+
+Application user identifier.
+
+display_name | text | NO | — |  | Customer/Admin/Pandit display name.
+
+display_name
+
+text
+
+NO
+
+—
+
+Customer/Admin/Pandit display name.
+
+email | citext | YES | NULL | UNIQUE | Application email snapshot; auth remains source of truth.
+
+email
+
+citext
+
+YES
+
+NULL
+
+UNIQUE
+
+Application email snapshot; auth remains source of truth.
+
+phone | text | YES | NULL | UNIQUE | Optional phone/contact field.
+
+phone
+
+text
+
+YES
+
+NULL
+
+UNIQUE
+
+Optional phone/contact field.
+
+avatar_url | text | YES | NULL |  | Profile image storage URL/path.
+
+avatar_url
+
+text
+
+YES
+
+NULL
+
+Profile image storage URL/path.
+
+status | text | NO | active | CHECK | active, suspended, deleted.
+
+status
+
+text
+
+NO
+
+active
+
+CHECK
+
+active, suspended, deleted.
+
+created_at | timestamptz | NO | now() |  | Creation timestamp.
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+Creation timestamp.
+
+updated_at | timestamptz | NO | now() |  | Last update timestamp.
+
+updated_at
+
+timestamptz
+
+NO
+
+now()
+
+Last update timestamp.
+
+user_roles
+
+Role assignment for customer, pandit, admin and super_admin.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+user_id | uuid | NO | — | PK/FK profiles.id | User receiving the role.
+
+user_id
+
+uuid
+
+NO
+
+—
+
+PK/FK profiles.id
+
+User receiving the role.
+
+role | text | NO | — | PK/CHECK | customer, pandit, admin, super_admin.
+
+role
+
+text
+
+NO
+
+—
+
+PK/CHECK
+
+customer, pandit, admin, super_admin.
+
+assigned_by | uuid | YES | NULL | FK profiles.id | User who assigned the role.
+
+assigned_by
+
+uuid
+
+YES
+
+NULL
+
+FK profiles.id
+
+User who assigned the role.
+
+assigned_at | timestamptz | NO | now() |  | Assignment time.
+
+assigned_at
+
+timestamptz
+
+NO
+
+now()
+
+Assignment time.
+
+customer_addresses
+
+Saved customer addresses for home/temple service and checkout.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Address identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Address identifier.
+
+customer_id | uuid | NO | — | FK profiles.id | Owner customer.
+
+customer_id
+
+uuid
+
+NO
+
+—
+
+FK profiles.id
+
+Owner customer.
+
+label | text | NO | — |  | Home, office, parents, etc.
+
+label
+
+text
+
+NO
+
+—
+
+Home, office, parents, etc.
+
+address_line1 | text | NO | — |  | Primary address.
+
+address_line1
+
+text
+
+NO
+
+—
+
+Primary address.
+
+address_line2 | text | YES | NULL |  | Optional address continuation.
+
+address_line2
+
+text
+
+YES
+
+NULL
+
+Optional address continuation.
+
+city | text | NO | — |  | City.
+
+city
+
+text
+
+NO
+
+—
+
+City.
+
+state | text | YES | NULL |  | State/region.
+
+state
+
+text
+
+YES
+
+NULL
+
+State/region.
+
+pincode | text | YES | NULL |  | Postal code.
+
+pincode
+
+text
+
+YES
+
+NULL
+
+Postal code.
+
+latitude | numeric(9,6) | YES | NULL |  | Geographic latitude.
+
+latitude
+
+numeric(9,6)
+
+YES
+
+NULL
+
+Geographic latitude.
+
+longitude | numeric(9,6) | YES | NULL |  | Geographic longitude.
+
+longitude
+
+numeric(9,6)
+
+YES
+
+NULL
+
+Geographic longitude.
+
+is_default | boolean | NO | false |  | Default checkout address.
+
+is_default
+
+boolean
+
+NO
+
+false
+
+Default checkout address.
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+updated_at | timestamptz | NO | now() |  | 
+
+updated_at
+
+timestamptz
+
+NO
+
+now()
+
+pandit_profiles
+
+Verified Pandit business/profile information and base service settings.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Pandit profile identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Pandit profile identifier.
+
+user_id | uuid | NO | — | UNIQUE/FK profiles.id | Linked application user.
+
+user_id
+
+uuid
+
+NO
+
+—
+
+UNIQUE/FK profiles.id
+
+Linked application user.
+
+verification_status | text | NO | pending | CHECK | pending, approved, rejected, suspended.
+
+verification_status
+
+text
+
+NO
+
+pending
+
+CHECK
+
+pending, approved, rejected, suspended.
+
+bio | text | YES | NULL |  | Biography and service description.
+
+bio
+
+text
+
+YES
+
+NULL
+
+Biography and service description.
+
+years_experience | integer | YES | NULL | CHECK >= 0 | Experience in years.
+
+years_experience
+
+integer
+
+YES
+
+NULL
+
+CHECK >= 0
+
+Experience in years.
+
+languages | text[] | YES | NULL |  | Languages spoken.
+
+languages
+
+text[]
+
+YES
+
+NULL
+
+Languages spoken.
+
+base_latitude | numeric(9,6) | YES | NULL |  | Pandit service base location.
+
+base_latitude
+
+numeric(9,6)
+
+YES
+
+NULL
+
+Pandit service base location.
+
+base_longitude | numeric(9,6) | YES | NULL |  | Pandit service base location.
+
+base_longitude
+
+numeric(9,6)
+
+YES
+
+NULL
+
+Pandit service base location.
+
+service_radius_km | numeric(8,2) | YES | NULL | CHECK >= 0 | Default home-visit service radius.
+
+service_radius_km
+
+numeric(8,2)
+
+YES
+
+NULL
+
+CHECK >= 0
+
+Default home-visit service radius.
+
+public_status | text | NO | available | CHECK | available, currently_unavailable.
+
+public_status
+
+text
+
+NO
+
+available
+
+CHECK
+
+available, currently_unavailable.
+
+onboarding_completed_at | timestamptz | YES | NULL |  | 
+
+onboarding_completed_at
+
+timestamptz
+
+YES
+
+NULL
+
+approved_at | timestamptz | YES | NULL |  | 
+
+approved_at
+
+timestamptz
+
+YES
+
+NULL
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+updated_at | timestamptz | NO | now() |  | 
+
+updated_at
+
+timestamptz
+
+NO
+
+now()
+
+pandit_documents
+
+Credential/document records used in Pandit onboarding and verification.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Document identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Document identifier.
+
+pandit_id | uuid | NO | — | FK pandit_profiles.id | Pandit owner.
+
+pandit_id
+
+uuid
+
+NO
+
+—
+
+FK pandit_profiles.id
+
+Pandit owner.
+
+document_type | text | NO | — |  | Generic credential/identity/certificate type.
+
+document_type
+
+text
+
+NO
+
+—
+
+Generic credential/identity/certificate type.
+
+storage_path | text | NO | — |  | Supabase Storage object path.
+
+storage_path
+
+text
+
+NO
+
+—
+
+Supabase Storage object path.
+
+verification_status | text | NO | pending | CHECK | pending, approved, rejected.
+
+verification_status
+
+text
+
+NO
+
+pending
+
+CHECK
+
+pending, approved, rejected.
+
+reviewed_by | uuid | YES | NULL | FK profiles.id | Admin reviewer.
+
+reviewed_by
+
+uuid
+
+YES
+
+NULL
+
+FK profiles.id
+
+Admin reviewer.
+
+reviewed_at | timestamptz | YES | NULL |  | 
+
+reviewed_at
+
+timestamptz
+
+YES
+
+NULL
+
+rejection_reason | text | YES | NULL |  | 
+
+rejection_reason
+
+text
+
+YES
+
+NULL
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+pandit_service_areas
+
+Locations/service areas in which a Pandit can accept home visits.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Area identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Area identifier.
+
+pandit_id | uuid | NO | — | FK pandit_profiles.id | Pandit owner.
+
+pandit_id
+
+uuid
+
+NO
+
+—
+
+FK pandit_profiles.id
+
+Pandit owner.
+
+city | text | YES | NULL |  | Served city.
+
+city
+
+text
+
+YES
+
+NULL
+
+Served city.
+
+state | text | YES | NULL |  | Served state/region.
+
+state
+
+text
+
+YES
+
+NULL
+
+Served state/region.
+
+pincode | text | YES | NULL |  | Served postal code.
+
+pincode
+
+text
+
+YES
+
+NULL
+
+Served postal code.
+
+latitude | numeric(9,6) | YES | NULL |  | Optional center coordinate.
+
+latitude
+
+numeric(9,6)
+
+YES
+
+NULL
+
+Optional center coordinate.
+
+longitude | numeric(9,6) | YES | NULL |  | Optional center coordinate.
+
+longitude
+
+numeric(9,6)
+
+YES
+
+NULL
+
+Optional center coordinate.
+
+radius_km | numeric(8,2) | YES | NULL | CHECK >= 0 | Optional radius for this area.
+
+radius_km
+
+numeric(8,2)
+
+YES
+
+NULL
+
+CHECK >= 0
+
+Optional radius for this area.
+
+is_active | boolean | NO | true |  | 
+
+is_active
+
+boolean
+
+NO
+
+true
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+Catalog & availability
+
+puja_categories
+
+Admin-managed categories for ritual discovery.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Category identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Category identifier.
+
+name | text | NO | — | UNIQUE | Category name.
+
+name
+
+text
+
+NO
+
+—
+
+UNIQUE
+
+Category name.
+
+description | text | YES | NULL |  | 
+
+description
+
+text
+
+YES
+
+NULL
+
+display_order | integer | NO | 0 |  | 
+
+display_order
+
+integer
+
+NO
+
+0
+
+is_active | boolean | NO | true |  | 
+
+is_active
+
+boolean
+
+NO
+
+true
+
+puja_services
+
+Master Puja/ritual catalog.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Puja service identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Puja service identifier.
+
+category_id | uuid | YES | NULL | FK puja_categories.id | Optional category.
+
+category_id
+
+uuid
+
+YES
+
+NULL
+
+FK puja_categories.id
+
+Optional category.
+
+name | text | NO | — | UNIQUE | Puja name.
+
+name
+
+text
+
+NO
+
+—
+
+UNIQUE
+
+Puja name.
+
+description | text | YES | NULL |  | 
+
+description
+
+text
+
+YES
+
+NULL
+
+default_duration_minutes | integer | YES | NULL | CHECK > 0 | Reference duration for scheduling/live-rate estimation.
+
+default_duration_minutes
+
+integer
+
+YES
+
+NULL
+
+CHECK > 0
+
+Reference duration for scheduling/live-rate estimation.
+
+allowed_modes | text[] | NO | {} | CHECK | home, temple, remote.
+
+allowed_modes
+
+text[]
+
+NO
+
+{}
+
+CHECK
+
+home, temple, remote.
+
+is_active | boolean | NO | true |  | 
+
+is_active
+
+boolean
+
+NO
+
+true
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+updated_at | timestamptz | NO | now() |  | 
+
+updated_at
+
+timestamptz
+
+NO
+
+now()
+
+pandit_puja_services
+
+Pandit-specific offerings and prices.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Offering identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Offering identifier.
+
+pandit_id | uuid | NO | — | FK pandit_profiles.id | Pandit.
+
+pandit_id
+
+uuid
+
+NO
+
+—
+
+FK pandit_profiles.id
+
+Pandit.
+
+puja_service_id | uuid | NO | — | FK puja_services.id | Master Puja.
+
+puja_service_id
+
+uuid
+
+NO
+
+—
+
+FK puja_services.id
+
+Master Puja.
+
+price | numeric(12,2) | NO | — | CHECK >= 0 | Pandit-defined price.
+
+price
+
+numeric(12,2)
+
+NO
+
+—
+
+CHECK >= 0
+
+Pandit-defined price.
+
+currency | char(3) | NO | INR |  | 
+
+currency
+
+char(3)
+
+NO
+
+INR
+
+duration_minutes | integer | YES | NULL | CHECK > 0 | Pandit-specific expected duration if different from master.
+
+duration_minutes
+
+integer
+
+YES
+
+NULL
+
+CHECK > 0
+
+Pandit-specific expected duration if different from master.
+
+is_active | boolean | NO | true |  | 
+
+is_active
+
+boolean
+
+NO
+
+true
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+updated_at | timestamptz | NO | now() |  | 
+
+updated_at
+
+timestamptz
+
+NO
+
+now()
+
+pandit_availability_rules
+
+Recurring weekly availability windows.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Rule identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Rule identifier.
+
+pandit_id | uuid | NO | — | FK pandit_profiles.id | Pandit.
+
+pandit_id
+
+uuid
+
+NO
+
+—
+
+FK pandit_profiles.id
+
+Pandit.
+
+day_of_week | smallint | NO | — | CHECK 0-6 | Recurring day.
+
+day_of_week
+
+smallint
+
+NO
+
+—
+
+CHECK 0-6
+
+Recurring day.
+
+start_time | time | NO | — |  | Window start.
+
+start_time
+
+time
+
+NO
+
+—
+
+Window start.
+
+end_time | time | NO | — |  | Window end; must be after start.
+
+end_time
+
+time
+
+NO
+
+—
+
+Window end; must be after start.
+
+timezone | text | NO | Asia/Kolkata |  | IANA timezone.
+
+timezone
+
+text
+
+NO
+
+Asia/Kolkata
+
+IANA timezone.
+
+is_active | boolean | NO | true |  | 
+
+is_active
+
+boolean
+
+NO
+
+true
+
+pandit_unavailability_blocks
+
+Future or one-off unavailable periods.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Block identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Block identifier.
+
+pandit_id | uuid | NO | — | FK pandit_profiles.id | Pandit.
+
+pandit_id
+
+uuid
+
+NO
+
+—
+
+FK pandit_profiles.id
+
+Pandit.
+
+starts_at | timestamptz | NO | — |  | Unavailable start.
+
+starts_at
+
+timestamptz
+
+NO
+
+—
+
+Unavailable start.
+
+ends_at | timestamptz | NO | — | CHECK > starts_at | Unavailable end.
+
+ends_at
+
+timestamptz
+
+NO
+
+—
+
+CHECK > starts_at
+
+Unavailable end.
+
+reason | text | YES | NULL |  | Optional private reason.
+
+reason
+
+text
+
+YES
+
+NULL
+
+Optional private reason.
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+temples
+
+Optional admin-managed temple directory for temple-mode bookings.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Temple identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Temple identifier.
+
+name | text | NO | — |  | Temple name.
+
+name
+
+text
+
+NO
+
+—
+
+Temple name.
+
+address | text | YES | NULL |  | Temple address.
+
+address
+
+text
+
+YES
+
+NULL
+
+Temple address.
+
+city | text | YES | NULL |  | 
+
+city
+
+text
+
+YES
+
+NULL
+
+state | text | YES | NULL |  | 
+
+state
+
+text
+
+YES
+
+NULL
+
+latitude | numeric(9,6) | YES | NULL |  | 
+
+latitude
+
+numeric(9,6)
+
+YES
+
+NULL
+
+longitude | numeric(9,6) | YES | NULL |  | 
+
+longitude
+
+numeric(9,6)
+
+YES
+
+NULL
+
+is_active | boolean | NO | true |  | 
+
+is_active
+
+boolean
+
+NO
+
+true
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+samagri_items
+
+Master Samagri item catalog.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Item identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Item identifier.
+
+name | text | NO | — | UNIQUE | Item name.
+
+name
+
+text
+
+NO
+
+—
+
+UNIQUE
+
+Item name.
+
+description | text | YES | NULL |  | 
+
+description
+
+text
+
+YES
+
+NULL
+
+unit | text | NO | piece |  | Unit of measurement.
+
+unit
+
+text
+
+NO
+
+piece
+
+Unit of measurement.
+
+unit_price | numeric(12,2) | NO | 0 | CHECK >= 0 | Current catalog price used for custom packages.
+
+unit_price
+
+numeric(12,2)
+
+NO
+
+0
+
+CHECK >= 0
+
+Current catalog price used for custom packages.
+
+is_active | boolean | NO | true |  | 
+
+is_active
+
+boolean
+
+NO
+
+true
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+updated_at | timestamptz | NO | now() |  | 
+
+updated_at
+
+timestamptz
+
+NO
+
+now()
+
+samagri_packages
+
+Predefined Samagri packages per Puja.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Package identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Package identifier.
+
+puja_service_id | uuid | NO | — | FK puja_services.id | Puja to which package applies.
+
+puja_service_id
+
+uuid
+
+NO
+
+—
+
+FK puja_services.id
+
+Puja to which package applies.
+
+name | text | NO | — |  | Package name.
+
+name
+
+text
+
+NO
+
+—
+
+Package name.
+
+description | text | YES | NULL |  | 
+
+description
+
+text
+
+YES
+
+NULL
+
+is_active | boolean | NO | true |  | 
+
+is_active
+
+boolean
+
+NO
+
+true
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+updated_at | timestamptz | NO | now() |  | 
+
+updated_at
+
+timestamptz
+
+NO
+
+now()
+
+samagri_package_items
+
+Items and quantities inside a predefined package.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+package_id | uuid | NO | — | PK/FK samagri_packages.id | Package.
+
+package_id
+
+uuid
+
+NO
+
+—
+
+PK/FK samagri_packages.id
+
+Package.
+
+samagri_item_id | uuid | NO | — | PK/FK samagri_items.id | Item.
+
+samagri_item_id
+
+uuid
+
+NO
+
+—
+
+PK/FK samagri_items.id
+
+Item.
+
+quantity | numeric(12,3) | NO | 1 | CHECK > 0 | Required quantity.
+
+quantity
+
+numeric(12,3)
+
+NO
+
+1
+
+CHECK > 0
+
+Required quantity.
+
+prasad_items
+
+Optional Prasad catalog/items available to add to bookings.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Prasad identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Prasad identifier.
+
+name | text | NO | — |  | Prasad name.
+
+name
+
+text
+
+NO
+
+—
+
+Prasad name.
+
+description | text | YES | NULL |  | 
+
+description
+
+text
+
+YES
+
+NULL
+
+is_active | boolean | NO | true |  | 
+
+is_active
+
+boolean
+
+NO
+
+true
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+Booking
+
+bookings
+
+Core Puja booking record and lifecycle.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Booking identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Booking identifier.
+
+booking_number | text | NO | generated | UNIQUE | Human-readable booking number.
+
+booking_number
+
+text
+
+NO
+
+generated
+
+UNIQUE
+
+Human-readable booking number.
+
+customer_id | uuid | NO | — | FK profiles.id | Customer.
+
+customer_id
+
+uuid
+
+NO
+
+—
+
+FK profiles.id
+
+Customer.
+
+pandit_id | uuid | NO | — | FK pandit_profiles.id | Selected Pandit.
+
+pandit_id
+
+uuid
+
+NO
+
+—
+
+FK pandit_profiles.id
+
+Selected Pandit.
+
+puja_service_id | uuid | NO | — | FK puja_services.id | Selected ritual.
+
+puja_service_id
+
+uuid
+
+NO
+
+—
+
+FK puja_services.id
+
+Selected ritual.
+
+service_mode | text | NO | — | CHECK | home, temple, remote.
+
+service_mode
+
+text
+
+NO
+
+—
+
+CHECK
+
+home, temple, remote.
+
+status | text | NO | payment_pending | CHECK | payment_pending, confirmed, upcoming, in_progress, completed, cancelled, disputed, resolved.
+
+status
+
+text
+
+NO
+
+payment_pending
+
+CHECK
+
+payment_pending, confirmed, upcoming, in_progress, completed, cancelled, disputed, resolved.
+
+scheduled_start_at | timestamptz | NO | — |  | Locked appointment start.
+
+scheduled_start_at
+
+timestamptz
+
+NO
+
+—
+
+Locked appointment start.
+
+scheduled_end_at | timestamptz | NO | — | CHECK > start | Locked appointment end.
+
+scheduled_end_at
+
+timestamptz
+
+NO
+
+—
+
+CHECK > start
+
+Locked appointment end.
+
+price_snapshot | numeric(12,2) | NO | 0 | CHECK >= 0 | Pandit Puja price at booking time.
+
+price_snapshot
+
+numeric(12,2)
+
+NO
+
+0
+
+CHECK >= 0
+
+Pandit Puja price at booking time.
+
+currency | char(3) | NO | INR |  | 
+
+currency
+
+char(3)
+
+NO
+
+INR
+
+advance_percent | numeric(5,2) | NO | 0 | CHECK 0-100 | Required advance for this booking.
+
+advance_percent
+
+numeric(5,2)
+
+NO
+
+0
+
+CHECK 0-100
+
+Required advance for this booking.
+
+advance_amount | numeric(12,2) | NO | 0 | CHECK >= 0 | Advance amount calculated at booking.
+
+advance_amount
+
+numeric(12,2)
+
+NO
+
+0
+
+CHECK >= 0
+
+Advance amount calculated at booking.
+
+balance_amount | numeric(12,2) | NO | 0 | CHECK >= 0 | Remaining amount before final additions/refunds.
+
+balance_amount
+
+numeric(12,2)
+
+NO
+
+0
+
+CHECK >= 0
+
+Remaining amount before final additions/refunds.
+
+total_amount | numeric(12,2) | NO | 0 | CHECK >= 0 | Current booking total including add-ons.
+
+total_amount
+
+numeric(12,2)
+
+NO
+
+0
+
+CHECK >= 0
+
+Current booking total including add-ons.
+
+reschedule_count | smallint | NO | 0 | CHECK 0-1 | Only one reschedule allowed in Phase 1.
+
+reschedule_count
+
+smallint
+
+NO
+
+0
+
+CHECK 0-1
+
+Only one reschedule allowed in Phase 1.
+
+confirmed_at | timestamptz | YES | NULL |  | When advance payment confirms booking.
+
+confirmed_at
+
+timestamptz
+
+YES
+
+NULL
+
+When advance payment confirms booking.
+
+started_at | timestamptz | YES | NULL |  | When Puja begins.
+
+started_at
+
+timestamptz
+
+YES
+
+NULL
+
+When Puja begins.
+
+completed_at | timestamptz | YES | NULL |  | When Pandit marks/records completion.
+
+completed_at
+
+timestamptz
+
+YES
+
+NULL
+
+When Pandit marks/records completion.
+
+customer_completed_confirmed_at | timestamptz | YES | NULL |  | Optional customer confirmation used for payout/closure.
+
+customer_completed_confirmed_at
+
+timestamptz
+
+YES
+
+NULL
+
+Optional customer confirmation used for payout/closure.
+
+cancelled_at | timestamptz | YES | NULL |  | 
+
+cancelled_at
+
+timestamptz
+
+YES
+
+NULL
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+updated_at | timestamptz | NO | now() |  | 
+
+updated_at
+
+timestamptz
+
+NO
+
+now()
+
+booking_service_locations
+
+Historical location snapshot for home/temple bookings.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+booking_id | uuid | NO | — | PK/FK bookings.id | One-to-one booking location.
+
+booking_id
+
+uuid
+
+NO
+
+—
+
+PK/FK bookings.id
+
+One-to-one booking location.
+
+location_type | text | NO | — | CHECK | home, temple, remote.
+
+location_type
+
+text
+
+NO
+
+—
+
+CHECK
+
+home, temple, remote.
+
+address_id | uuid | YES | NULL | FK customer_addresses.id | Original saved address, if used.
+
+address_id
+
+uuid
+
+YES
+
+NULL
+
+FK customer_addresses.id
+
+Original saved address, if used.
+
+address_snapshot | text | YES | NULL |  | Immutable address used for the booking.
+
+address_snapshot
+
+text
+
+YES
+
+NULL
+
+Immutable address used for the booking.
+
+city | text | YES | NULL |  | 
+
+city
+
+text
+
+YES
+
+NULL
+
+state | text | YES | NULL |  | 
+
+state
+
+text
+
+YES
+
+NULL
+
+pincode | text | YES | NULL |  | 
+
+pincode
+
+text
+
+YES
+
+NULL
+
+latitude | numeric(9,6) | YES | NULL |  | 
+
+latitude
+
+numeric(9,6)
+
+YES
+
+NULL
+
+longitude | numeric(9,6) | YES | NULL |  | 
+
+longitude
+
+numeric(9,6)
+
+YES
+
+NULL
+
+temple_id | uuid | YES | NULL | FK temples.id | Selected temple, if applicable.
+
+temple_id
+
+uuid
+
+YES
+
+NULL
+
+FK temples.id
+
+Selected temple, if applicable.
+
+temple_name_snapshot | text | YES | NULL |  | Historical temple label.
+
+temple_name_snapshot
+
+text
+
+YES
+
+NULL
+
+Historical temple label.
+
+booking_line_items
+
+Immutable-ish pricing lines for Puja, Samagri, Prasad, live service and fees.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Line-item identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Line-item identifier.
+
+booking_id | uuid | NO | — | FK bookings.id | Booking.
+
+booking_id
+
+uuid
+
+NO
+
+—
+
+FK bookings.id
+
+Booking.
+
+item_type | text | NO | — | CHECK | puja, samagri_item, samagri_package, prasad, live_service, prepone_fee, other.
+
+item_type
+
+text
+
+NO
+
+—
+
+CHECK
+
+puja, samagri_item, samagri_package, prasad, live_service, prepone_fee, other.
+
+samagri_item_id | uuid | YES | NULL | FK samagri_items.id | Catalog item when applicable.
+
+samagri_item_id
+
+uuid
+
+YES
+
+NULL
+
+FK samagri_items.id
+
+Catalog item when applicable.
+
+samagri_package_id | uuid | YES | NULL | FK samagri_packages.id | Selected package when applicable.
+
+samagri_package_id
+
+uuid
+
+YES
+
+NULL
+
+FK samagri_packages.id
+
+Selected package when applicable.
+
+prasad_item_id | uuid | YES | NULL | FK prasad_items.id | Prasad item when applicable.
+
+prasad_item_id
+
+uuid
+
+YES
+
+NULL
+
+FK prasad_items.id
+
+Prasad item when applicable.
+
+live_session_id | uuid | YES | NULL | FK live_sessions.id | Linked live session when applicable.
+
+live_session_id
+
+uuid
+
+YES
+
+NULL
+
+FK live_sessions.id
+
+Linked live session when applicable.
+
+name_snapshot | text | NO | — |  | Display name at time of charge.
+
+name_snapshot
+
+text
+
+NO
+
+—
+
+Display name at time of charge.
+
+unit | text | YES | NULL |  | Pricing unit.
+
+unit
+
+text
+
+YES
+
+NULL
+
+Pricing unit.
+
+quantity | numeric(12,3) | NO | 1 | CHECK > 0 | Charged quantity.
+
+quantity
+
+numeric(12,3)
+
+NO
+
+1
+
+CHECK > 0
+
+Charged quantity.
+
+unit_price | numeric(12,2) | NO | 0 |  | Price snapshot.
+
+unit_price
+
+numeric(12,2)
+
+NO
+
+0
+
+Price snapshot.
+
+total_price | numeric(12,2) | NO | 0 |  | Line total.
+
+total_price
+
+numeric(12,2)
+
+NO
+
+0
+
+Line total.
+
+is_refundable | boolean | NO | true |  | Used by cancellation/refund calculation.
+
+is_refundable
+
+boolean
+
+NO
+
+true
+
+Used by cancellation/refund calculation.
+
+metadata | jsonb | NO | {} |  | Additional immutable pricing/provider metadata.
+
+metadata
+
+jsonb
+
+NO
+
+{}
+
+Additional immutable pricing/provider metadata.
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+booking_reschedule_requests
+
+One-time customer reschedule record, including prepone/postpone fee.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Request identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Request identifier.
+
+booking_id | uuid | NO | — | FK bookings.id | Booking.
+
+booking_id
+
+uuid
+
+NO
+
+—
+
+FK bookings.id
+
+Booking.
+
+requested_by | uuid | NO | — | FK profiles.id | Customer in Phase 1.
+
+requested_by
+
+uuid
+
+NO
+
+—
+
+FK profiles.id
+
+Customer in Phase 1.
+
+change_type | text | NO | — | CHECK | postpone, prepone.
+
+change_type
+
+text
+
+NO
+
+—
+
+CHECK
+
+postpone, prepone.
+
+old_start_at | timestamptz | NO | — |  | Original slot.
+
+old_start_at
+
+timestamptz
+
+NO
+
+—
+
+Original slot.
+
+old_end_at | timestamptz | NO | — |  | Original end.
+
+old_end_at
+
+timestamptz
+
+NO
+
+—
+
+Original end.
+
+requested_start_at | timestamptz | NO | — |  | New requested start.
+
+requested_start_at
+
+timestamptz
+
+NO
+
+—
+
+New requested start.
+
+requested_end_at | timestamptz | NO | — |  | New requested end.
+
+requested_end_at
+
+timestamptz
+
+NO
+
+—
+
+New requested end.
+
+fee_amount | numeric(12,2) | NO | 0 | CHECK >= 0 | Additional prepone fee; postpone is zero.
+
+fee_amount
+
+numeric(12,2)
+
+NO
+
+0
+
+CHECK >= 0
+
+Additional prepone fee; postpone is zero.
+
+status | text | NO | requested | CHECK | requested, approved, rejected, cancelled, expired.
+
+status
+
+text
+
+NO
+
+requested
+
+CHECK
+
+requested, approved, rejected, cancelled, expired.
+
+approved_at | timestamptz | YES | NULL |  | 
+
+approved_at
+
+timestamptz
+
+YES
+
+NULL
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+booking_cancellations
+
+Cancellation record and policy snapshot used for refund calculation.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Cancellation identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Cancellation identifier.
+
+booking_id | uuid | NO | — | UNIQUE/FK bookings.id | Booking.
+
+booking_id
+
+uuid
+
+NO
+
+—
+
+UNIQUE/FK bookings.id
+
+Booking.
+
+cancelled_by | uuid | NO | — | FK profiles.id | Actor.
+
+cancelled_by
+
+uuid
+
+NO
+
+—
+
+FK profiles.id
+
+Actor.
+
+cancelled_at | timestamptz | NO | now() |  | 
+
+cancelled_at
+
+timestamptz
+
+NO
+
+now()
+
+reason | text | YES | NULL |  | 
+
+reason
+
+text
+
+YES
+
+NULL
+
+policy_rule_id | uuid | YES | NULL | FK cancellation_policy_rules.id | Rule applied.
+
+policy_rule_id
+
+uuid
+
+YES
+
+NULL
+
+FK cancellation_policy_rules.id
+
+Rule applied.
+
+refund_base_amount | numeric(12,2) | NO | 0 |  | Amount used for policy calculation.
+
+refund_base_amount
+
+numeric(12,2)
+
+NO
+
+0
+
+Amount used for policy calculation.
+
+deduction_amount | numeric(12,2) | NO | 0 |  | 
+
+deduction_amount
+
+numeric(12,2)
+
+NO
+
+0
+
+refund_amount | numeric(12,2) | NO | 0 |  | 
+
+refund_amount
+
+numeric(12,2)
+
+NO
+
+0
+
+policy_snapshot | jsonb | NO | {} |  | Immutable copy of the policy values used.
+
+policy_snapshot
+
+jsonb
+
+NO
+
+{}
+
+Immutable copy of the policy values used.
+
+Payments & settlement
+
+payment_orders
+
+A customer payment obligation/order; supports multiple payments per booking or service.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Payment order identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Payment order identifier.
+
+booking_id | uuid | YES | NULL | FK bookings.id | Linked booking.
+
+booking_id
+
+uuid
+
+YES
+
+NULL
+
+FK bookings.id
+
+Linked booking.
+
+kundli_order_id | uuid | YES | NULL | FK kundli_orders.id | Linked Kundli order.
+
+kundli_order_id
+
+uuid
+
+YES
+
+NULL
+
+FK kundli_orders.id
+
+Linked Kundli order.
+
+subscription_id | uuid | YES | NULL | FK astrology_subscriptions.id | Linked astrology subscription.
+
+subscription_id
+
+uuid
+
+YES
+
+NULL
+
+FK astrology_subscriptions.id
+
+Linked astrology subscription.
+
+purpose | text | NO | — | CHECK | booking_advance, booking_balance, samagri, kundli, subscription, prepone_fee, live_service, other.
+
+purpose
+
+text
+
+NO
+
+—
+
+CHECK
+
+booking_advance, booking_balance, samagri, kundli, subscription, prepone_fee, live_service, other.
+
+amount | numeric(12,2) | NO | 0 | CHECK >= 0 | Expected amount.
+
+amount
+
+numeric(12,2)
+
+NO
+
+0
+
+CHECK >= 0
+
+Expected amount.
+
+currency | char(3) | NO | INR |  | 
+
+currency
+
+char(3)
+
+NO
+
+INR
+
+status | text | NO | created | CHECK | created, pending, paid, failed, cancelled, expired.
+
+status
+
+text
+
+NO
+
+created
+
+CHECK
+
+created, pending, paid, failed, cancelled, expired.
+
+provider | text | NO | razorpay |  | Payment provider.
+
+provider
+
+text
+
+NO
+
+razorpay
+
+Payment provider.
+
+provider_order_id | text | YES | NULL | UNIQUE | Gateway order identifier.
+
+provider_order_id
+
+text
+
+YES
+
+NULL
+
+UNIQUE
+
+Gateway order identifier.
+
+due_at | timestamptz | YES | NULL |  | Optional payment expiry.
+
+due_at
+
+timestamptz
+
+YES
+
+NULL
+
+Optional payment expiry.
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+updated_at | timestamptz | NO | now() |  | 
+
+updated_at
+
+timestamptz
+
+NO
+
+now()
+
+payment_transactions
+
+Gateway payment attempts/charges associated with payment orders.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Transaction identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Transaction identifier.
+
+payment_order_id | uuid | NO | — | FK payment_orders.id | Payment order.
+
+payment_order_id
+
+uuid
+
+NO
+
+—
+
+FK payment_orders.id
+
+Payment order.
+
+provider_payment_id | text | NO | — | UNIQUE | Gateway payment id.
+
+provider_payment_id
+
+text
+
+NO
+
+—
+
+UNIQUE
+
+Gateway payment id.
+
+provider_signature | text | YES | NULL |  | Verified signature reference if applicable.
+
+provider_signature
+
+text
+
+YES
+
+NULL
+
+Verified signature reference if applicable.
+
+amount | numeric(12,2) | NO | 0 | CHECK >= 0 | Captured amount.
+
+amount
+
+numeric(12,2)
+
+NO
+
+0
+
+CHECK >= 0
+
+Captured amount.
+
+status | text | NO | created | CHECK | created, authorized, captured, failed, refunded, partially_refunded.
+
+status
+
+text
+
+NO
+
+created
+
+CHECK
+
+created, authorized, captured, failed, refunded, partially_refunded.
+
+paid_at | timestamptz | YES | NULL |  | 
+
+paid_at
+
+timestamptz
+
+YES
+
+NULL
+
+raw_response | jsonb | YES | NULL |  | Provider response for reconciliation; redact secrets.
+
+raw_response
+
+jsonb
+
+YES
+
+NULL
+
+Provider response for reconciliation; redact secrets.
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+refunds
+
+Customer refunds processed against captured payment transactions.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Refund identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Refund identifier.
+
+payment_transaction_id | uuid | NO | — | FK payment_transactions.id | Original charge.
+
+payment_transaction_id
+
+uuid
+
+NO
+
+—
+
+FK payment_transactions.id
+
+Original charge.
+
+booking_cancellation_id | uuid | YES | NULL | FK booking_cancellations.id | Cancellation origin.
+
+booking_cancellation_id
+
+uuid
+
+YES
+
+NULL
+
+FK booking_cancellations.id
+
+Cancellation origin.
+
+amount | numeric(12,2) | NO | 0 | CHECK > 0 | Refund amount.
+
+amount
+
+numeric(12,2)
+
+NO
+
+0
+
+CHECK > 0
+
+Refund amount.
+
+reason | text | YES | NULL |  | 
+
+reason
+
+text
+
+YES
+
+NULL
+
+status | text | NO | requested | CHECK | requested, processed, failed, cancelled.
+
+status
+
+text
+
+NO
+
+requested
+
+CHECK
+
+requested, processed, failed, cancelled.
+
+provider_refund_id | text | YES | NULL | UNIQUE | Gateway refund id.
+
+provider_refund_id
+
+text
+
+YES
+
+NULL
+
+UNIQUE
+
+Gateway refund id.
+
+processed_at | timestamptz | YES | NULL |  | 
+
+processed_at
+
+timestamptz
+
+YES
+
+NULL
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+pandit_bank_accounts
+
+Verified payout account details for Pandit settlement.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Bank account.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Bank account.
+
+pandit_id | uuid | NO | — | FK pandit_profiles.id | Pandit.
+
+pandit_id
+
+uuid
+
+NO
+
+—
+
+FK pandit_profiles.id
+
+Pandit.
+
+account_holder_name | text | NO | — |  | 
+
+account_holder_name
+
+text
+
+NO
+
+—
+
+account_number_encrypted | text | NO | — |  | Encrypted/securely handled account number; never log plaintext.
+
+account_number_encrypted
+
+text
+
+NO
+
+—
+
+Encrypted/securely handled account number; never log plaintext.
+
+ifsc_code | text | NO | — |  | 
+
+ifsc_code
+
+text
+
+NO
+
+—
+
+bank_name | text | YES | NULL |  | 
+
+bank_name
+
+text
+
+YES
+
+NULL
+
+upi_id | text | YES | NULL |  | Optional UPI.
+
+upi_id
+
+text
+
+YES
+
+NULL
+
+Optional UPI.
+
+verification_status | text | NO | pending | CHECK | pending, verified, rejected.
+
+verification_status
+
+text
+
+NO
+
+pending
+
+CHECK
+
+pending, verified, rejected.
+
+verified_by | uuid | YES | NULL | FK profiles.id | Admin verifier.
+
+verified_by
+
+uuid
+
+YES
+
+NULL
+
+FK profiles.id
+
+Admin verifier.
+
+verified_at | timestamptz | YES | NULL |  | 
+
+verified_at
+
+timestamptz
+
+YES
+
+NULL
+
+is_default | boolean | NO | true |  | 
+
+is_default
+
+boolean
+
+NO
+
+true
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+pandit_payouts
+
+Payout release after completed Puja or confirmed Kundli.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Payout.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Payout.
+
+pandit_id | uuid | NO | — | FK pandit_profiles.id | Recipient.
+
+pandit_id
+
+uuid
+
+NO
+
+—
+
+FK pandit_profiles.id
+
+Recipient.
+
+booking_id | uuid | YES | NULL | FK bookings.id | Puja source.
+
+booking_id
+
+uuid
+
+YES
+
+NULL
+
+FK bookings.id
+
+Puja source.
+
+kundli_order_id | uuid | YES | NULL | FK kundli_orders.id | Kundli source.
+
+kundli_order_id
+
+uuid
+
+YES
+
+NULL
+
+FK kundli_orders.id
+
+Kundli source.
+
+bank_account_id | uuid | NO | — | FK pandit_bank_accounts.id | Payout destination.
+
+bank_account_id
+
+uuid
+
+NO
+
+—
+
+FK pandit_bank_accounts.id
+
+Payout destination.
+
+gross_amount | numeric(12,2) | NO | 0 | CHECK >= 0 | Amount due to Pandit.
+
+gross_amount
+
+numeric(12,2)
+
+NO
+
+0
+
+CHECK >= 0
+
+Amount due to Pandit.
+
+platform_fee | numeric(12,2) | NO | 0 | CHECK >= 0 | Initially zero unless later changed.
+
+platform_fee
+
+numeric(12,2)
+
+NO
+
+0
+
+CHECK >= 0
+
+Initially zero unless later changed.
+
+net_amount | numeric(12,2) | NO | 0 | CHECK >= 0 | Amount sent to Pandit.
+
+net_amount
+
+numeric(12,2)
+
+NO
+
+0
+
+CHECK >= 0
+
+Amount sent to Pandit.
+
+status | text | NO | pending | CHECK | pending, approved, processing, paid, failed, cancelled.
+
+status
+
+text
+
+NO
+
+pending
+
+CHECK
+
+pending, approved, processing, paid, failed, cancelled.
+
+provider_payout_id | text | YES | NULL | UNIQUE | External payout id.
+
+provider_payout_id
+
+text
+
+YES
+
+NULL
+
+UNIQUE
+
+External payout id.
+
+released_at | timestamptz | YES | NULL |  | 
+
+released_at
+
+timestamptz
+
+YES
+
+NULL
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+live_pricing_rules
+
+Admin-configured per-minute pricing for remote live service.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Pricing rule.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Pricing rule.
+
+provider_name | text | NO | — |  | External live-service provider label.
+
+provider_name
+
+text
+
+NO
+
+—
+
+External live-service provider label.
+
+rate_per_minute | numeric(12,2) | NO | 0 | CHECK >= 0 | Customer charge per minute.
+
+rate_per_minute
+
+numeric(12,2)
+
+NO
+
+0
+
+CHECK >= 0
+
+Customer charge per minute.
+
+rounding_minutes | integer | NO | 1 | CHECK > 0 | Billing increment.
+
+rounding_minutes
+
+integer
+
+NO
+
+1
+
+CHECK > 0
+
+Billing increment.
+
+effective_from | timestamptz | NO | now() |  | 
+
+effective_from
+
+timestamptz
+
+NO
+
+now()
+
+effective_to | timestamptz | YES | NULL |  | 
+
+effective_to
+
+timestamptz
+
+YES
+
+NULL
+
+is_active | boolean | NO | true |  | 
+
+is_active
+
+boolean
+
+NO
+
+true
+
+live_sessions
+
+A remote Puja video/audio session and its billable duration.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Live session.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Live session.
+
+booking_id | uuid | NO | UNIQUE | FK bookings.id | Remote booking.
+
+booking_id
+
+uuid
+
+NO
+
+UNIQUE
+
+FK bookings.id
+
+Remote booking.
+
+pricing_rule_id | uuid | YES | NULL | FK live_pricing_rules.id | Rule used at session creation.
+
+pricing_rule_id
+
+uuid
+
+YES
+
+NULL
+
+FK live_pricing_rules.id
+
+Rule used at session creation.
+
+provider_session_id | text | YES | NULL |  | External room/session id.
+
+provider_session_id
+
+text
+
+YES
+
+NULL
+
+External room/session id.
+
+status | text | NO | created | CHECK | created, scheduled, live, ended, failed, cancelled.
+
+status
+
+text
+
+NO
+
+created
+
+CHECK
+
+created, scheduled, live, ended, failed, cancelled.
+
+scheduled_start_at | timestamptz | YES | NULL |  | 
+
+scheduled_start_at
+
+timestamptz
+
+YES
+
+NULL
+
+actual_started_at | timestamptz | YES | NULL |  | 
+
+actual_started_at
+
+timestamptz
+
+YES
+
+NULL
+
+actual_ended_at | timestamptz | YES | NULL |  | 
+
+actual_ended_at
+
+timestamptz
+
+YES
+
+NULL
+
+billable_minutes | integer | NO | 0 | CHECK >= 0 | Rounded billable duration.
+
+billable_minutes
+
+integer
+
+NO
+
+0
+
+CHECK >= 0
+
+Rounded billable duration.
+
+customer_charge | numeric(12,2) | NO | 0 | CHECK >= 0 | Amount added to customer bill.
+
+customer_charge
+
+numeric(12,2)
+
+NO
+
+0
+
+CHECK >= 0
+
+Amount added to customer bill.
+
+provider_cost | numeric(12,2) | YES | NULL | CHECK >= 0 | External provider cost if available.
+
+provider_cost
+
+numeric(12,2)
+
+YES
+
+NULL
+
+CHECK >= 0
+
+External provider cost if available.
+
+metadata | jsonb | NO | {} |  | Provider metadata; never store sensitive tokens if avoidable.
+
+metadata
+
+jsonb
+
+NO
+
+{}
+
+Provider metadata; never store sensitive tokens if avoidable.
+
+Kundli & astrology
+
+kundli_orders
+
+Paid handwritten Kundli request assigned to a chosen Pandit.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Kundli order.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Kundli order.
+
+order_number | text | NO | generated | UNIQUE | Human-readable order number.
+
+order_number
+
+text
+
+NO
+
+generated
+
+UNIQUE
+
+Human-readable order number.
+
+customer_id | uuid | NO | — | FK profiles.id | Customer.
+
+customer_id
+
+uuid
+
+NO
+
+—
+
+FK profiles.id
+
+Customer.
+
+pandit_id | uuid | NO | — | FK pandit_profiles.id | Selected Pandit.
+
+pandit_id
+
+uuid
+
+NO
+
+—
+
+FK pandit_profiles.id
+
+Selected Pandit.
+
+price | numeric(12,2) | NO | 0 | CHECK >= 0 | Price snapshot.
+
+price
+
+numeric(12,2)
+
+NO
+
+0
+
+CHECK >= 0
+
+Price snapshot.
+
+currency | char(3) | NO | INR |  | 
+
+currency
+
+char(3)
+
+NO
+
+INR
+
+date_of_birth | date | NO | — |  | DOB input.
+
+date_of_birth
+
+date
+
+NO
+
+—
+
+DOB input.
+
+time_of_birth | time | NO | — |  | TOB input.
+
+time_of_birth
+
+time
+
+NO
+
+—
+
+TOB input.
+
+place_of_birth | text | NO | — |  | POB text.
+
+place_of_birth
+
+text
+
+NO
+
+—
+
+POB text.
+
+birth_latitude | numeric(9,6) | YES | NULL |  | Optional coordinate.
+
+birth_latitude
+
+numeric(9,6)
+
+YES
+
+NULL
+
+Optional coordinate.
+
+birth_longitude | numeric(9,6) | YES | NULL |  | Optional coordinate.
+
+birth_longitude
+
+numeric(9,6)
+
+YES
+
+NULL
+
+Optional coordinate.
+
+additional_notes | text | YES | NULL |  | Optional requested details.
+
+additional_notes
+
+text
+
+YES
+
+NULL
+
+Optional requested details.
+
+status | text | NO | payment_pending | CHECK | payment_pending, paid, in_progress, document_uploaded, customer_confirmed, cancelled, disputed, completed.
+
+status
+
+text
+
+NO
+
+payment_pending
+
+CHECK
+
+payment_pending, paid, in_progress, document_uploaded, customer_confirmed, cancelled, disputed, completed.
+
+customer_confirmed_at | timestamptz | YES | NULL |  | Confirmation of delivered Kundli.
+
+customer_confirmed_at
+
+timestamptz
+
+YES
+
+NULL
+
+Confirmation of delivered Kundli.
+
+completed_at | timestamptz | YES | NULL |  | 
+
+completed_at
+
+timestamptz
+
+YES
+
+NULL
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+updated_at | timestamptz | NO | now() |  | 
+
+updated_at
+
+timestamptz
+
+NO
+
+now()
+
+kundli_documents
+
+Scanned handwritten Kundli PDF versions uploaded by Pandit.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Document record.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Document record.
+
+kundli_order_id | uuid | NO | — | FK kundli_orders.id | Kundli order.
+
+kundli_order_id
+
+uuid
+
+NO
+
+—
+
+FK kundli_orders.id
+
+Kundli order.
+
+version_number | integer | NO | 1 | UNIQUE per order | Document version.
+
+version_number
+
+integer
+
+NO
+
+1
+
+UNIQUE per order
+
+Document version.
+
+storage_path | text | NO | — |  | Supabase Storage PDF path.
+
+storage_path
+
+text
+
+NO
+
+—
+
+Supabase Storage PDF path.
+
+file_name | text | YES | NULL |  | Original display filename.
+
+file_name
+
+text
+
+YES
+
+NULL
+
+Original display filename.
+
+uploaded_by | uuid | NO | — | FK profiles.id | Pandit uploader.
+
+uploaded_by
+
+uuid
+
+NO
+
+—
+
+FK profiles.id
+
+Pandit uploader.
+
+uploaded_at | timestamptz | NO | now() |  | 
+
+uploaded_at
+
+timestamptz
+
+NO
+
+now()
+
+is_current | boolean | NO | true |  | Current document flag.
+
+is_current
+
+boolean
+
+NO
+
+true
+
+Current document flag.
+
+astrology_subscription_plans
+
+Admin-configured subscription plans.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Plan.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Plan.
+
+name | text | NO | — | UNIQUE | Plan name.
+
+name
+
+text
+
+NO
+
+—
+
+UNIQUE
+
+Plan name.
+
+duration_days | integer | NO | 30 | CHECK > 0 | Subscription duration.
+
+duration_days
+
+integer
+
+NO
+
+30
+
+CHECK > 0
+
+Subscription duration.
+
+price | numeric(12,2) | NO | 0 | CHECK >= 0 | Subscription price.
+
+price
+
+numeric(12,2)
+
+NO
+
+0
+
+CHECK >= 0
+
+Subscription price.
+
+currency | char(3) | NO | INR |  | 
+
+currency
+
+char(3)
+
+NO
+
+INR
+
+daily_in_app_enabled | boolean | NO | true |  | 
+
+daily_in_app_enabled
+
+boolean
+
+NO
+
+true
+
+weekly_whatsapp_enabled | boolean | NO | true |  | 
+
+weekly_whatsapp_enabled
+
+boolean
+
+NO
+
+true
+
+is_active | boolean | NO | true |  | 
+
+is_active
+
+boolean
+
+NO
+
+true
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+updated_at | timestamptz | NO | now() |  | 
+
+updated_at
+
+timestamptz
+
+NO
+
+now()
+
+astrology_subscriptions
+
+Customer subscription enrollment and lifecycle.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Subscription.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Subscription.
+
+customer_id | uuid | NO | — | FK profiles.id | Subscriber.
+
+customer_id
+
+uuid
+
+NO
+
+—
+
+FK profiles.id
+
+Subscriber.
+
+plan_id | uuid | NO | — | FK astrology_subscription_plans.id | Plan.
+
+plan_id
+
+uuid
+
+NO
+
+—
+
+FK astrology_subscription_plans.id
+
+Plan.
+
+payment_order_id | uuid | YES | NULL | FK payment_orders.id | Payment order.
+
+payment_order_id
+
+uuid
+
+YES
+
+NULL
+
+FK payment_orders.id
+
+Payment order.
+
+starts_at | timestamptz | NO | — |  | 
+
+starts_at
+
+timestamptz
+
+NO
+
+—
+
+ends_at | timestamptz | NO | — | CHECK > starts_at | End of subscription period; must be after starts_at.
+
+ends_at
+
+timestamptz
+
+NO
+
+—
+
+CHECK > starts_at
+
+End of subscription period; must be after starts_at.
+
+status | text | NO | active | CHECK | active, expired, cancelled, payment_failed.
+
+status
+
+text
+
+NO
+
+active
+
+CHECK
+
+active, expired, cancelled, payment_failed.
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+astrology_content
+
+Daily/weekly content authored/configured for app and WhatsApp delivery.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Content item.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Content item.
+
+channel | text | NO | in_app | CHECK | in_app, whatsapp.
+
+channel
+
+text
+
+NO
+
+in_app
+
+CHECK
+
+in_app, whatsapp.
+
+title | text | YES | NULL |  | Title.
+
+title
+
+text
+
+YES
+
+NULL
+
+Title.
+
+body | text | NO | — |  | Content text.
+
+body
+
+text
+
+NO
+
+—
+
+Content text.
+
+publish_at | timestamptz | NO | — |  | Scheduled publication.
+
+publish_at
+
+timestamptz
+
+NO
+
+—
+
+Scheduled publication.
+
+expires_at | timestamptz | YES | NULL |  | 
+
+expires_at
+
+timestamptz
+
+YES
+
+NULL
+
+status | text | NO | draft | CHECK | draft, scheduled, published, cancelled.
+
+status
+
+text
+
+NO
+
+draft
+
+CHECK
+
+draft, scheduled, published, cancelled.
+
+created_by | uuid | NO | — | FK profiles.id | Admin/creator.
+
+created_by
+
+uuid
+
+NO
+
+—
+
+FK profiles.id
+
+Admin/creator.
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+updated_at | timestamptz | NO | now() |  | 
+
+updated_at
+
+timestamptz
+
+NO
+
+now()
+
+astrology_deliveries
+
+Per-subscriber delivery log for daily/weekly astrology content.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Delivery record.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Delivery record.
+
+subscription_id | uuid | NO | — | FK astrology_subscriptions.id | Subscription.
+
+subscription_id
+
+uuid
+
+NO
+
+—
+
+FK astrology_subscriptions.id
+
+Subscription.
+
+content_id | uuid | NO | — | FK astrology_content.id | Content.
+
+content_id
+
+uuid
+
+NO
+
+—
+
+FK astrology_content.id
+
+Content.
+
+channel | text | NO | — | CHECK | in_app, whatsapp.
+
+channel
+
+text
+
+NO
+
+—
+
+CHECK
+
+in_app, whatsapp.
+
+scheduled_at | timestamptz | NO | — |  | 
+
+scheduled_at
+
+timestamptz
+
+NO
+
+—
+
+sent_at | timestamptz | YES | NULL |  | 
+
+sent_at
+
+timestamptz
+
+YES
+
+NULL
+
+status | text | NO | queued | CHECK | queued, sent, failed, skipped.
+
+status
+
+text
+
+NO
+
+queued
+
+CHECK
+
+queued, sent, failed, skipped.
+
+provider_message_id | text | YES | NULL |  | WhatsApp provider message id when applicable.
+
+provider_message_id
+
+text
+
+YES
+
+NULL
+
+WhatsApp provider message id when applicable.
+
+error_message | text | YES | NULL |  | 
+
+error_message
+
+text
+
+YES
+
+NULL
+
+Engagement & platform
+
+reviews
+
+Public customer rating and feedback for a completed Puja.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Review identifier.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Review identifier.
+
+booking_id | uuid | NO | — | UNIQUE/FK bookings.id | One review per booking.
+
+booking_id
+
+uuid
+
+NO
+
+—
+
+UNIQUE/FK bookings.id
+
+One review per booking.
+
+customer_id | uuid | NO | — | FK profiles.id | Reviewer.
+
+customer_id
+
+uuid
+
+NO
+
+—
+
+FK profiles.id
+
+Reviewer.
+
+pandit_id | uuid | NO | — | FK pandit_profiles.id | Reviewed Pandit.
+
+pandit_id
+
+uuid
+
+NO
+
+—
+
+FK pandit_profiles.id
+
+Reviewed Pandit.
+
+rating | smallint | NO | — | CHECK 1-5 | Public star rating.
+
+rating
+
+smallint
+
+NO
+
+—
+
+CHECK 1-5
+
+Public star rating.
+
+comment | text | YES | NULL |  | Public written feedback.
+
+comment
+
+text
+
+YES
+
+NULL
+
+Public written feedback.
+
+visibility_status | text | NO | published | CHECK | published, hidden.
+
+visibility_status
+
+text
+
+NO
+
+published
+
+CHECK
+
+published, hidden.
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+notifications
+
+In-app/push/WhatsApp notification delivery records.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Notification.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Notification.
+
+recipient_id | uuid | NO | — | FK profiles.id | Recipient.
+
+recipient_id
+
+uuid
+
+NO
+
+—
+
+FK profiles.id
+
+Recipient.
+
+channel | text | NO | push | CHECK | in_app, push, whatsapp, email.
+
+channel
+
+text
+
+NO
+
+push
+
+CHECK
+
+in_app, push, whatsapp, email.
+
+type | text | NO | — |  | Booking/payment/subscription/etc.
+
+type
+
+text
+
+NO
+
+—
+
+Booking/payment/subscription/etc.
+
+title | text | YES | NULL |  | 
+
+title
+
+text
+
+YES
+
+NULL
+
+body | text | NO | — |  | 
+
+body
+
+text
+
+NO
+
+—
+
+related_booking_id | uuid | YES | NULL | FK bookings.id | Optional booking context.
+
+related_booking_id
+
+uuid
+
+YES
+
+NULL
+
+FK bookings.id
+
+Optional booking context.
+
+status | text | NO | queued | CHECK | queued, sent, failed, read.
+
+status
+
+text
+
+NO
+
+queued
+
+CHECK
+
+queued, sent, failed, read.
+
+provider_message_id | text | YES | NULL |  | 
+
+provider_message_id
+
+text
+
+YES
+
+NULL
+
+sent_at | timestamptz | YES | NULL |  | 
+
+sent_at
+
+timestamptz
+
+YES
+
+NULL
+
+read_at | timestamptz | YES | NULL |  | 
+
+read_at
+
+timestamptz
+
+YES
+
+NULL
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+platform_settings
+
+Generic platform configuration for values not needing a dedicated table.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+key | text | NO | — | PK | Configuration key.
+
+key
+
+text
+
+NO
+
+—
+
+PK
+
+Configuration key.
+
+value_json | jsonb | NO | {} |  | Configuration value; version/business approval controlled.
+
+value_json
+
+jsonb
+
+NO
+
+{}
+
+Configuration value; version/business approval controlled.
+
+updated_by | uuid | YES | NULL | FK profiles.id | Admin who changed it.
+
+updated_by
+
+uuid
+
+YES
+
+NULL
+
+FK profiles.id
+
+Admin who changed it.
+
+updated_at | timestamptz | NO | now() |  | 
+
+updated_at
+
+timestamptz
+
+NO
+
+now()
+
+booking_policy_settings
+
+Global booking/payment/reschedule settings that are expected to be configurable.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | smallint | NO | 1 | PK | Single active configuration row.
+
+id
+
+smallint
+
+NO
+
+1
+
+PK
+
+Single active configuration row.
+
+home_advance_percent | numeric(5,2) | NO | 10 | CHECK 0-100 | Home Puja advance.
+
+home_advance_percent
+
+numeric(5,2)
+
+NO
+
+10
+
+CHECK 0-100
+
+Home Puja advance.
+
+temple_advance_percent | numeric(5,2) | YES | NULL | CHECK 0-100 | Temple mode pending explicit client confirmation; configurable.
+
+temple_advance_percent
+
+numeric(5,2)
+
+YES
+
+NULL
+
+CHECK 0-100
+
+Temple mode pending explicit client confirmation; configurable.
+
+remote_advance_percent | numeric(5,2) | NO | 50 | CHECK 0-100 | Remote Puja advance.
+
+remote_advance_percent
+
+numeric(5,2)
+
+NO
+
+50
+
+CHECK 0-100
+
+Remote Puja advance.
+
+samagri_advance_percent | numeric(5,2) | NO | 100 | CHECK 0-100 | Samagri charges collected upfront.
+
+samagri_advance_percent
+
+numeric(5,2)
+
+NO
+
+100
+
+CHECK 0-100
+
+Samagri charges collected upfront.
+
+kundli_advance_percent | numeric(5,2) | NO | 100 | CHECK 0-100 | Kundli collected upfront.
+
+kundli_advance_percent
+
+numeric(5,2)
+
+NO
+
+100
+
+CHECK 0-100
+
+Kundli collected upfront.
+
+max_reschedules | smallint | NO | 1 | CHECK >= 0 | Phase 1 one-reschedule rule.
+
+max_reschedules
+
+smallint
+
+NO
+
+1
+
+CHECK >= 0
+
+Phase 1 one-reschedule rule.
+
+prepone_window_hours | integer | YES | NULL | CHECK >= 0 | To be finalized by Kashi Veda.
+
+prepone_window_hours
+
+integer
+
+YES
+
+NULL
+
+CHECK >= 0
+
+To be finalized by Kashi Veda.
+
+postpone_window_hours | integer | YES | NULL | CHECK >= 0 | To be finalized by Kashi Veda.
+
+postpone_window_hours
+
+integer
+
+YES
+
+NULL
+
+CHECK >= 0
+
+To be finalized by Kashi Veda.
+
+updated_by | uuid | YES | NULL | FK profiles.id | Admin who changed policy.
+
+updated_by
+
+uuid
+
+YES
+
+NULL
+
+FK profiles.id
+
+Admin who changed policy.
+
+updated_at | timestamptz | NO | now() |  | 
+
+updated_at
+
+timestamptz
+
+NO
+
+now()
+
+cancellation_policy_rules
+
+Configurable cancellation/refund slabs.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | uuid | NO | gen_random_uuid() | PK | Rule.
+
+id
+
+uuid
+
+NO
+
+gen_random_uuid()
+
+PK
+
+Rule.
+
+name | text | NO | — |  | Rule label.
+
+name
+
+text
+
+NO
+
+—
+
+Rule label.
+
+min_hours_before | integer | NO | 0 | CHECK >= 0 | Lower bound for hours before scheduled start.
+
+min_hours_before
+
+integer
+
+NO
+
+0
+
+CHECK >= 0
+
+Lower bound for hours before scheduled start.
+
+max_hours_before | integer | YES | NULL | CHECK > min or NULL | Upper bound; NULL means no upper bound.
+
+max_hours_before
+
+integer
+
+YES
+
+NULL
+
+CHECK > min or NULL
+
+Upper bound; NULL means no upper bound.
+
+refund_percent | numeric(5,2) | NO | 0 | CHECK 0-100 | Refund percentage against configured refund base.
+
+refund_percent
+
+numeric(5,2)
+
+NO
+
+0
+
+CHECK 0-100
+
+Refund percentage against configured refund base.
+
+non_refundable_item_types | text[] | NO | {} |  | Optional line item types excluded from refund.
+
+non_refundable_item_types
+
+text[]
+
+NO
+
+{}
+
+Optional line item types excluded from refund.
+
+is_active | boolean | NO | true |  | 
+
+is_active
+
+boolean
+
+NO
+
+true
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+updated_at | timestamptz | NO | now() |  | 
+
+updated_at
+
+timestamptz
+
+NO
+
+now()
+
+admin_audit_logs
+
+Audit trail for privileged admin/super-admin actions.
+
+Column | Type | Null? | Default | Key / constraint | Description
+
+Column
+
+Type
+
+Null?
+
+Default
+
+Key / constraint
+
+Description
+
+id | bigint | NO | generated | PK | Audit id.
+
+id
+
+bigint
+
+NO
+
+generated
+
+PK
+
+Audit id.
+
+actor_user_id | uuid | NO | — | FK profiles.id | Admin actor.
+
+actor_user_id
+
+uuid
+
+NO
+
+—
+
+FK profiles.id
+
+Admin actor.
+
+action | text | NO | — |  | create/update/delete/approve/reject/configure/etc.
+
+action
+
+text
+
+NO
+
+—
+
+create/update/delete/approve/reject/configure/etc.
+
+entity_type | text | NO | — |  | Entity name.
+
+entity_type
+
+text
+
+NO
+
+—
+
+Entity name.
+
+entity_id | text | YES | NULL |  | Entity identifier as text.
+
+entity_id
+
+text
+
+YES
+
+NULL
+
+Entity identifier as text.
+
+before_json | jsonb | YES | NULL |  | Redacted prior state where appropriate.
+
+before_json
+
+jsonb
+
+YES
+
+NULL
+
+Redacted prior state where appropriate.
+
+after_json | jsonb | YES | NULL |  | Redacted new state where appropriate.
+
+after_json
+
+jsonb
+
+YES
+
+NULL
+
+Redacted new state where appropriate.
+
+ip_address | inet | YES | NULL |  | 
+
+ip_address
+
+inet
+
+YES
+
+NULL
+
+created_at | timestamptz | NO | now() |  | 
+
+created_at
+
+timestamptz
+
+NO
+
+now()
+
+11. Money, Payment and Payout Design
+
+Figure 4. Supabase-native payment and settlement flow.
+
+The customer-facing amount is always derived server-side from the stored Pandit price snapshot, selected Samagri/Prasad lines, configured live-service charges and applicable fees.
+
+Razorpay secrets and webhook verification run only in Edge Functions.
+
+Each provider event must have an idempotency key/provider event identifier; duplicate webhooks must not create duplicate payment transactions or duplicate payouts.
+
+A booking may have multiple payment orders/transactions because the customer can make an advance and later balance payment.
+
+Refunds reference captured transactions and store the refund amount/policy snapshot used at the time of cancellation.
+
+Payout records are created only after the approved completion/confirmation condition. Platform fee is initially 0% but remains configurable in the schema.
+
+Do not call the customer-to-Pandit flow “escrow” in product/legal copy unless the payment provider and client have explicitly confirmed the legal/technical escrow arrangement.
+
+12. Kundli & Astrology Implementation
+
+Figure 5. Kundli order and astrology subscription/delivery flow.
+
+12.1 Kundli
+
+Customer enters required birth details and selects a Pandit.
+
+Server creates a 100% payment obligation and order snapshot.
+
+Payment is verified through the Razorpay Edge Function.
+
+Pandit receives the paid order and prepares the handwritten Kundli.
+
+Pandit uploads the scanned PDF into the private Kundli Storage bucket.
+
+Customer accesses the PDF through an authorized signed URL.
+
+Customer confirmation or authorized completion action makes the Pandit payout eligible.
+
+12.2 Astrology subscription
+
+Admin configures plan name, duration and price in astrology_subscription_plans.
+
+Customer purchase creates an astrology_subscriptions row linked to a payment_order.
+
+Daily in-app and weekly WhatsApp content is stored as astrology_content and linked to subscriber delivery records.
+
+Cron creates/dispatches delivery work; Queues provide retries for failed asynchronous delivery.
+
+WhatsApp provider credentials live only in Edge Function environment secrets.
+
+Auto-renewal is not assumed until the client explicitly approves it.
+
+13. Migration Structure — Supabase CLI
+
+Because this is now Supabase-native, the migration source of truth is SQL under supabase/migrations. Do not create a Drizzle schema or Drizzle migration files for Phase 1.
+
+Migration | Creates / modifies
+
+Migration
+
+Creates / modifies
+
+001_extensions_and_types.sql | Extensions (PostGIS/pgcrypto as needed), enums/domains and common functions.
+
+001_extensions_and_types.sql
+
+Extensions (PostGIS/pgcrypto as needed), enums/domains and common functions.
+
+002_identity.sql | profiles, user_roles, auth/profile triggers.
+
+002_identity.sql
+
+profiles, user_roles, auth/profile triggers.
+
+003_pandit.sql | pandit_profiles, pandit_documents, service areas, bank accounts.
+
+003_pandit.sql
+
+pandit_profiles, pandit_documents, service areas, bank accounts.
+
+004_catalog.sql | Puja categories/services, Pandit offerings, temples, Samagri, packages, Prasad.
+
+004_catalog.sql
+
+Puja categories/services, Pandit offerings, temples, Samagri, packages, Prasad.
+
+005_availability.sql | Availability rules, unavailability blocks, customer addresses.
+
+005_availability.sql
+
+Availability rules, unavailability blocks, customer addresses.
+
+006_bookings.sql | Bookings, service locations, line items, reschedules, cancellations.
+
+006_bookings.sql
+
+Bookings, service locations, line items, reschedules, cancellations.
+
+007_payments.sql | Payment orders, transactions, refunds, payouts, live pricing/session tables.
+
+007_payments.sql
+
+Payment orders, transactions, refunds, payouts, live pricing/session tables.
+
+008_kundli.sql | Kundli orders/documents.
+
+008_kundli.sql
+
+Kundli orders/documents.
+
+009_astrology.sql | Subscription plans, subscriptions, content, deliveries.
+
+009_astrology.sql
+
+Subscription plans, subscriptions, content, deliveries.
+
+010_engagement.sql | Reviews, notifications, platform settings, booking/cancellation policy tables, audit logs.
+
+010_engagement.sql
+
+Reviews, notifications, platform settings, booking/cancellation policy tables, audit logs.
+
+011_business_functions.sql | RPCs/state transitions/validation functions/trigger functions.
+
+011_business_functions.sql
+
+RPCs/state transitions/validation functions/trigger functions.
+
+012_rls.sql | RLS enablement and policies by role/ownership.
+
+012_rls.sql
+
+RLS enablement and policies by role/ownership.
+
+013_storage.sql | Storage buckets and storage.objects policies.
+
+013_storage.sql
+
+Storage buckets and storage.objects policies.
+
+014_realtime.sql | Realtime publications/channels where needed; avoid broad high-churn subscriptions.
+
+014_realtime.sql
+
+Realtime publications/channels where needed; avoid broad high-churn subscriptions.
+
+015_cron_and_queues.sql | Cron schedules and queue objects/consumers.
+
+015_cron_and_queues.sql
+
+Cron schedules and queue objects/consumers.
+
+016_indexes_and_constraints.sql | Unique/index/partial-index/constraint hardening after functional tables exist.
+
+016_indexes_and_constraints.sql
+
+Unique/index/partial-index/constraint hardening after functional tables exist.
+
+017_seed_config.sql | Initial role/config rows, empty master structures and approved policy defaults; client data loaded separately.
+
+017_seed_config.sql
+
+Initial role/config rows, empty master structures and approved policy defaults; client data loaded separately.
+
+Recommended workflow: develop migration locally → run supabase db reset → verify RLS/tests → link to the development project → push migrations → only then promote the same ordered migration set to staging/production.
+
+14. Seed Data and Configuration
+
+Client supplies initial Pandit records, verification documents, prices, service areas, Puja data and media.
+
+Client supplies or approves Samagri catalog and Puja-specific predefined packages.
+
+Admin configures subscription duration/price, live-service per-minute rate, cancellation slabs, reschedule timing and any other policy parameters through the admin panel.
+
+No production business data should be hard-coded in the mobile app.
+
+A small non-production seed dataset should be maintained for automated tests and staging.
+
+15. Testing Requirements Before Frontend Completion
+
+RLS tests for each role against each sensitive table.
+
+Double-booking tests for the same Pandit/slot under concurrent requests.
+
+Payment webhook idempotency tests.
+
+Advance/balance amount calculation tests for Home/Remote/Temple configurable modes.
+
+Samagri custom-package arithmetic tests and price snapshot tests.
+
+One-reschedule-only tests including unavailable new slots.
+
+Cancellation/refund slab tests using boundary times.
+
+Payout eligibility tests: a payout must not become eligible before completion/confirmation.
+
+Private Storage access tests for Pandit documents and Kundli PDFs.
+
+Astrology delivery retry/idempotency tests.
+
+Realtime/queue failure tests so delayed events cannot corrupt authoritative state.
+
+16. Items Still Intentionally Configurable / Not Yet Frozen
+
+Item | Implementation treatment
+
+Item
+
+Implementation treatment
+
+Temple advance percentage | Store in booking_policy_settings; final client value not yet specified.
+
+Temple advance percentage
+
+Store in booking_policy_settings; final client value not yet specified.
+
+Cancellation/refund slabs | Store in cancellation_policy_rules; exact business values to be finalized.
+
+Cancellation/refund slabs
+
+Store in cancellation_policy_rules; exact business values to be finalized.
+
+Reschedule timing window | Store in booking_policy_settings; exact number of hours/days to be finalized.
+
+Reschedule timing window
+
+Store in booking_policy_settings; exact number of hours/days to be finalized.
+
+Prepone fee formula | Store/configure in policy settings; exact pricing rule to be finalized.
+
+Prepone fee formula
+
+Store/configure in policy settings; exact pricing rule to be finalized.
+
+Live-video provider | Provider is external and pending final selection.
+
+Live-video provider
+
+Provider is external and pending final selection.
+
+WhatsApp provider | Provider is external; client bears provider charges.
+
+WhatsApp provider
+
+Provider is external; client bears provider charges.
+
+Exact customer website scope | Limited website scope still needs its final page/function list.
+
+Exact customer website scope
+
+Limited website scope still needs its final page/function list.
+
+Login method | Final authentication UX must be confirmed (email/password vs OTP and any other approved methods).
+
+Login method
+
+Final authentication UX must be confirmed (email/password vs OTP and any other approved methods).
+
+Payout confirmation actor | Confirm whether customer confirmation, Admin confirmation or a defined completion event is the final release trigger.
+
+Payout confirmation actor
+
+Confirm whether customer confirmation, Admin confirmation or a defined completion event is the final release trigger.
+
+Astrology content authoring | Business content workflow must specify whether Admin/astrologer authors content or another approved source provides it.
+
+Astrology content authoring
+
+Business content workflow must specify whether Admin/astrologer authors content or another approved source provides it.
+
+17. Explicitly Out of Scope Unless Separately Approved
+
+AI-generated Kundli/astrology engine.
+
+Automated planetary/Kundli calculation engine beyond the approved handwritten-Kundli workflow.
+
+Complex temple-management ERP.
+
+Customer referral/loyalty program.
+
+Digital Dakshina/tipping unless separately approved.
+
+Pandit commission/fee logic beyond the current 0% platform-fee assumption.
+
+Separate Financial Admin / Service Admin roles; Phase 1 has Admin and Super Admin unless the client explicitly adds sub-roles.
+
+Large-scale video storage/recording platform; live video is delegated to an external provider.
+
+Any feature appearing only in the old blueprint but not in the approved Phase 1 scope.
+
+18. Development Gate
+
+The team should now treat this document as the Supabase-native database and backend implementation baseline. Before generating the first migration, the lead developer should verify naming, nullability, foreign keys, indexes, RLS feasibility and state-transition rules.
+
+1. Review the 40-table relational model.
+
+2. Approve the Supabase-native architecture and remove Drizzle/Fastify from Phase 1 implementation tickets.
+
+3. Finalize the remaining configurable business values listed in Section 16 before enabling production payment/refund behavior.
+
+4. Create SQL migrations under supabase/migrations and run them against a dedicated development project.
+
+5. Implement RLS, RPCs, storage policies, Edge Functions, Realtime channels, Cron and Queues before building sensitive frontend actions.
+
+6. Generate Supabase TypeScript database types for frontend/backend type safety.
+
+7. Only after database/security tests pass, proceed to the production booking, payment and payout integrations.

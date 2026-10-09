@@ -1,0 +1,1349 @@
+KASHI VEDA
+
+Phase 1 Development-Ready Scope & Product Requirements
+
+Customer App | Pandit App + Web Dashboard | Admin Web Portal | Super Admin
+
+Item | Value
+
+Item
+
+Value
+
+Document version | v1.0
+
+Document version
+
+v1.0
+
+Date | 05 October 2026
+
+Date
+
+05 October 2026
+
+Purpose | Development baseline for Phase 1 implementation
+
+Purpose
+
+Development baseline for Phase 1 implementation
+
+Platforms | Android, iOS, Customer Web, Pandit Web Dashboard, Admin Web Portal
+
+Platforms
+
+Android, iOS, Customer Web, Pandit Web Dashboard, Admin Web Portal
+
+Primary roles | Customer, Pandit, Admin, Super Admin
+
+Primary roles
+
+Customer, Pandit, Admin, Super Admin
+
+Reference | Kashi Veda - Platform Blueprint & Client Presentation (9 pages), reconciled with latest client decisions discussed in project meetings
+
+Reference
+
+Kashi Veda - Platform Blueprint & Client Presentation (9 pages), reconciled with latest client decisions discussed in project meetings
+
+Scope authorityThis document is the Phase 1 development baseline. Where an older blueprint conflicts with the latest agreed business rules recorded during project discussions, the latest agreed rule in this document takes precedence. Features not listed as Phase 1 in-scope must not be added implicitly.
+
+Scope authority
+
+This document is the Phase 1 development baseline. Where an older blueprint conflicts with the latest agreed business rules recorded during project discussions, the latest agreed rule in this document takes precedence. Features not listed as Phase 1 in-scope must not be added implicitly.
+
+CONFIDENTIAL - CLIENT / PROJECT TEAM
+
+Contents
+
+1. Product Scope and Objectives
+
+2. Roles and Access Model
+
+3. Phase 1 Functional Scope
+
+4. Customer Experience
+
+5. Pandit Experience
+
+6. Admin and Super Admin
+
+7. Puja Booking Rules
+
+8. Samagri, Prasad and Pricing
+
+9. Payments, Refunds and Payouts
+
+10. Kundli Service
+
+11. Vedic Astrology Subscription
+
+12. Live Remote Puja
+
+13. Notifications and Messaging
+
+14. Data Model and Key Entities
+
+15. Technical Architecture (Proposed)
+
+16. Security and Non-Functional Requirements
+
+17. Booking and Service State Machines
+
+18. Acceptance Criteria
+
+19. Open Configuration / Third-Party Dependencies
+
+20. Explicit Phase 1 Exclusions
+
+21. Change Control and Sign-Off
+
+1. Product Scope and Objectives
+
+Kashi Veda is a platform for discovering verified Pandits and booking Hindu ritual services, including Home Puja, Temple Puja and Remote Puja, together with handwritten Kundli services and a configurable Vedic Astrology subscription.
+
+Phase 1 focuses on a reliable booking and fulfilment workflow, transparent itemized Samagri/Prasad pricing, customer payments, Pandit availability, Kundli delivery, astrology subscriptions, and web-based administration.
+
+1.1 Phase 1 objectives
+
+Allow customers to discover verified Pandits and view speciality, offerings, pricing and service availability.
+
+Allow customers to book a Pandit for Home, Temple or Remote Puja with the applicable advance-payment rule.
+
+Allow Pandits to define their own service prices and availability while preventing conflicts with confirmed bookings.
+
+Allow customers to select predefined Samagri packages or build a custom Samagri package from priced items.
+
+Allow optional Prasad to be added to a booking.
+
+Support remote live Puja through an approved third-party live-audio/video provider.
+
+Support handwritten Kundli ordering, full upfront payment, scanned PDF delivery and payout after confirmation.
+
+Support configurable Vedic Astrology subscriptions with daily in-app and weekly WhatsApp content.
+
+Provide Admin and Super Admin controls through a web portal and a Pandit dashboard through both app and web.
+
+Important scope ruleThe platform is not to implement every feature appearing in the earlier 9-page blueprint. The explicit exclusions section in this document controls what must not be built during Phase 1 without a separate scope approval.
+
+Important scope rule
+
+The platform is not to implement every feature appearing in the earlier 9-page blueprint. The explicit exclusions section in this document controls what must not be built during Phase 1 without a separate scope approval.
+
+2. Roles and Access Model
+
+Role | Primary access | Core responsibilities
+
+Role
+
+Primary access
+
+Core responsibilities
+
+Customer | Android, iOS, limited customer web | Browse Pandits, book Puja, manage Samagri/Prasad, pay, reschedule/cancel, join remote Puja, receive Kundli PDF, subscribe to astrology, rate/review.
+
+Customer
+
+Android, iOS, limited customer web
+
+Browse Pandits, book Puja, manage Samagri/Prasad, pay, reschedule/cancel, join remote Puja, receive Kundli PDF, subscribe to astrology, rate/review.
+
+Pandit | Android/iOS Pandit experience + web dashboard | Manage profile, rituals and own pricing, availability, bookings, Samagri/Prasad, remote sessions, Kundli orders, completion and payout-related information.
+
+Pandit
+
+Android/iOS Pandit experience + web dashboard
+
+Manage profile, rituals and own pricing, availability, bookings, Samagri/Prasad, remote sessions, Kundli orders, completion and payout-related information.
+
+Admin | Web only | Manage Pandits, customers, rituals, Samagri catalog, bookings, subscriptions, reviews, refunds, configuration and operational records.
+
+Admin
+
+Web only
+
+Manage Pandits, customers, rituals, Samagri catalog, bookings, subscriptions, reviews, refunds, configuration and operational records.
+
+Super Admin | Web only | All Admin privileges plus add/delete/suspend Admin accounts and access higher-level system configuration/audit functions.
+
+Super Admin
+
+Web only
+
+All Admin privileges plus add/delete/suspend Admin accounts and access higher-level system configuration/audit functions.
+
+2.1 Access principles
+
+Customers must not access Admin or Pandit-only functions.
+
+Pandits may manage only their own profile, pricing, availability, bookings, Kundli work and other permitted records.
+
+Admin may manage operational and financial records required for Phase 1.
+
+Super Admin controls Admin account lifecycle and platform-level configuration.
+
+3. Phase 1 Functional Scope
+
+Module | Phase 1 scope
+
+Module
+
+Phase 1 scope
+
+Pandit Discovery / Puja Matching | Verified Pandit directory, speciality/offerings, service location eligibility, own pricing, availability status and customer selection. No AI/algorithmic matching is required in Phase 1.
+
+Pandit Discovery / Puja Matching
+
+Verified Pandit directory, speciality/offerings, service location eligibility, own pricing, availability status and customer selection. No AI/algorithmic matching is required in Phase 1.
+
+Puja Booking | Home, Temple and Remote modes; date/time; Pandit selection; Samagri/Prasad; payment; booking confirmation; rescheduling; cancellation/refund.
+
+Puja Booking
+
+Home, Temple and Remote modes; date/time; Pandit selection; Samagri/Prasad; payment; booking confirmation; rescheduling; cancellation/refund.
+
+Samagri | Admin-managed catalog, fixed packages per Puja, custom customer package from itemized catalog, item-level pricing.
+
+Samagri
+
+Admin-managed catalog, fixed packages per Puja, custom customer package from itemized catalog, item-level pricing.
+
+Prasad | Optional per Puja; item/price added to booking total.
+
+Prasad
+
+Optional per Puja; item/price added to booking total.
+
+Remote Live Puja | Third-party live video/audio session, duration-based customer fee, join/start controls.
+
+Remote Live Puja
+
+Third-party live video/audio session, duration-based customer fee, join/start controls.
+
+Kundli | Pandit-specific handwritten Kundli service; customer enters birth details, chooses Pandit, pays 100% upfront, receives scanned PDF, confirms completion.
+
+Kundli
+
+Pandit-specific handwritten Kundli service; customer enters birth details, chooses Pandit, pays 100% upfront, receives scanned PDF, confirms completion.
+
+Astrology Subscription | Admin-configurable subscription duration and price; daily in-app content; weekly WhatsApp content.
+
+Astrology Subscription
+
+Admin-configurable subscription duration and price; daily in-app content; weekly WhatsApp content.
+
+Ratings & Feedback | Public 1-5 star rating and written review visible to customers and Admin; moderation controls may be provided at Admin level.
+
+Ratings & Feedback
+
+Public 1-5 star rating and written review visible to customers and Admin; moderation controls may be provided at Admin level.
+
+Admin | Pandit onboarding/approval, catalog, Samagri, bookings, payments/refunds, subscriptions, content/configuration, reviews and operational reporting.
+
+Admin
+
+Pandit onboarding/approval, catalog, Samagri, bookings, payments/refunds, subscriptions, content/configuration, reviews and operational reporting.
+
+Super Admin | Admin account management and platform-level access/configuration.
+
+Super Admin
+
+Admin account management and platform-level access/configuration.
+
+4. Customer Experience
+
+4.1 Customer discovery
+
+Customer can browse Pandits before committing to a booking, subject to the agreed authentication rules.
+
+Pandit profile should show name, photo, speciality/offerings, service areas, pricing and current availability state.
+
+An unavailable Pandit remains visible with a clear "Currently Unavailable" state.
+
+Customers should see only Pandits who serve the selected customer location for Home/Temple-related services, based on Pandit onboarding service-area data.
+
+4.2 Booking flow
+
+1. Select Puja/ritual.
+
+2. Select Pandit.
+
+3. Select service mode: Home, Temple or Remote.
+
+4. Select location where applicable.
+
+5. Select date/time from available slots.
+
+6. Select Samagri package or build a custom Samagri package.
+
+7. Optionally add Prasad.
+
+8. Review itemized amount and applicable advance.
+
+9. Pay required amount.
+
+10. Booking becomes automatically confirmed after successful payment.
+
+4.3 Customer post-booking
+
+View booking status, service mode, Pandit, date/time, itemized charges and payment history.
+
+Pay any remaining amount when the applicable milestone occurs.
+
+Reschedule once within the configured reschedule window.
+
+Prepone/postpone according to configured timing and fee rules.
+
+Cancel according to configurable cancellation/refund policy.
+
+Join a Remote Puja live session when the booking is eligible.
+
+Submit a public rating and written review after service completion.
+
+5. Pandit Experience
+
+5.1 Onboarding
+
+Pandit provides identity/profile information, contact details, speciality/ritual offerings, service locations and bank details.
+
+Pandit can define their own price for the services they offer.
+
+Pandit can declare handwritten Kundli capability, price and turnaround information.
+
+Admin verifies/approves the Pandit before the profile becomes bookable.
+
+5.2 Availability and calendar
+
+Pandit can mark themselves generally available/unavailable.
+
+Pandit can set future unavailable periods/dates.
+
+Confirmed booking slots are protected: the system must prevent the Pandit from blocking an already-booked slot.
+
+The customer-facing profile shows "Currently Unavailable" when the Pandit is unavailable rather than removing the profile entirely.
+
+5.3 Pandit booking operations
+
+View upcoming, active and completed bookings.
+
+View customer location and selected service mode.
+
+View selected Samagri/Prasad details.
+
+Start Remote Puja session when applicable.
+
+Mark the Puja/service as completed.
+
+Manage Kundli requests and upload the scanned handwritten Kundli PDF.
+
+6. Admin and Super Admin
+
+6.1 Admin web portal
+
+Pandit onboarding queue and approval/rejection.
+
+Customer and Pandit records.
+
+Master Puja/ritual catalog and descriptions.
+
+Samagri catalog, package templates and item prices.
+
+Booking search, monitoring and manual operational support.
+
+Configurable cancellation/refund policy slabs.
+
+Configurable reschedule/prepone timing and fee rules.
+
+Astrology subscription duration and price configuration.
+
+Astrology content management or scheduling mechanism as selected for the implementation.
+
+Review/feedback viewing and moderation.
+
+Payment/refund/payout records and reconciliation views required for Phase 1.
+
+Third-party integration configuration where supported by the provider.
+
+6.2 Super Admin
+
+Create Admin accounts.
+
+Delete/suspend Admin accounts.
+
+Review Admin access and audit activity.
+
+Access all standard Admin functions unless restricted by an explicitly configured permission boundary.
+
+7. Puja Booking Rules
+
+7.1 Service modes
+
+Mode | Description | Advance rule
+
+Mode
+
+Description
+
+Advance rule
+
+Home Puja | Pandit visits customer location. | 10% of applicable Puja/ritual fee upfront; remaining 90% after Puja completion.
+
+Home Puja
+
+Pandit visits customer location.
+
+10% of applicable Puja/ritual fee upfront; remaining 90% after Puja completion.
+
+Remote Puja | Pandit performs Puja remotely; customer joins live session. | 50% of applicable Puja/ritual fee upfront; remaining 50% when the Puja is about to start.
+
+Remote Puja
+
+Pandit performs Puja remotely; customer joins live session.
+
+50% of applicable Puja/ritual fee upfront; remaining 50% when the Puja is about to start.
+
+Temple Puja | Customer attends the Puja at the applicable temple/location. | Advance percentage is configurable / to be finalized before production. Do not hard-code the earlier blueprint value.
+
+Temple Puja
+
+Customer attends the Puja at the applicable temple/location.
+
+Advance percentage is configurable / to be finalized before production. Do not hard-code the earlier blueprint value.
+
+7.2 Automatic confirmation
+
+Booking confirmation ruleNormal customer bookings are automatically confirmed once the required advance payment succeeds. The Pandit does not need to manually accept the booking if the slot is available and bookable.
+
+Booking confirmation rule
+
+Normal customer bookings are automatically confirmed once the required advance payment succeeds. The Pandit does not need to manually accept the booking if the slot is available and bookable.
+
+7.3 Availability conflict protection
+
+The booking engine must use atomic slot checks to prevent double booking.
+
+A Pandit cannot make a confirmed booking slot unavailable.
+
+Future unavailable periods can be created only for slots that are not already committed, or the system must block conflicting entries.
+
+7.4 Rescheduling
+
+Customer may reschedule a confirmed Puja once only.
+
+Customer cannot change the Pandit while rescheduling.
+
+The original service/Puja selection remains the same.
+
+Price does not change because of the new date, except any separately configured prepone fee.
+
+Exact reschedule timing window is an Admin-configurable setting.
+
+Postpone has no additional charge.
+
+Prepone may have an additional fee determined by the applicable configured rule.
+
+8. Samagri, Prasad and Pricing
+
+8.1 Samagri catalog
+
+Admin maintains the master Samagri item catalog and item prices.
+
+Different Pujas may have different recommended or fixed Samagri packages.
+
+Customer may select a predefined package or create a custom package from the available item catalog.
+
+Custom package total is the sum of selected item prices.
+
+Samagri amount is 100% payable upfront and is itemized in the order/booking amount.
+
+8.2 Prasad
+
+Prasad is optional for each Puja.
+
+Prasad is selected/added as an itemized charge similar to Samagri.
+
+The applicable Prasad amount is included in the booking total.
+
+No separate delivery charge is added under the current scope.
+
+8.3 Example
+
+Custom Samagri calculationRice - INR 100 + Ghee - INR 200 + Flowers - INR 150 = Samagri total INR 450.
+
+Custom Samagri calculation
+
+Rice - INR 100 + Ghee - INR 200 + Flowers - INR 150 = Samagri total INR 450.
+
+9. Payments, Refunds and Payouts
+
+9.1 Customer payment rules
+
+Charge component | Payment timing
+
+Charge component
+
+Payment timing
+
+Home Puja ritual fee | 10% upfront, 90% after completion.
+
+Home Puja ritual fee
+
+10% upfront, 90% after completion.
+
+Remote Puja ritual fee | 50% upfront, 50% when the session is about to start.
+
+Remote Puja ritual fee
+
+50% upfront, 50% when the session is about to start.
+
+Samagri | 100% upfront.
+
+Samagri
+
+100% upfront.
+
+Prasad | 100% with the booking/added item amount unless a future business rule changes this.
+
+Prasad
+
+100% with the booking/added item amount unless a future business rule changes this.
+
+Kundli | 100% upfront when placing the Kundli order.
+
+Kundli
+
+100% upfront when placing the Kundli order.
+
+Live-service fee | Added to customer payment based on the Admin-configured rate for the live session.
+
+Live-service fee
+
+Added to customer payment based on the Admin-configured rate for the live session.
+
+9.2 Refund policy
+
+The platform must support configurable cancellation/refund slabs based on the time remaining before the scheduled service.
+
+The exact slab values are to be entered by the business team before production.
+
+The refund engine must clearly calculate the refundable amount and any non-refundable components such as applicable Samagri, Prasad or third-party charges if the business policy specifies them.
+
+9.3 Pandit payout
+
+Kashi Veda collects the customer payment.
+
+Pandit bank details are collected during onboarding.
+
+Kashi Veda initially intends to pass the full Pandit-earned amount to the Pandit, without an application commission unless the business later changes the policy.
+
+Payout is released only after the applicable service/Kundli completion has been confirmed.
+
+The exact confirmation actor/timing and payout batch frequency must be configured before financial production operations.
+
+10. Kundli Service
+
+10.1 Customer workflow
+
+1. Customer opens Kundli service.
+
+2. Customer enters required birth and profile information such as name, date of birth, time of birth and place of birth.
+
+3. Customer views available Pandits who offer handwritten Kundli service.
+
+4. Customer selects a Pandit and sees the Pandit-specific Kundli price.
+
+5. Customer pays 100% upfront.
+
+6. Pandit completes the handwritten Kundli.
+
+7. Pandit uploads a scanned PDF.
+
+8. Customer is notified and receives the PDF.
+
+9. After the required completion confirmation, the Kundli payout becomes eligible for release to the Pandit.
+
+10.2 Ritual + Kundli
+
+A combined Ritual + Kundli offering is supported as a configurable commercial package. The exact package price and calculation method will be defined by Kashi Veda in the Admin configuration.
+
+Scope correction from earlier blueprintPhase 1 Kundli is a Pandit-provided handwritten Kundli delivered as a scanned PDF. Automated astrological chart generation/server-side Kundli rendering described in the earlier blueprint is not required unless separately approved.
+
+Scope correction from earlier blueprint
+
+Phase 1 Kundli is a Pandit-provided handwritten Kundli delivered as a scanned PDF. Automated astrological chart generation/server-side Kundli rendering described in the earlier blueprint is not required unless separately approved.
+
+11. Vedic Astrology Subscription
+
+Admin can create/configure subscription duration.
+
+Admin can configure subscription price.
+
+Customer can purchase the subscription through the approved payment flow.
+
+Daily astrology content is delivered in-app.
+
+Weekly astrology content is delivered through WhatsApp.
+
+The exact content type (for example daily horoscope/personalized update) is controlled by Kashi Veda and may be administered through the Admin panel.
+
+Subscription expiry must be tracked and access to subscription content must stop or change according to the configured expiry policy.
+
+12. Live Remote Puja
+
+Remote Puja includes a live audio/video session between Pandit and customer through a third-party provider.
+
+The customer sees a Join Live action for an eligible Remote booking.
+
+The Pandit sees a Start Live action for an eligible Remote booking.
+
+Admin configures the customer-facing live-service rate, using a per-minute or duration-based model.
+
+Example: Admin can set a rate equivalent to INR 100 per hour; the system calculates the customer charge from the configured rate and booked session duration.
+
+The actual third-party provider and API must be selected and supplied/approved before integration.
+
+13. Notifications and Messaging
+
+Event | Customer | Pandit | Admin
+
+Event
+
+Customer
+
+Pandit
+
+Admin
+
+Booking confirmed | In-app/push/email as configured | Push/in-app | Operational notification/record
+
+Booking confirmed
+
+In-app/push/email as configured
+
+Push/in-app
+
+Operational notification/record
+
+Upcoming Puja reminder | Push/in-app | Push/in-app | Optional
+
+Upcoming Puja reminder
+
+Push/in-app
+
+Push/in-app
+
+Optional
+
+Remaining payment due | Push/in-app/email as configured | Optional | Operational record
+
+Remaining payment due
+
+Push/in-app/email as configured
+
+Optional
+
+Operational record
+
+Remote session ready | Push/in-app | Push/in-app | Optional
+
+Remote session ready
+
+Push/in-app
+
+Push/in-app
+
+Optional
+
+Puja completed | Push/in-app | In-app | Record
+
+Puja completed
+
+Push/in-app
+
+In-app
+
+Record
+
+Kundli uploaded | Push/in-app/email as configured | In-app | Record
+
+Kundli uploaded
+
+Push/in-app/email as configured
+
+In-app
+
+Record
+
+Kundli confirmed | In-app | Payout eligibility update | Record
+
+Kundli confirmed
+
+In-app
+
+Payout eligibility update
+
+Record
+
+Subscription weekly horoscope | WhatsApp | N/A | Content/admin workflow
+
+Subscription weekly horoscope
+
+WhatsApp
+
+N/A
+
+Content/admin workflow
+
+Refund processed | Push/in-app/email as configured | Optional | Financial record
+
+Refund processed
+
+Push/in-app/email as configured
+
+Optional
+
+Financial record
+
+Third-party costsWhatsApp messaging, live-video usage, payment gateway charges and other third-party provider fees are operational costs and are separate from development fees unless the commercial agreement explicitly says otherwise.
+
+Third-party costs
+
+WhatsApp messaging, live-video usage, payment gateway charges and other third-party provider fees are operational costs and are separate from development fees unless the commercial agreement explicitly says otherwise.
+
+14. Data Model and Key Entities
+
+Entity | Key fields / relationships
+
+Entity
+
+Key fields / relationships
+
+User | id, role, name, email, phone (if later enabled), auth identifiers, status.
+
+User
+
+id, role, name, email, phone (if later enabled), auth identifiers, status.
+
+Customer Profile | user_id, address book, service location, preferences.
+
+Customer Profile
+
+user_id, address book, service location, preferences.
+
+Pandit Profile | user_id, bio, speciality, offerings, service areas, verification status, pricing, availability, bank details.
+
+Pandit Profile
+
+user_id, bio, speciality, offerings, service areas, verification status, pricing, availability, bank details.
+
+Ritual / Puja | id, category, name, description, duration, service modes allowed, configuration status.
+
+Ritual / Puja
+
+id, category, name, description, duration, service modes allowed, configuration status.
+
+Pandit Service Price | pandit_id, ritual_id, price, effective status.
+
+Pandit Service Price
+
+pandit_id, ritual_id, price, effective status.
+
+Availability / Block | pandit_id, date/time range, availability state, source/manual block, conflict checks.
+
+Availability / Block
+
+pandit_id, date/time range, availability state, source/manual block, conflict checks.
+
+Booking | id, customer_id, pandit_id, ritual_id, mode, location, date/time, status, reschedule count, totals, payment milestones.
+
+Booking
+
+id, customer_id, pandit_id, ritual_id, mode, location, date/time, status, reschedule count, totals, payment milestones.
+
+Booking Item | booking_id, item_type, item_id, name snapshot, quantity, unit price, total.
+
+Booking Item
+
+booking_id, item_type, item_id, name snapshot, quantity, unit price, total.
+
+Samagri Item | id, name, price, active status.
+
+Samagri Item
+
+id, name, price, active status.
+
+Samagri Package | ritual_id, name, item composition, fixed/custom mode.
+
+Samagri Package
+
+ritual_id, name, item composition, fixed/custom mode.
+
+Prasad Option | name, price, active status.
+
+Prasad Option
+
+name, price, active status.
+
+Payment | booking/order id, gateway reference, amount, type, status, refund reference.
+
+Payment
+
+booking/order id, gateway reference, amount, type, status, refund reference.
+
+Payout | pandit_id, booking/order id, amount, eligibility status, release timestamp, payout reference.
+
+Payout
+
+pandit_id, booking/order id, amount, eligibility status, release timestamp, payout reference.
+
+Kundli Order | customer_id, pandit_id, birth details, price, status, uploaded PDF, confirmation.
+
+Kundli Order
+
+customer_id, pandit_id, birth details, price, status, uploaded PDF, confirmation.
+
+Astrology Subscription | customer_id, plan, price, start/end, payment status, delivery status.
+
+Astrology Subscription
+
+customer_id, plan, price, start/end, payment status, delivery status.
+
+Review | booking_id, customer_id, pandit_id, rating, comment, status.
+
+Review
+
+booking_id, customer_id, pandit_id, rating, comment, status.
+
+Notification | recipient, channel, template/event, delivery status.
+
+Notification
+
+recipient, channel, template/event, delivery status.
+
+Admin Config | refund slabs, reschedule window, live rate, subscription plans and other configurable rules.
+
+Admin Config
+
+refund slabs, reschedule window, live rate, subscription plans and other configurable rules.
+
+15. Technical Architecture (Proposed)
+
+The previous blueprint proposes a React Native + Expo mobile application, Next.js web applications, a Fastify/Node.js backend, Supabase/PostgreSQL for database/auth/storage, Razorpay for payments, Firebase Cloud Messaging for push, WhatsApp Business API for weekly content, and monitoring/analytics tooling. These technologies can be used as the Phase 1 implementation baseline, subject to internal engineering validation and client account availability.
+
+Layer | Proposed technology | Purpose
+
+Layer
+
+Proposed technology
+
+Purpose
+
+Mobile | React Native + Expo | Android/iOS customer and Pandit experiences.
+
+Mobile
+
+React Native + Expo
+
+Android/iOS customer and Pandit experiences.
+
+Web | Next.js + React | Customer web subset, Pandit web dashboard and Admin portal.
+
+Web
+
+Next.js + React
+
+Customer web subset, Pandit web dashboard and Admin portal.
+
+Backend | Fastify + Node.js | Business rules, booking state machine, payment webhooks, notifications, authorization and APIs.
+
+Backend
+
+Fastify + Node.js
+
+Business rules, booking state machine, payment webhooks, notifications, authorization and APIs.
+
+Database/Auth/Storage | Supabase + PostgreSQL | Relational data, authentication and secure file storage.
+
+Database/Auth/Storage
+
+Supabase + PostgreSQL
+
+Relational data, authentication and secure file storage.
+
+Payments | Razorpay or client-approved gateway | Customer payment collection, refunds and payout settlement where supported.
+
+Payments
+
+Razorpay or client-approved gateway
+
+Customer payment collection, refunds and payout settlement where supported.
+
+Push | Firebase Cloud Messaging | Mobile push notifications.
+
+Push
+
+Firebase Cloud Messaging
+
+Mobile push notifications.
+
+WhatsApp | Client-approved WhatsApp Business API provider | Weekly astrology messages and approved transactional notifications.
+
+WhatsApp
+
+Client-approved WhatsApp Business API provider
+
+Weekly astrology messages and approved transactional notifications.
+
+Live | Client-approved live audio/video provider | Remote Puja sessions.
+
+Live
+
+Client-approved live audio/video provider
+
+Remote Puja sessions.
+
+Monitoring | Sentry and optional PostHog | Crash/error monitoring and product analytics.
+
+Monitoring
+
+Sentry and optional PostHog
+
+Crash/error monitoring and product analytics.
+
+Technical caveatThe implementation team must validate third-party commercial limits, payout/settlement capabilities, webhook behavior, KYC requirements and production pricing before locking the integration design. The earlier blueprint contains some assumptions about escrow and provider pricing that must not be treated as guaranteed provider features.
+
+Technical caveat
+
+The implementation team must validate third-party commercial limits, payout/settlement capabilities, webhook behavior, KYC requirements and production pricing before locking the integration design. The earlier blueprint contains some assumptions about escrow and provider pricing that must not be treated as guaranteed provider features.
+
+16. Security and Non-Functional Requirements
+
+Role-based authorization must be enforced on the server, not only in UI navigation.
+
+Payment status must be verified by trusted gateway webhooks/server-side checks rather than client-only callbacks.
+
+Booking creation must use transactional/atomic conflict protection to prevent double booking.
+
+Customer and Pandit documents, including identity files and Kundli PDFs, must be stored with access controls and signed/authorized download links where applicable.
+
+Bank details must be treated as sensitive data and exposed only to authorized financial/admin workflows.
+
+Audit logs should be maintained for high-impact Admin actions such as Pandit approval, refund overrides, payout approval and Admin account changes.
+
+OTP/email authentication requests must be rate limited if OTP is enabled.
+
+The system should handle retries and webhook idempotency for payment events.
+
+Application errors and critical backend failures should be observable through Sentry or equivalent monitoring.
+
+The design should support India-oriented time zone/date handling (IST) for bookings and schedules.
+
+17. Booking and Service State Machines
+
+17.1 Puja booking lifecycle
+
+State | Meaning | Allowed next states
+
+State
+
+Meaning
+
+Allowed next states
+
+Draft | Customer is preparing a booking. | PaymentPending, Cancelled
+
+Draft
+
+Customer is preparing a booking.
+
+PaymentPending, Cancelled
+
+PaymentPending | Required upfront amount has not yet been verified. | Confirmed, Expired, Cancelled
+
+PaymentPending
+
+Required upfront amount has not yet been verified.
+
+Confirmed, Expired, Cancelled
+
+Confirmed | Payment received; slot is locked. | RescheduleRequested, InProgress, Cancelled
+
+Confirmed
+
+Payment received; slot is locked.
+
+RescheduleRequested, InProgress, Cancelled
+
+Rescheduled | One permitted reschedule has been completed. | InProgress, Cancelled
+
+Rescheduled
+
+One permitted reschedule has been completed.
+
+InProgress, Cancelled
+
+InProgress | Puja/session is underway. | Completed, Disputed
+
+InProgress
+
+Puja/session is underway.
+
+Completed, Disputed
+
+Completed | Puja/service has been marked complete. | Reviewed, PayoutEligible
+
+Completed
+
+Puja/service has been marked complete.
+
+Reviewed, PayoutEligible
+
+Cancelled | Booking cancelled under policy. | RefundPending, Refunded
+
+Cancelled
+
+Booking cancelled under policy.
+
+RefundPending, Refunded
+
+Disputed | Customer has raised a service complaint. | Resolved, Refunded, PayoutAdjusted
+
+Disputed
+
+Customer has raised a service complaint.
+
+Resolved, Refunded, PayoutAdjusted
+
+Resolved | Dispute has been decided. | Refunded, PayoutEligible, Closed
+
+Resolved
+
+Dispute has been decided.
+
+Refunded, PayoutEligible, Closed
+
+17.2 Important state rules
+
+A Confirmed booking locks the selected Pandit slot.
+
+Reschedule count is limited to one unless an Admin override is explicitly authorized.
+
+A completed service cannot be silently converted back into an available slot.
+
+Payment and payout records must remain auditable even when a booking is cancelled or disputed.
+
+17.3 Kundli lifecycle
+
+State | Meaning
+
+State
+
+Meaning
+
+Draft | Customer is entering birth details.
+
+Draft
+
+Customer is entering birth details.
+
+PaymentPending | Full Kundli amount not yet verified.
+
+PaymentPending
+
+Full Kundli amount not yet verified.
+
+Paid | Full amount received; order assigned/visible to selected Pandit.
+
+Paid
+
+Full amount received; order assigned/visible to selected Pandit.
+
+InPreparation | Pandit is preparing handwritten Kundli.
+
+InPreparation
+
+Pandit is preparing handwritten Kundli.
+
+Uploaded | Pandit uploaded scanned PDF.
+
+Uploaded
+
+Pandit uploaded scanned PDF.
+
+CustomerConfirmationPending | Customer must acknowledge receipt/acceptance.
+
+CustomerConfirmationPending
+
+Customer must acknowledge receipt/acceptance.
+
+Confirmed | Kundli accepted; payout becomes eligible under configured rule.
+
+Confirmed
+
+Kundli accepted; payout becomes eligible under configured rule.
+
+Disputed | Customer/Admin issue under review.
+
+Disputed
+
+Customer/Admin issue under review.
+
+Resolved | Resolution recorded.
+
+Resolved
+
+Resolution recorded.
+
+18. Acceptance Criteria
+
+Customer can browse verified Pandits and see their own service pricing and availability status.
+
+Unavailable Pandits remain visible as unavailable and cannot receive new bookings for unavailable periods.
+
+Customer can book Home, Temple or Remote Puja where configured.
+
+A successful required advance payment automatically confirms the booking and locks the slot.
+
+A Pandit cannot block a slot that already contains a confirmed booking.
+
+Customer can add Samagri via fixed package or custom item selection and the total is calculated correctly.
+
+Customer can optionally add Prasad and see it itemized in the total.
+
+Home Puja charges follow the 10% upfront / 90% post-completion rule.
+
+Remote Puja charges follow the 50% upfront / 50% at session-start rule.
+
+Samagri is 100% paid upfront.
+
+Customer can reschedule at most once and cannot change the Pandit during rescheduling.
+
+Refund amount is calculated from configurable policy slabs.
+
+Customer can join Remote Puja through the selected live provider.
+
+Customer can order a handwritten Kundli, pay fully upfront and receive the scanned PDF after Pandit upload.
+
+Kundli payout becomes eligible only after the configured confirmation step.
+
+Admin can configure subscription duration and price.
+
+Daily astrology content can be delivered in-app and weekly content through WhatsApp.
+
+Customer can submit a public rating/review after eligible service completion.
+
+Admin can manage operational data through the web portal.
+
+Super Admin can create/delete/suspend Admin accounts.
+
+19. Open Configuration / Third-Party Dependencies
+
+Item | Status | Implementation approach
+
+Item
+
+Status
+
+Implementation approach
+
+Cancellation/refund slabs | Configurable - final values pending | Build policy engine/config table; Admin enters approved values before production.
+
+Cancellation/refund slabs
+
+Configurable - final values pending
+
+Build policy engine/config table; Admin enters approved values before production.
+
+Reschedule timing window | Configurable - final value pending | Build configurable setting; enforce once value is approved.
+
+Reschedule timing window
+
+Configurable - final value pending
+
+Build configurable setting; enforce once value is approved.
+
+Temple advance percentage | Not explicitly finalized | Do not hard-code earlier blueprint value; configure before enabling Temple booking in production.
+
+Temple advance percentage
+
+Not explicitly finalized
+
+Do not hard-code earlier blueprint value; configure before enabling Temple booking in production.
+
+Customer authentication mechanism | Email-based direction given; exact mechanism pending | Freeze email/password vs email OTP during auth implementation.
+
+Customer authentication mechanism
+
+Email-based direction given; exact mechanism pending
+
+Freeze email/password vs email OTP during auth implementation.
+
+Live video provider | Provider to be selected | Integration begins after provider/API details are supplied.
+
+Live video provider
+
+Provider to be selected
+
+Integration begins after provider/API details are supplied.
+
+WhatsApp Business API provider | Client will provide/pay | Integration begins after provider credentials/templates are available.
+
+WhatsApp Business API provider
+
+Client will provide/pay
+
+Integration begins after provider credentials/templates are available.
+
+Astrology content source/workflow | Business-defined | Admin content/scheduling mechanism should be configurable.
+
+Astrology content source/workflow
+
+Business-defined
+
+Admin content/scheduling mechanism should be configurable.
+
+Payout confirmation actor and release schedule | Not fully specified | Keep explicit confirmation step and configurable release workflow.
+
+Payout confirmation actor and release schedule
+
+Not fully specified
+
+Keep explicit confirmation step and configurable release workflow.
+
+Customer website exact page list | Limited scope agreed; exact page list to be frozen | Implement only approved customer-facing subset; no parity assumption with the mobile app.
+
+Customer website exact page list
+
+Limited scope agreed; exact page list to be frozen
+
+Implement only approved customer-facing subset; no parity assumption with the mobile app.
+
+Development handling of open itemsItems above are designed as configuration or integration dependencies. The team should not invent business policy values. Where a third-party dependency is unavailable, use a mock/stub during development rather than changing business rules.
+
+Development handling of open items
+
+Items above are designed as configuration or integration dependencies. The team should not invent business policy values. Where a third-party dependency is unavailable, use a mock/stub during development rather than changing business rules.
+
+20. Explicit Phase 1 Exclusions
+
+The earlier blueprint contains a broader set of concepts. The following items are not part of Phase 1 unless separately re-approved and added through change control:
+
+AI-generated Kundli or automated astrology calculation engine.
+
+Automated digital Kundli chart rendering as a replacement for the handwritten Kundli workflow.
+
+16 Sanskars or additional ritual programs not listed in the approved ritual catalog.
+
+E-commerce / general Puja Samagri marketplace or standalone product shipping module.
+
+Referral/credits/affiliate program.
+
+Digital Dakshina/tipping wallet unless separately approved.
+
+Full Panchang / 365-day Hindu calendar product unless separately approved.
+
+Astrologer consultation marketplace or live astrologer consultation beyond the approved Kundli/astrology subscription service.
+
+Separate Financial Admin and Service Admin roles; Phase 1 uses Admin + Super Admin.
+
+Advanced market-rate benchmarking and pricing intelligence.
+
+Marketing QR/profile sharing system unless explicitly re-approved.
+
+Pandit reassignment workflow for confirmed bookings as a normal self-service feature.
+
+Emergency SOS workflow.
+
+Complex temple inventory/seat/temple management system.
+
+Automated tax filing/accounting system; basic transaction records only unless a separate requirement is approved.
+
+Any feature not listed in the Phase 1 scope or later approved through written change control.
+
+Why this section mattersSeveral of these features are present in the previous platform blueprint, including Panchang, referrals, Dakshina, extensive Admin sub-panels, disputes, market pricing and advanced operational workflows. The Phase 1 project must not silently inherit those features.
+
+Why this section matters
+
+Several of these features are present in the previous platform blueprint, including Panchang, referrals, Dakshina, extensive Admin sub-panels, disputes, market pricing and advanced operational workflows. The Phase 1 project must not silently inherit those features.
+
+21. Change Control and Sign-Off
+
+21.1 Scope change rule
+
+Change controlAny feature, workflow, integration, dashboard function, third-party service or policy not explicitly included in this Phase 1 scope will be treated as additional scope and estimated separately before development.
+
+Change control
+
+Any feature, workflow, integration, dashboard function, third-party service or policy not explicitly included in this Phase 1 scope will be treated as additional scope and estimated separately before development.
+
+21.2 Client inputs required before production
+
+Final Puja/ritual catalog and descriptions.
+
+Pandit onboarding data and verification requirements.
+
+Pandit service locations/areas and initial Pandit pricing.
+
+Samagri item catalog, item prices and fixed package definitions.
+
+Prasad item list and pricing, if applicable.
+
+Approved cancellation/refund slabs.
+
+Approved reschedule timing window and prepone fee rule.
+
+Temple advance percentage, if Temple bookings are enabled in Phase 1.
+
+Live-video provider credentials/API documentation.
+
+WhatsApp provider credentials/API documentation and approved message templates.
+
+Astrology subscription plans/prices/content rules.
+
+Legal text: Terms, Privacy, Cancellation/Refund, and relevant astrology/service disclaimers.
+
+Production payment gateway, Apple Developer, Google Play and hosting/cloud accounts as applicable.
+
+21.3 Recommended implementation sequence
+
+1. Sprint 1: Product foundation, authentication, roles, database schema and Admin configuration model.
+
+2. Sprint 2: Pandit onboarding/profile/pricing/availability.
+
+3. Sprint 3: Customer discovery and Puja booking engine.
+
+4. Sprint 4: Payments, remaining-payment milestones, cancellation/refund and rescheduling.
+
+5. Sprint 5: Samagri/Prasad and Pandit booking operations.
+
+6. Sprint 6: Remote live Puja provider integration and notifications.
+
+7. Sprint 7: Kundli ordering, PDF upload/delivery and payout workflow.
+
+8. Sprint 8: Astrology subscription, WhatsApp integration and customer web subset.
+
+9. Sprint 9: QA, security checks, UAT fixes, App Store/Play Store preparation and production deployment.
+
+21.4 Sign-off
+
+By approving this document, the project team and client confirm that this is the Phase 1 development baseline. Minor content/configuration values may be supplied later where explicitly marked as configurable, but new functionality or materially different workflows require change control.
+
+Approval | Name | Signature / Confirmation | Date
+
+Approval
+
+Name
+
+Signature / Confirmation
+
+Date
+
+Client - Kashi Veda |  |  | 
+
+Client - Kashi Veda
+
+Agency / Development Lead |  |  | 
+
+Agency / Development Lead
+
+End of Phase 1 Development-Ready Scope

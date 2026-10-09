@@ -1,0 +1,28 @@
+{
+  "name": "@xalen/wasm",
+  "type": "module",
+  "description": "WASM bindings for XALEN Ephemeris — run in any browser or Node.js",
+  "version": "0.6.0",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vedika-io/xalen-ephemeris"
+  },
+  "files": [
+    "xalen_wasm_bg.wasm",
+    "xalen_wasm.js",
+    "xalen_wasm.d.ts"
+  ],
+  "main": "xalen_wasm.js",
+  "types": "xalen_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ],
+  "keywords": [
+    "wasm",
+    "ephemeris",
+    "astrology",
+    "browser",
+    "astronomy"
+  ]
+}

@@ -19,3 +19,16 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+allprojects {
+    ext {
+        newArchEnabled = rootProject.findProperty("newArchEnabled") ?: "true"
+    }
+}
+
+subprojects { subproject ->
+    subproject.ext.set("newArchEnabled", rootProject.findProperty("newArchEnabled") ?: "true")
+    if (rootProject.hasProperty("newArchEnabled")) {
+        subproject.setProperty("newArchEnabled", rootProject.property("newArchEnabled"))
+    }
+}

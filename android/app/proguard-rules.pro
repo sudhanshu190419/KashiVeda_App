@@ -8,3 +8,12 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+
+# Razorpay SDK Proguard Rules
+-keepattributes *Annotation*
+-dontwarn com.razorpay.**
+-keep class com.razorpay.** {*;}
+-optimizations !class/merging/vertical*,!class/merging/horizontal*
+-keepclasseswithmembers class * {
+    public void onPayment*(...);
+}

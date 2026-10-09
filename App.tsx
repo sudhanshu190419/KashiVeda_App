@@ -1,44 +1,31 @@
 /**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
+ * Kashi Veda React Native Application
+ * Entry point wrapping AppProviders and RootNavigator.
  */
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import React from "react";
+import { StatusBar, StyleSheet, useColorScheme, View } from "react-native";
+import { AppProviders } from "./src/app/AppProviders.tsx";
+import { RootNavigator } from "./src/navigation/RootNavigator.tsx";
+import { colors } from "./src/shared/theme/colors.ts";
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
-  );
-}
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
+function App(): React.JSX.Element {
+  const isDarkMode = useColorScheme() === "dark";
 
   return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
+    <AppProviders>
+      <View style={styles.root}>
+        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+        <RootNavigator />
+      </View>
+    </AppProviders>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
+    backgroundColor: colors.background,
   },
 });
 

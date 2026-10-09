@@ -1,0 +1,499 @@
+[P] KASHI VEDA
+[P] Phase 1 — Supabase-Native Implementation Specification
+[P] ERD • Database • RLS • RPC • Edge Functions • Storage • Realtime • Cron • Queues
+[P] Version 1.0 • 05 October 2026
+[TBL] (1 rows)
+  | Architecture decision: Phase 1 uses a Supabase-native backend. No Fastify or Drizzle layer is required for the approved scope. Supabase PostgreSQL is the system of record; Supabase Auth, RLS, Storage, Realtime, Edge Functions, Cron, Queues and PostGIS provide the backend platform services. External providers such as Razorpay, WhatsApp and the selected live-video service are integrated through server-side Edge Functions.
+
+[P] 1. Architecture Decision
+[P] This revision supersedes the earlier ERD implementation assumption that migrations would be generated from Drizzle. The entity model remains relational, but the execution model is Supabase-native.
+[P] Client applications: React Native mobile apps, customer-facing website and Admin web portal.
+[P] Authentication: Supabase Auth.
+[P] Database: Supabase PostgreSQL.
+[P] Normal data access: Supabase client/PostgREST under RLS.
+[P] Atomic business operations: PostgreSQL functions/RPCs called through authenticated server/client flows as appropriate.
+[P] Privileged and third-party operations: Supabase Edge Functions with server-side secrets.
+[P] File storage: Supabase Storage with private buckets and signed URLs for sensitive documents.
+[P] Realtime: Supabase Realtime; durable state lives in PostgreSQL. Prefer Broadcast for ephemeral events and avoid subscribing to every table change.
+[P] Scheduled work: Supabase Cron.
+[P] Reliable asynchronous work: Supabase Queues for retryable/background processing.
+[P] Geospatial filtering: PostGIS for Pandit service areas and customer-location matching.
+[P] Migrations: Supabase SQL migrations managed with the Supabase CLI and committed to Git.
+[P] The older product blueprint proposed Fastify and Drizzle, but this document intentionally replaces that implementation choice. The final Phase 1 business behavior remains the controlling requirement.
+[P] 2. Supabase-Native System Architecture
+[P] Figure 1. Supabase-native Kashi Veda domain architecture.
+[P] 2.1 Runtime responsibilities
+[P] Frontend clients may read/write only through authenticated Supabase APIs and RLS-protected operations.
+[P] Client applications must never contain a Supabase service-role key, Razorpay secret, WhatsApp credential, live-provider secret or payout credential.
+[P] Price calculation, booking confirmation, refunds, payout eligibility and other money/state transitions must be validated server-side in PostgreSQL functions and/or Edge Functions.
+[P] PostgreSQL remains the source of truth for booking and payment state; client UI state is never authoritative.
+[P] Storage paths and signed URLs are controlled by database authorization rules; customers and Pandits only receive files they are entitled to access.
+[P] 3. Phase 1 Business Rules Mapped to the Database
+[TBL] (15 rows)
+  | Rule | Final Phase 1 behavior
+  | Home Puja | 10% advance at booking; remaining 90% after Puja completion.
+  | Remote Puja | 50% advance at booking; remaining 50% when the Puja starts.
+  ... (12 more rows)
+
+[P] 4. Master ERD — Domain Overview
+[P] Figure 2. Core relational domains and their relationships.
+[P] The previously reviewed 40-table relational model is retained, but the implementation responsibilities around those tables are now explicitly assigned to Supabase-native components rather than Drizzle/Fastify.
+[P] 5. Booking ERD & State Machine
+[P] Figure 3. Booking domain relationships.
+[P] Booking must be treated as a state machine. State transitions are authorized by PostgreSQL functions/Edge Functions, not by unrestricted client updates.
+[TBL] (11 rows)
+  | State | Meaning
+  | Draft | Optional pre-check state before payment order creation.
+  | Payment Pending | Required payment has been initiated but not successfully captured.
+  ... (8 more rows)
+
+[P] 6. Supabase-Native Backend Primitives
+[P] 6.1 PostgreSQL RPC / database functions
+[TBL] (11 rows)
+  | Function | Purpose
+  | create_or_validate_booking | Validates Pandit/Puja availability, prevents double-booking, calculates server-side totals and creates booking/payment obligation records atomically.
+  | confirm_booking_payment | Idempotently moves a booking into Confirmed after a verified successful payment event.
+  ... (8 more rows)
+
+[P] 6.2 Edge Functions
+[TBL] (10 rows)
+  | Edge Function | Responsibility
+  | create-razorpay-order | Creates payment orders using secret credentials; validates authenticated user and server-calculated amount.
+  | razorpay-webhook | Receives and verifies Razorpay webhooks, enforces idempotency, then invokes the appropriate DB transition.
+  ... (7 more rows)
+
+[P] 6.3 Realtime, Cron and Queues
+[P] Realtime Broadcast: use for ephemeral booking/availability/live-session UI events where subscribers need immediate updates but the event itself is not the source of truth.
+[P] Postgres Changes: use selectively for durable notification badge updates or narrowly scoped state changes; do not subscribe every client to high-churn tables.
+[P] Cron: daily subscription deactivation, scheduled astrology generation/delivery, reminders and housekeeping.
+[P] Queues: retryable WhatsApp/push delivery, batch astrology delivery, deferred payout work and other asynchronous jobs.
+[P] The database remains authoritative even when a realtime or queue message is delayed or duplicated; consumers must be idempotent.
+[P] 7. Storage Design
+[TBL] (7 rows)
+  | Bucket | Visibility | Use
+  | pandit-documents | Private | Pandit credentials and verification documents.
+  | kundli-documents | Private | Scanned handwritten Kundli PDFs; customer and authorized Pandit/Admin access only.
+  ... (4 more rows)
+
+[P] Storage policies must be tied to auth.uid() and role/ownership checks. Private PDFs must be served through short-lived signed URLs rather than permanent public URLs.
+[P] 8. PostGIS / Pandit Location Matching
+[P] Pandit service areas are stored as normalized location records and/or PostGIS geography values.
+[P] Customer home-visit booking validates that the selected Pandit serves the customer location before a slot can be confirmed.
+[P] A Pandit may be shown publicly as “Currently Unavailable” even when the profile remains visible; availability and service-area checks are separate concerns.
+[P] A booked slot is excluded from future availability blocking so a Pandit cannot accidentally make an existing booking unavailable.
+[P] Spatial indexes should be added for the chosen geography columns if radius-based search is used.
+[P] 9. RLS / Authorization Model
+[TBL] (5 rows)
+  | Role | Baseline database permissions
+  | Customer | Read/write own profile, own addresses, own bookings and line items, own payments/refunds, own Kundli orders/documents, own subscriptions/deliveries, submit own reviews.
+  | Pandit | Read/write own Pandit profile/application fields permitted by workflow, own availability/service areas, assigned bookings, own Kundli work, own media and own payout records. Cannot alter locked booking prices after confirmation.
+  ... (2 more rows)
+
+[P] RLS is the database enforcement layer. UI hiding is not security. Service-role access is limited to Edge Functions and never used in mobile/web client code.
+[P] 10. Data Dictionary — Existing 40 Core Tables
+[P] The column-level definitions below are carried forward from the reviewed ERD. The important implementation change is that these tables are now implemented directly in Supabase PostgreSQL and protected with RLS, functions, triggers, storage policies and Edge Functions rather than through Drizzle.
+[P] Identity & access
+[P] profiles
+[P] Base application profile linked to Supabase Auth.
+[TBL] (9 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | auth.users.id | PK / FK | Application user identifier.
+  | display_name | text | NO | — |  | Customer/Admin/Pandit display name.
+  ... (6 more rows)
+
+[P] user_roles
+[P] Role assignment for customer, pandit, admin and super_admin.
+[TBL] (5 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | user_id | uuid | NO | — | PK/FK profiles.id | User receiving the role.
+  | role | text | NO | — | PK/CHECK | customer, pandit, admin, super_admin.
+  ... (2 more rows)
+
+[P] customer_addresses
+[P] Saved customer addresses for home/temple service and checkout.
+[TBL] (14 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Address identifier.
+  | customer_id | uuid | NO | — | FK profiles.id | Owner customer.
+  ... (11 more rows)
+
+[P] pandit_profiles
+[P] Verified Pandit business/profile information and base service settings.
+[TBL] (15 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Pandit profile identifier.
+  | user_id | uuid | NO | — | UNIQUE/FK profiles.id | Linked application user.
+  ... (12 more rows)
+
+[P] pandit_documents
+[P] Credential/document records used in Pandit onboarding and verification.
+[TBL] (10 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Document identifier.
+  | pandit_id | uuid | NO | — | FK pandit_profiles.id | Pandit owner.
+  ... (7 more rows)
+
+[P] pandit_service_areas
+[P] Locations/service areas in which a Pandit can accept home visits.
+[TBL] (11 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Area identifier.
+  | pandit_id | uuid | NO | — | FK pandit_profiles.id | Pandit owner.
+  ... (8 more rows)
+
+[P] Catalog & availability
+[P] puja_categories
+[P] Admin-managed categories for ritual discovery.
+[TBL] (6 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Category identifier.
+  | name | text | NO | — | UNIQUE | Category name.
+  ... (3 more rows)
+
+[P] puja_services
+[P] Master Puja/ritual catalog.
+[TBL] (10 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Puja service identifier.
+  | category_id | uuid | YES | NULL | FK puja_categories.id | Optional category.
+  ... (7 more rows)
+
+[P] pandit_puja_services
+[P] Pandit-specific offerings and prices.
+[TBL] (10 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Offering identifier.
+  | pandit_id | uuid | NO | — | FK pandit_profiles.id | Pandit.
+  ... (7 more rows)
+
+[P] pandit_availability_rules
+[P] Recurring weekly availability windows.
+[TBL] (8 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Rule identifier.
+  | pandit_id | uuid | NO | — | FK pandit_profiles.id | Pandit.
+  ... (5 more rows)
+
+[P] pandit_unavailability_blocks
+[P] Future or one-off unavailable periods.
+[TBL] (7 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Block identifier.
+  | pandit_id | uuid | NO | — | FK pandit_profiles.id | Pandit.
+  ... (4 more rows)
+
+[P] temples
+[P] Optional admin-managed temple directory for temple-mode bookings.
+[TBL] (10 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Temple identifier.
+  | name | text | NO | — |  | Temple name.
+  ... (7 more rows)
+
+[P] samagri_items
+[P] Master Samagri item catalog.
+[TBL] (9 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Item identifier.
+  | name | text | NO | — | UNIQUE | Item name.
+  ... (6 more rows)
+
+[P] samagri_packages
+[P] Predefined Samagri packages per Puja.
+[TBL] (8 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Package identifier.
+  | puja_service_id | uuid | NO | — | FK puja_services.id | Puja to which package applies.
+  ... (5 more rows)
+
+[P] samagri_package_items
+[P] Items and quantities inside a predefined package.
+[TBL] (4 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | package_id | uuid | NO | — | PK/FK samagri_packages.id | Package.
+  | samagri_item_id | uuid | NO | — | PK/FK samagri_items.id | Item.
+  ... (1 more rows)
+
+[P] prasad_items
+[P] Optional Prasad catalog/items available to add to bookings.
+[TBL] (6 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Prasad identifier.
+  | name | text | NO | — |  | Prasad name.
+  ... (3 more rows)
+
+[P] Booking
+[P] bookings
+[P] Core Puja booking record and lifecycle.
+[TBL] (24 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Booking identifier.
+  | booking_number | text | NO | generated | UNIQUE | Human-readable booking number.
+  ... (21 more rows)
+
+[P] booking_service_locations
+[P] Historical location snapshot for home/temple bookings.
+[TBL] (12 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | booking_id | uuid | NO | — | PK/FK bookings.id | One-to-one booking location.
+  | location_type | text | NO | — | CHECK | home, temple, remote.
+  ... (9 more rows)
+
+[P] booking_line_items
+[P] Immutable-ish pricing lines for Puja, Samagri, Prasad, live service and fees.
+[TBL] (16 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Line-item identifier.
+  | booking_id | uuid | NO | — | FK bookings.id | Booking.
+  ... (13 more rows)
+
+[P] booking_reschedule_requests
+[P] One-time customer reschedule record, including prepone/postpone fee.
+[TBL] (13 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Request identifier.
+  | booking_id | uuid | NO | — | FK bookings.id | Booking.
+  ... (10 more rows)
+
+[P] booking_cancellations
+[P] Cancellation record and policy snapshot used for refund calculation.
+[TBL] (11 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Cancellation identifier.
+  | booking_id | uuid | NO | — | UNIQUE/FK bookings.id | Booking.
+  ... (8 more rows)
+
+[P] Payments & settlement
+[P] payment_orders
+[P] A customer payment obligation/order; supports multiple payments per booking or service.
+[TBL] (14 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Payment order identifier.
+  | booking_id | uuid | YES | NULL | FK bookings.id | Linked booking.
+  ... (11 more rows)
+
+[P] payment_transactions
+[P] Gateway payment attempts/charges associated with payment orders.
+[TBL] (10 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Transaction identifier.
+  | payment_order_id | uuid | NO | — | FK payment_orders.id | Payment order.
+  ... (7 more rows)
+
+[P] refunds
+[P] Customer refunds processed against captured payment transactions.
+[TBL] (10 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Refund identifier.
+  | payment_transaction_id | uuid | NO | — | FK payment_transactions.id | Original charge.
+  ... (7 more rows)
+
+[P] pandit_bank_accounts
+[P] Verified payout account details for Pandit settlement.
+[TBL] (13 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Bank account.
+  | pandit_id | uuid | NO | — | FK pandit_profiles.id | Pandit.
+  ... (10 more rows)
+
+[P] pandit_payouts
+[P] Payout release after completed Puja or confirmed Kundli.
+[TBL] (13 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Payout.
+  | pandit_id | uuid | NO | — | FK pandit_profiles.id | Recipient.
+  ... (10 more rows)
+
+[P] live_pricing_rules
+[P] Admin-configured per-minute pricing for remote live service.
+[TBL] (8 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Pricing rule.
+  | provider_name | text | NO | — |  | External live-service provider label.
+  ... (5 more rows)
+
+[P] live_sessions
+[P] A remote Puja video/audio session and its billable duration.
+[TBL] (13 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Live session.
+  | booking_id | uuid | NO | UNIQUE | FK bookings.id | Remote booking.
+  ... (10 more rows)
+
+[P] Kundli & astrology
+[P] kundli_orders
+[P] Paid handwritten Kundli request assigned to a chosen Pandit.
+[TBL] (18 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Kundli order.
+  | order_number | text | NO | generated | UNIQUE | Human-readable order number.
+  ... (15 more rows)
+
+[P] kundli_documents
+[P] Scanned handwritten Kundli PDF versions uploaded by Pandit.
+[TBL] (9 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Document record.
+  | kundli_order_id | uuid | NO | — | FK kundli_orders.id | Kundli order.
+  ... (6 more rows)
+
+[P] astrology_subscription_plans
+[P] Admin-configured subscription plans.
+[TBL] (11 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Plan.
+  | name | text | NO | — | UNIQUE | Plan name.
+  ... (8 more rows)
+
+[P] astrology_subscriptions
+[P] Customer subscription enrollment and lifecycle.
+[TBL] (9 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Subscription.
+  | customer_id | uuid | NO | — | FK profiles.id | Subscriber.
+  ... (6 more rows)
+
+[P] astrology_content
+[P] Daily/weekly content authored/configured for app and WhatsApp delivery.
+[TBL] (11 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Content item.
+  | channel | text | NO | in_app | CHECK | in_app, whatsapp.
+  ... (8 more rows)
+
+[P] astrology_deliveries
+[P] Per-subscriber delivery log for daily/weekly astrology content.
+[TBL] (10 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Delivery record.
+  | subscription_id | uuid | NO | — | FK astrology_subscriptions.id | Subscription.
+  ... (7 more rows)
+
+[P] Engagement & platform
+[P] reviews
+[P] Public customer rating and feedback for a completed Puja.
+[TBL] (9 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Review identifier.
+  | booking_id | uuid | NO | — | UNIQUE/FK bookings.id | One review per booking.
+  ... (6 more rows)
+
+[P] notifications
+[P] In-app/push/WhatsApp notification delivery records.
+[TBL] (13 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Notification.
+  | recipient_id | uuid | NO | — | FK profiles.id | Recipient.
+  ... (10 more rows)
+
+[P] platform_settings
+[P] Generic platform configuration for values not needing a dedicated table.
+[TBL] (5 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | key | text | NO | — | PK | Configuration key.
+  | value_json | jsonb | NO | {} |  | Configuration value; version/business approval controlled.
+  ... (2 more rows)
+
+[P] booking_policy_settings
+[P] Global booking/payment/reschedule settings that are expected to be configurable.
+[TBL] (12 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | smallint | NO | 1 | PK | Single active configuration row.
+  | home_advance_percent | numeric(5,2) | NO | 10 | CHECK 0-100 | Home Puja advance.
+  ... (9 more rows)
+
+[P] cancellation_policy_rules
+[P] Configurable cancellation/refund slabs.
+[TBL] (10 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | uuid | NO | gen_random_uuid() | PK | Rule.
+  | name | text | NO | — |  | Rule label.
+  ... (7 more rows)
+
+[P] admin_audit_logs
+[P] Audit trail for privileged admin/super-admin actions.
+[TBL] (10 rows)
+  | Column | Type | Null? | Default | Key / constraint | Description
+  | id | bigint | NO | generated | PK | Audit id.
+  | actor_user_id | uuid | NO | — | FK profiles.id | Admin actor.
+  ... (7 more rows)
+
+[P] 11. Money, Payment and Payout Design
+[P] Figure 4. Supabase-native payment and settlement flow.
+[P] The customer-facing amount is always derived server-side from the stored Pandit price snapshot, selected Samagri/Prasad lines, configured live-service charges and applicable fees.
+[P] Razorpay secrets and webhook verification run only in Edge Functions.
+[P] Each provider event must have an idempotency key/provider event identifier; duplicate webhooks must not create duplicate payment transactions or duplicate payouts.
+[P] A booking may have multiple payment orders/transactions because the customer can make an advance and later balance payment.
+[P] Refunds reference captured transactions and store the refund amount/policy snapshot used at the time of cancellation.
+[P] Payout records are created only after the approved completion/confirmation condition. Platform fee is initially 0% but remains configurable in the schema.
+[P] Do not call the customer-to-Pandit flow “escrow” in product/legal copy unless the payment provider and client have explicitly confirmed the legal/technical escrow arrangement.
+[P] 12. Kundli & Astrology Implementation
+[P] Figure 5. Kundli order and astrology subscription/delivery flow.
+[P] 12.1 Kundli
+[P] Customer enters required birth details and selects a Pandit.
+[P] Server creates a 100% payment obligation and order snapshot.
+[P] Payment is verified through the Razorpay Edge Function.
+[P] Pandit receives the paid order and prepares the handwritten Kundli.
+[P] Pandit uploads the scanned PDF into the private Kundli Storage bucket.
+[P] Customer accesses the PDF through an authorized signed URL.
+[P] Customer confirmation or authorized completion action makes the Pandit payout eligible.
+[P] 12.2 Astrology subscription
+[P] Admin configures plan name, duration and price in astrology_subscription_plans.
+[P] Customer purchase creates an astrology_subscriptions row linked to a payment_order.
+[P] Daily in-app and weekly WhatsApp content is stored as astrology_content and linked to subscriber delivery records.
+[P] Cron creates/dispatches delivery work; Queues provide retries for failed asynchronous delivery.
+[P] WhatsApp provider credentials live only in Edge Function environment secrets.
+[P] Auto-renewal is not assumed until the client explicitly approves it.
+[P] 13. Migration Structure — Supabase CLI
+[P] Because this is now Supabase-native, the migration source of truth is SQL under supabase/migrations. Do not create a Drizzle schema or Drizzle migration files for Phase 1.
+[TBL] (18 rows)
+  | Migration | Creates / modifies
+  | 001_extensions_and_types.sql | Extensions (PostGIS/pgcrypto as needed), enums/domains and common functions.
+  | 002_identity.sql | profiles, user_roles, auth/profile triggers.
+  ... (15 more rows)
+
+[P] Recommended workflow: develop migration locally → run supabase db reset → verify RLS/tests → link to the development project → push migrations → only then promote the same ordered migration set to staging/production.
+[P] 14. Seed Data and Configuration
+[P] Client supplies initial Pandit records, verification documents, prices, service areas, Puja data and media.
+[P] Client supplies or approves Samagri catalog and Puja-specific predefined packages.
+[P] Admin configures subscription duration/price, live-service per-minute rate, cancellation slabs, reschedule timing and any other policy parameters through the admin panel.
+[P] No production business data should be hard-coded in the mobile app.
+[P] A small non-production seed dataset should be maintained for automated tests and staging.
+[P] 15. Testing Requirements Before Frontend Completion
+[P] RLS tests for each role against each sensitive table.
+[P] Double-booking tests for the same Pandit/slot under concurrent requests.
+[P] Payment webhook idempotency tests.
+[P] Advance/balance amount calculation tests for Home/Remote/Temple configurable modes.
+[P] Samagri custom-package arithmetic tests and price snapshot tests.
+[P] One-reschedule-only tests including unavailable new slots.
+[P] Cancellation/refund slab tests using boundary times.
+[P] Payout eligibility tests: a payout must not become eligible before completion/confirmation.
+[P] Private Storage access tests for Pandit documents and Kundli PDFs.
+[P] Astrology delivery retry/idempotency tests.
+[P] Realtime/queue failure tests so delayed events cannot corrupt authoritative state.
+[P] 16. Items Still Intentionally Configurable / Not Yet Frozen
+[TBL] (11 rows)
+  | Item | Implementation treatment
+  | Temple advance percentage | Store in booking_policy_settings; final client value not yet specified.
+  | Cancellation/refund slabs | Store in cancellation_policy_rules; exact business values to be finalized.
+  ... (8 more rows)
+
+[P] 17. Explicitly Out of Scope Unless Separately Approved
+[P] AI-generated Kundli/astrology engine.
+[P] Automated planetary/Kundli calculation engine beyond the approved handwritten-Kundli workflow.
+[P] Complex temple-management ERP.
+[P] Customer referral/loyalty program.
+[P] Digital Dakshina/tipping unless separately approved.
+[P] Pandit commission/fee logic beyond the current 0% platform-fee assumption.
+[P] Separate Financial Admin / Service Admin roles; Phase 1 has Admin and Super Admin unless the client explicitly adds sub-roles.
+[P] Large-scale video storage/recording platform; live video is delegated to an external provider.
+[P] Any feature appearing only in the old blueprint but not in the approved Phase 1 scope.
+[P] 18. Development Gate
+[P] The team should now treat this document as the Supabase-native database and backend implementation baseline. Before generating the first migration, the lead developer should verify naming, nullability, foreign keys, indexes, RLS feasibility and state-transition rules.
+[P] 1. Review the 40-table relational model.
+[P] 2. Approve the Supabase-native architecture and remove Drizzle/Fastify from Phase 1 implementation tickets.
+[P] 3. Finalize the remaining configurable business values listed in Section 16 before enabling production payment/refund behavior.
+[P] 4. Create SQL migrations under supabase/migrations and run them against a dedicated development project.
+[P] 5. Implement RLS, RPCs, storage policies, Edge Functions, Realtime channels, Cron and Queues before building sensitive frontend actions.
+[P] 6. Generate Supabase TypeScript database types for frontend/backend type safety.
+[P] 7. Only after database/security tests pass, proceed to the production booking, payment and payout integrations.
