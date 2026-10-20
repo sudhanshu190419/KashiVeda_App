@@ -238,15 +238,23 @@ export async function handleRazorpayWebhook(
         );
       }
 
-      if (rpcResult?.status === "already_confirmed") {
-        logger.info("Payment already confirmed (idempotent duplicate capture)", {
-          functionName: "razorpay-webhook",
-          paymentOrderId: order.id,
-          providerPaymentId,
-          razorpayOrderId,
-        });
+      if (
+        rpcResult?.status === "already_confirmed" ||
+        rpcResult?.status === "already_refunded" ||
+        rpcResult?.status === "refund_already_queued"
+      ) {
+        logger.info(
+          "Payment already confirmed, refunded, or refund queued (idempotent duplicate capture)",
+          {
+            functionName: "razorpay-webhook",
+            paymentOrderId: order.id,
+            providerPaymentId,
+            razorpayOrderId,
+            status: rpcResult?.status,
+          }
+        );
         return jsonResponse(
-          { success: true, status: "already_confirmed" },
+          { success: true, status: rpcResult?.status },
           200
         );
       }
@@ -598,12 +606,29 @@ export async function handleRazorpayWebhook(
         return jsonResponse({ error: "Internal configuration error" }, 500);
       }
 
+      // Extract optional notes.refund_id if gateway echoed local refund UUID
+      const notesRefundId = refundEntity?.notes?.refund_id;
+      const validNotesRefundId = typeof notesRefundId === "string" && UUID_REGEX.test(notesRefundId) ? notesRefundId : null;
+
       // Non-regression guard: check if already processed
-      const { data: existingRefund } = await adminClient
-        .from("refunds")
-        .select("id, status")
-        .eq("provider_refund_id", providerRefundId)
-        .maybeSingle();
+      // Look up by provider_refund_id, or fallback to notes.refund_id if present
+      let existingRefund: any = null;
+      if (providerRefundId) {
+        const { data: byProvider } = await adminClient
+          .from("refunds")
+          .select("id, status")
+          .eq("provider_refund_id", providerRefundId)
+          .maybeSingle();
+        existingRefund = byProvider;
+      }
+      if (!existingRefund && validNotesRefundId) {
+        const { data: byId } = await adminClient
+          .from("refunds")
+          .select("id, status")
+          .eq("id", validNotesRefundId)
+          .maybeSingle();
+        existingRefund = byId;
+      }
 
       if (existingRefund?.status === "processed") {
         logger.warn(
@@ -624,13 +649,16 @@ export async function handleRazorpayWebhook(
         );
       }
 
-      // Try RPC reconcile_failed_refund
+      const targetRefundId = existingRefund?.id ?? validNotesRefundId;
+
+      // Try RPC reconcile_failed_refund supplying both provider_refund_id and local refund UUID
       const { data: rpcRes, error: rpcErr } = await adminClient.rpc(
         "reconcile_failed_refund",
         {
           p_provider_refund_id: providerRefundId,
           p_error_code: errorCode ?? null,
           p_error_description: errorDescription ?? null,
+          p_refund_id: targetRefundId ?? null,
         }
       );
 
@@ -646,11 +674,22 @@ export async function handleRazorpayWebhook(
       }
 
       // Fallback direct update: only update if status != 'processed'
-      const { error: updateErr } = await adminClient
+      let fallbackQuery = adminClient
         .from("refunds")
-        .update({ status: "failed" })
-        .eq("provider_refund_id", providerRefundId)
+        .update({
+          status: "failed",
+          provider_refund_id: providerRefundId,
+          execution_attempt_id: null,
+          updated_at: new Date().toISOString(),
+        })
         .neq("status", "processed");
+
+      if (targetRefundId) {
+        fallbackQuery = fallbackQuery.eq("id", targetRefundId);
+      } else {
+        fallbackQuery = fallbackQuery.eq("provider_refund_id", providerRefundId);
+      }
+      const { error: updateErr } = await fallbackQuery;
 
       if (updateErr) {
         logger.error("Failed to update refund status to failed", {

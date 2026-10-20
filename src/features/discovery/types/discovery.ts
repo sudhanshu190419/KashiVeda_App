@@ -92,11 +92,15 @@ export interface PanditSummary {
 
 export interface Review {
   id: string;
-  booking_id: string;
-  customer_id: string;
+  booking_id?: string;
+  customer_id?: string;
   pandit_id: string;
   rating: number;
   comment: string | null;
-  visibility_status: "published" | "hidden" | "flagged";
+  visibility_status: "published" | "hidden";
   created_at: string;
+  reviewer_label?: string;
+  service_mode?: ServiceMode;
+  puja_name?: string;
 }
+

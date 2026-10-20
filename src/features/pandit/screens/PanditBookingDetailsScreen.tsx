@@ -136,6 +136,31 @@ export const PanditBookingDetailsScreen: React.FC = () => {
     }
   };
 
+  const currentOutstandingBalance =
+    booking?.outstanding_balance !== undefined
+      ? booking.outstanding_balance
+      : (booking?.balance_amount ?? 0);
+  const currentTotalPaid =
+    booking?.total_paid !== undefined
+      ? booking.total_paid
+      : currentOutstandingBalance === 0
+      ? (booking?.total_amount ?? 0)
+      : (booking?.advance_amount ?? 0);
+  const hasOutstandingBalance = currentOutstandingBalance > 0;
+
+  const handlePressComplete = () => {
+    if (hasOutstandingBalance) {
+      Alert.alert(
+        "Settlement Required",
+        `This ritual cannot be marked completed because the devotee still has an unsettled balance of ${formatCurrency(
+          currentOutstandingBalance
+        )}. Please ask the devotee to settle the balance via their app, and tap 'Refresh Payment Status' once received.`
+      );
+      return;
+    }
+    setConfirmModalVisible(true);
+  };
+
   const handleConfirmCompletion = async () => {
     try {
       await completeRitual();
@@ -541,34 +566,74 @@ export const PanditBookingDetailsScreen: React.FC = () => {
         </View>
         <View style={styles.financeRow}>
           <Text variant="body" color={colors.textSecondary}>
-            Advance Paid by Devotee
+            Amount Paid to Date
           </Text>
           <Text variant="bodyMedium" color={colors.primary}>
-            {formatCurrency(booking.advance_amount)}
+            {formatCurrency(currentTotalPaid)}
           </Text>
         </View>
-        {booking.balance_amount > 0 ? (
-          <View style={styles.financeRow}>
-            <Text variant="body" color={colors.textSecondary}>
-              Outstanding Balance
-            </Text>
-            <Text variant="bodyMedium" color={colors.secondary}>
-              {formatCurrency(booking.balance_amount)}
+        <View style={styles.financeRow}>
+          <Text variant="body" color={colors.textSecondary}>
+            Outstanding Balance
+          </Text>
+          <Text
+            variant="bodyMedium"
+            color={hasOutstandingBalance ? colors.secondary : colors.success}
+          >
+            {formatCurrency(currentOutstandingBalance)}
+          </Text>
+        </View>
+
+        {hasOutstandingBalance ? (
+          <View style={styles.unsettledDevoteeBanner}>
+            <Text style={styles.unsettledIcon}>⚠️</Text>
+            <View style={styles.unsettledTextWrap}>
+              <Text variant="captionMedium" color="#92400e">
+                Devotee Balance Settlement Pending ({formatCurrency(currentOutstandingBalance)})
+              </Text>
+              <Text variant="caption" color="#b45309">
+                Devotee has an unsettled balance of {formatCurrency(currentOutstandingBalance)}. Please ask the devotee to settle the balance from their app before marking the ritual completed.
+              </Text>
+              <TouchableOpacity
+                onPress={refresh}
+                disabled={loading}
+                style={styles.refreshStatusBtn}
+                activeOpacity={0.7}
+              >
+                <Text variant="captionMedium" color={colors.primary}>
+                  🔄 Refresh Payment Status
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.paidBadgeBox}>
+            <Text variant="captionMedium" color="#15803d">
+              ✓ Full Ritual Dakshina Paid &amp; Cleared — Eligible for Completion
             </Text>
           </View>
-        ) : null}
+        )}
       </Card>
 
       {/* Ritual Completion & Pandit Cancellation Actions */}
       {!isCompleted && !isCancellable ? (
         <View style={styles.completionSection}>
           <Button
-            title={completing ? "Marking Completed..." : "Mark Ritual as Completed 🕉️"}
-            variant="primary"
+            title={
+              completing
+                ? "Marking Completed..."
+                : "Mark Ritual as Completed 🕉️"
+            }
+            variant={hasOutstandingBalance ? "outline" : "primary"}
             size="lg"
-            onPress={() => setConfirmModalVisible(true)}
+            onPress={handlePressComplete}
             disabled={completing || cancelling}
           />
+          {hasOutstandingBalance ? (
+            <Text variant="caption" color={colors.textSecondary} align="center" style={{ marginTop: spacing.xs }}>
+              Devotee must settle remaining balance before ritual completion can be submitted.
+            </Text>
+          ) : null}
           {completeError ? (
             <Text variant="caption" color={colors.error} align="center" style={styles.errorText}>
               {completeError}
@@ -1041,5 +1106,29 @@ const styles = StyleSheet.create({
   },
   modalCloseBtn: {
     flex: 1,
+  },
+  unsettledDevoteeBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#fffbeb",
+    borderWidth: 1,
+    borderColor: "#fde68a",
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    marginTop: spacing.md,
+  },
+  refreshStatusBtn: {
+    alignSelf: "flex-start",
+    marginTop: spacing.xs,
+    paddingVertical: spacing.xxs,
+  },
+  paidBadgeBox: {
+    backgroundColor: "#f0fdf4",
+    borderWidth: 1,
+    borderColor: "#bbf7d0",
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    marginTop: spacing.md,
+    alignItems: "center",
   },
 });

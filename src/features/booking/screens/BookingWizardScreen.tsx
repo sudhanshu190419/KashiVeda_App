@@ -294,6 +294,8 @@ export const BookingWizardScreen: React.FC = () => {
         advanceAmount: response.advance_amount,
         pujaName: puja.name,
         panditName: selectedPandit?.display_name || "Acharya",
+        isFullPayment: response.balance_amount === 0,
+        totalAmount: response.total_amount,
       });
     } catch (err: any) {
       const rawMsg = err?.message || "";
@@ -598,6 +600,15 @@ export const BookingWizardScreen: React.FC = () => {
             ) : null}
           </Card>
 
+          {/* 24-Hour Notice */}
+          {estimatedPricing.isWithin24Hours && (
+            <Card style={styles.within24hNoticeCard}>
+              <Text variant="captionMedium" color="#92400E" style={styles.within24hNoticeText}>
+                ⚠️ This ritual is scheduled within 24 hours. Full payment is required when booking.
+              </Text>
+            </Card>
+          )}
+
           {/* Pricing Breakdown */}
           <BookingPriceBreakdown
             pujaPrice={estimatedPricing.basePrice}
@@ -607,6 +618,7 @@ export const BookingWizardScreen: React.FC = () => {
             advanceAmount={estimatedPricing.advanceAmount}
             balanceAmount={estimatedPricing.balanceAmount}
             serviceMode={serviceMode}
+            isWithin24Hours={estimatedPricing.isWithin24Hours}
           />
 
           {submitError ? (
@@ -631,7 +643,13 @@ export const BookingWizardScreen: React.FC = () => {
           />
         ) : (
           <Button
-            title={submitting ? "Securing Sacred Slot..." : `Confirm & Pay Advance (${formatCurrency(estimatedPricing.advanceAmount)})`}
+            title={
+              submitting
+                ? "Securing Sacred Slot..."
+                : estimatedPricing.isWithin24Hours
+                ? "Confirm & Pay Full Amount"
+                : `Confirm & Pay Advance (${formatCurrency(estimatedPricing.advanceAmount)})`
+            }
             variant="primary"
             size="lg"
             disabled={!canProceed || submitting}
@@ -739,6 +757,17 @@ const styles = StyleSheet.create({
     borderColor: "#FCA5A5",
     padding: spacing.md,
     marginTop: spacing.sm,
+  },
+  within24hNoticeCard: {
+    backgroundColor: "#FEF3C7",
+    borderColor: "#F59E0B",
+    borderWidth: 1,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderRadius: radius.md,
+  },
+  within24hNoticeText: {
+    lineHeight: 18,
   },
   footerActions: {
     marginVertical: spacing.xl,

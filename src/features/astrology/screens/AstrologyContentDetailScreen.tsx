@@ -1,5 +1,5 @@
 // src/features/astrology/screens/AstrologyContentDetailScreen.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import {
@@ -23,43 +23,63 @@ export const AstrologyContentDetailScreen: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  const isMountedRef = useRef<boolean>(true);
+  const activeRequestIdRef = useRef<number>(0);
+  const inFlightRef = useRef<boolean>(false);
 
-    async function loadContent() {
-      if (!contentId) {
-        setError("Content identifier is missing.");
-        setLoading(false);
+  const fetchContent = useCallback(async () => {
+    // Prevent duplicate detail requests from rapid repeated Retry taps
+    if (inFlightRef.current) {
+      return;
+    }
+
+    if (!contentId) {
+      setError("Content identifier is missing.");
+      setLoading(false);
+      return;
+    }
+
+    const requestId = ++activeRequestIdRef.current;
+    inFlightRef.current = true;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await astrologyService.getContentById(contentId);
+      if (!isMountedRef.current || requestId !== activeRequestIdRef.current) {
         return;
       }
 
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await astrologyService.getContentById(contentId);
-        if (isMounted) {
-          if (!data) {
-            setError("The requested astrology insight was not found.");
-          } else {
-            setContent(data);
-          }
-        }
-      } catch (err: any) {
-        if (isMounted) {
-          setError(err?.message || "Failed to load insight details.");
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+      if (!data) {
+        setError("The requested astrology insight was not found.");
+        setContent(null);
+      } else {
+        setContent(data);
+        setError(null);
+      }
+    } catch (err: any) {
+      if (!isMountedRef.current || requestId !== activeRequestIdRef.current) {
+        return;
+      }
+      setError(err?.message || "Failed to load insight details.");
+      setContent(null);
+    } finally {
+      if (isMountedRef.current && requestId === activeRequestIdRef.current) {
+        setLoading(false);
+        inFlightRef.current = false;
       }
     }
-
-    loadContent();
-    return () => {
-      isMounted = false;
-    };
   }, [contentId]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    fetchContent();
+
+    return () => {
+      isMountedRef.current = false;
+      inFlightRef.current = false;
+    };
+  }, [fetchContent]);
 
   if (loading) {
     return (
@@ -77,7 +97,7 @@ export const AstrologyContentDetailScreen: React.FC = () => {
         <ErrorState
           title="Insight Not Available"
           message={error || "Could not retrieve planetary insight."}
-          onRetry={() => navigation.goBack()}
+          onRetry={fetchContent}
         />
       </ScreenContainer>
     );

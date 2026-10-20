@@ -4,8 +4,10 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
+import { AppState, AppStateStatus } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../../infrastructure/supabase/client.ts";
@@ -17,8 +19,15 @@ import {
   UserRole,
 } from "./types/auth.ts";
 import { authService } from "./services/authService.ts";
+import { dailyRashiService } from "../astrology/services/dailyRashiService.ts";
+import { astrologyEventBus } from "../astrology/services/astrologyEventBus.ts";
 
 const ASYNC_STORAGE_ACTIVE_MODE_KEY = "@kashiveda_active_mode";
+const FOREGROUND_REFRESH_THROTTLE_MS = 30_000;
+
+interface FetchUserDataOptions {
+  isBackgroundRefresh?: boolean;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -34,89 +43,144 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUserData = useCallback(async (userId: string) => {
-    try {
-      setError(null);
+  // Synchronization and race-condition protection refs
+  const isMountedRef = useRef<boolean>(true);
+  const activeUserIdRef = useRef<string | null>(null);
+  const latestRequestIdRef = useRef<number>(0);
+  const lastForegroundRefreshRef = useRef<number>(0);
+  const appStateRef = useRef<AppStateStatus | string>(AppState.currentState || "active");
 
-      // 1. Fetch user profile
-      const { data: profileData, error: profileErr } = await supabase
-        .from("profiles")
-        .select("id, display_name, phone, email, avatar_url, status, created_at, updated_at")
-        .eq("id", userId)
-        .maybeSingle();
+  const fetchUserData = useCallback(
+    async (userId: string, options?: FetchUserDataOptions) => {
+      const isBackgroundRefresh = options?.isBackgroundRefresh ?? false;
+      const requestId = ++latestRequestIdRef.current;
 
-      if (profileErr) {
-        console.warn("Could not load user profile:", profileErr.message);
-      }
+      const isObsolete = () => {
+        return (
+          !isMountedRef.current ||
+          activeUserIdRef.current !== userId ||
+          latestRequestIdRef.current !== requestId
+        );
+      };
 
-      // If user profile is marked deleted, immediately terminate session
-      if (profileData?.status === "deleted") {
-        await supabase.auth.signOut();
-        setSession(null);
-        setUser(null);
-        setProfile(null);
-        setError("This account has been deleted.");
-        return;
-      }
-
-      setProfile(profileData || null);
-
-      // 2. Authoritative multi-role resolution from public.user_roles (array query)
-      const { data: roleRows, error: roleErr } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId);
-
-      if (roleErr) {
-        console.warn("Could not load user roles:", roleErr.message);
-      }
-
-      const assignedRoles = (roleRows || []).map((r) => r.role as UserRole);
-      const effectiveRoles: UserRole[] = assignedRoles.length > 0 ? assignedRoles : ["customer"];
-      setRoles(effectiveRoles);
-
-      // 3. Resolve active mode from persistence
       try {
-        const storedMode = await AsyncStorage.getItem(ASYNC_STORAGE_ACTIVE_MODE_KEY);
-        if (storedMode === "pandit" && effectiveRoles.includes("pandit")) {
-          setActiveMode("pandit");
-        } else if (!effectiveRoles.includes("customer") && effectiveRoles.includes("pandit")) {
-          setActiveMode("pandit");
-        } else {
-          setActiveMode("customer");
+        if (!isBackgroundRefresh) {
+          setError(null);
         }
-      } catch (storageErr) {
-        console.warn("Could not read active mode from storage:", storageErr);
-        if (!effectiveRoles.includes("customer") && effectiveRoles.includes("pandit")) {
-          setActiveMode("pandit");
-        } else {
-          setActiveMode("customer");
-        }
-      }
 
-      // 4. If Pandit role is present, load Pandit profile details
-      if (effectiveRoles.includes("pandit")) {
-        const { data: panditData, error: panditErr } = await supabase
-          .from("pandit_profiles")
-          .select("id, user_id, bio, years_experience, verification_status, public_status, kundli_enabled, kundli_price, kundli_turnaround_days, base_latitude, base_longitude, service_radius_km")
-          .eq("user_id", userId)
+        // 1. Fetch user profile
+        const { data: profileData, error: profileErr } = await supabase
+          .from("profiles")
+          .select("id, display_name, phone, email, avatar_url, status, created_at, updated_at")
+          .eq("id", userId)
           .maybeSingle();
 
-        if (panditErr) {
-          console.warn("Could not load pandit profile:", panditErr.message);
+        if (isObsolete()) return;
+
+        if (profileErr) {
+          console.warn("Could not load user profile:", profileErr.message);
         }
-        setPanditProfile(panditData || null);
-      } else {
-        setPanditProfile(null);
+
+        // If user profile is marked deleted, immediately terminate session
+        if (profileData?.status === "deleted") {
+          activeUserIdRef.current = null;
+          latestRequestIdRef.current++;
+          await supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setRoles(["customer"]);
+          setActiveMode("customer");
+          setPanditProfile(null);
+          setError("This account has been deleted.");
+          return;
+        }
+
+        setProfile(profileData || null);
+
+        // 2. Authoritative multi-role resolution from public.user_roles (array query)
+        const { data: roleRows, error: roleErr } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId);
+
+        if (isObsolete()) return;
+
+        if (roleErr) {
+          console.warn("Could not load user roles:", roleErr.message);
+        }
+
+        const assignedRoles = (roleRows || []).map((r) => r.role as UserRole);
+        const effectiveRoles: UserRole[] = assignedRoles.length > 0 ? assignedRoles : ["customer"];
+        setRoles(effectiveRoles);
+
+        // 3. Resolve active mode from persistence while preserving valid existing mode
+        try {
+          const storedMode = await AsyncStorage.getItem(ASYNC_STORAGE_ACTIVE_MODE_KEY);
+          if (isObsolete()) return;
+
+          setActiveMode((prevMode) => {
+            if (prevMode === "pandit" && effectiveRoles.includes("pandit")) {
+              return "pandit";
+            }
+            if (storedMode === "pandit" && effectiveRoles.includes("pandit")) {
+              return "pandit";
+            }
+            if (!effectiveRoles.includes("customer") && effectiveRoles.includes("pandit")) {
+              return "pandit";
+            }
+            return "customer";
+          });
+        } catch (storageErr) {
+          console.warn("Could not read active mode from storage:", storageErr);
+          if (isObsolete()) return;
+
+          setActiveMode((prevMode) => {
+            if (prevMode === "pandit" && effectiveRoles.includes("pandit")) {
+              return "pandit";
+            }
+            if (!effectiveRoles.includes("customer") && effectiveRoles.includes("pandit")) {
+              return "pandit";
+            }
+            return "customer";
+          });
+        }
+
+        // 4. If Pandit role is present, load Pandit profile details
+        if (effectiveRoles.includes("pandit")) {
+          const { data: panditData, error: panditErr } = await supabase
+            .from("pandit_profiles")
+            .select(
+              "id, user_id, bio, years_experience, verification_status, public_status, kundli_enabled, kundli_price, kundli_turnaround_days, base_latitude, base_longitude, service_radius_km"
+            )
+            .eq("user_id", userId)
+            .maybeSingle();
+
+          if (isObsolete()) return;
+
+          if (panditErr) {
+            console.warn("Could not load pandit profile:", panditErr.message);
+          }
+          setPanditProfile(panditData || null);
+        } else {
+          setPanditProfile(null);
+        }
+      } catch (err: any) {
+        if (isObsolete()) return;
+        console.error("Unexpected error in fetchUserData:", err);
+        if (!isBackgroundRefresh) {
+          setError(err?.message || "Failed to load user information");
+        }
       }
-    } catch (err: any) {
-      console.error("Unexpected error in fetchUserData:", err);
-      setError(err?.message || "Failed to load user information");
-    }
-  }, []);
+    },
+    []
+  );
 
   const refreshProfile = useCallback(async () => {
-    if (user?.id) {
+    if (activeUserIdRef.current) {
+      await fetchUserData(activeUserIdRef.current);
+    } else if (user?.id) {
+      activeUserIdRef.current = user.id;
       await fetchUserData(user.id);
     }
   }, [user?.id, fetchUserData]);
@@ -146,8 +210,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     [roles]
   );
 
+  // Manage foreground app state synchronization
   useEffect(() => {
-    let isMounted = true;
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      const prevAppState = appStateRef.current;
+      const isTransitionToActive =
+        (prevAppState === "inactive" || prevAppState === "background") &&
+        nextAppState === "active";
+      appStateRef.current = nextAppState;
+
+      if (isTransitionToActive) {
+        const currentUserId = activeUserIdRef.current;
+        if (!currentUserId) return;
+
+        const now = Date.now();
+        if (now - lastForegroundRefreshRef.current >= FOREGROUND_REFRESH_THROTTLE_MS) {
+          lastForegroundRefreshRef.current = now;
+          fetchUserData(currentUserId, { isBackgroundRefresh: true });
+        }
+      }
+    };
+
+    const subscription = AppState.addEventListener("change", handleAppStateChange);
+    return () => {
+      subscription.remove();
+    };
+  }, [fetchUserData]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
 
     // 0. Pre-configure native Google Sign-In SDK
     authService.configureGoogleSignIn();
@@ -162,21 +253,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           throw sessionErr;
         }
 
-        if (isMounted) {
+        if (isMountedRef.current) {
           setSession(data.session);
           setUser(data.session?.user || null);
 
           if (data.session?.user?.id) {
+            activeUserIdRef.current = data.session.user.id;
+            lastForegroundRefreshRef.current = Date.now();
             await fetchUserData(data.session.user.id);
+          } else {
+            activeUserIdRef.current = null;
           }
         }
       } catch (err: any) {
-        if (isMounted) {
+        if (isMountedRef.current) {
           console.error("Session restoration error:", err);
           setError(err?.message || "Failed to restore session");
         }
       } finally {
-        if (isMounted) {
+        if (isMountedRef.current) {
           setIsLoading(false);
         }
       }
@@ -188,14 +283,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
 
       setSession(newSession);
       setUser(newSession?.user || null);
 
       if (newSession?.user?.id) {
+        activeUserIdRef.current = newSession.user.id;
+        lastForegroundRefreshRef.current = Date.now();
         await fetchUserData(newSession.user.id);
       } else {
+        const departingUserId = activeUserIdRef.current;
+        activeUserIdRef.current = null;
+        latestRequestIdRef.current++;
+        astrologyEventBus.emit("ENTITLEMENT_INVALIDATED", { userId: departingUserId });
+        dailyRashiService.clearSessionCache(departingUserId).catch(() => {});
         setProfile(null);
         setRoles(["customer"]);
         setActiveMode("customer");
@@ -205,7 +307,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
+      activeUserIdRef.current = null;
       subscription.unsubscribe();
     };
   }, [fetchUserData]);
@@ -213,6 +316,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signOut = useCallback(async () => {
     try {
       setIsLoading(true);
+      const departingUserId = activeUserIdRef.current;
+      activeUserIdRef.current = null;
+      latestRequestIdRef.current++;
+
+      // Strict Entitlement Policy (Option A): Purge daily insight caches and notify listeners immediately
+      astrologyEventBus.emit("ENTITLEMENT_INVALIDATED", { userId: departingUserId });
+      await dailyRashiService.clearSessionCache(departingUserId).catch(() => {});
+
       await supabase.auth.signOut();
       await AsyncStorage.removeItem(ASYNC_STORAGE_ACTIVE_MODE_KEY).catch(() => {});
       setSession(null);
@@ -233,8 +344,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setIsLoading(true);
       setError(null);
+      const departingUserId = activeUserIdRef.current;
+      activeUserIdRef.current = null;
+      latestRequestIdRef.current++;
+
+      astrologyEventBus.emit("ENTITLEMENT_INVALIDATED", { userId: departingUserId });
+      await dailyRashiService.clearSessionCache(departingUserId).catch(() => {});
+
       await authService.deleteAccount();
-      await AsyncStorage.removeItem(ASYNC_STORAGE_ACTIVE_MODE_KEY);
+      await AsyncStorage.removeItem(ASYNC_STORAGE_ACTIVE_MODE_KEY).catch(() => {});
       setSession(null);
       setUser(null);
       setProfile(null);

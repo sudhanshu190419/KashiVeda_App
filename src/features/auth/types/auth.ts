@@ -11,6 +11,7 @@ export interface Profile {
   phone?: string | null;
   email?: string | null;
   avatar_url?: string | null;
+  preferred_rashi_id?: number | null;
   status?: "active" | "suspended" | "deleted";
   created_at?: string;
   updated_at?: string;

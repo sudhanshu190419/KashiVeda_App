@@ -13,10 +13,25 @@ interface AstrologySubscriptionCardProps {
 export const AstrologySubscriptionCard: React.FC<AstrologySubscriptionCardProps> = ({
   subscription,
 }) => {
+  const now = Date.now();
+  const startMs = subscription.starts_at ? new Date(subscription.starts_at).getTime() : NaN;
+  const endMs = subscription.ends_at ? new Date(subscription.ends_at).getTime() : NaN;
+
+  const isFutureStart =
+    subscription.status === "active" &&
+    !isNaN(startMs) &&
+    startMs > now;
+
   const isCurrentlyActive =
     subscription.status === "active" &&
-    Boolean(subscription.ends_at) &&
-    new Date(subscription.ends_at as string).getTime() > Date.now();
+    !isNaN(startMs) &&
+    !isNaN(endMs) &&
+    startMs <= now &&
+    endMs > now;
+
+  const isExpired =
+    subscription.status === "expired" ||
+    (subscription.status === "active" && !isNaN(endMs) && endMs <= now);
 
   const startDateFormatted = subscription.starts_at
     ? new Date(subscription.starts_at).toLocaleDateString("en-IN", {
@@ -38,33 +53,61 @@ export const AstrologySubscriptionCard: React.FC<AstrologySubscriptionCardProps>
     ? Math.max(
         0,
         Math.ceil(
-          (new Date(subscription.ends_at).getTime() - Date.now()) /
-            (1000 * 60 * 60 * 24)
+          (endMs - now) / (1000 * 60 * 60 * 24)
+        )
+      )
+    : 0;
+
+  const daysUntilStart = isFutureStart && subscription.starts_at
+    ? Math.max(
+        0,
+        Math.ceil(
+          (startMs - now) / (1000 * 60 * 60 * 24)
         )
       )
     : 0;
 
   const getStatusBadge = () => {
-    switch (subscription.status) {
-      case "active":
-        return {
-          label: isCurrentlyActive ? "Active" : "Expired",
-          bg: isCurrentlyActive ? colors.successLight : colors.errorLight,
-          text: isCurrentlyActive ? colors.success : colors.error,
-        };
-      case "payment_pending":
-        return {
-          label: "Pending Activation",
-          bg: colors.warningLight,
-          text: colors.warning,
-        };
-      case "expired":
-        return { label: "Expired", bg: colors.surfaceSubtle, text: colors.textSecondary };
-      case "cancelled":
-        return { label: "Cancelled", bg: colors.errorLight, text: colors.error };
-      default:
-        return { label: subscription.status, bg: colors.surfaceSubtle, text: colors.textSecondary };
+    if (isCurrentlyActive) {
+      return {
+        label: "Active",
+        bg: colors.successLight,
+        text: colors.success,
+      };
     }
+    if (isFutureStart) {
+      return {
+        label: "Scheduled",
+        bg: colors.surfaceSubtle,
+        text: colors.primary,
+      };
+    }
+    if (subscription.status === "payment_pending") {
+      return {
+        label: "Pending Activation",
+        bg: colors.warningLight,
+        text: colors.warning,
+      };
+    }
+    if (isExpired) {
+      return {
+        label: "Expired",
+        bg: colors.surfaceSubtle,
+        text: colors.textSecondary,
+      };
+    }
+    if (subscription.status === "cancelled") {
+      return {
+        label: "Cancelled",
+        bg: colors.errorLight,
+        text: colors.error,
+      };
+    }
+    return {
+      label: subscription.status,
+      bg: colors.surfaceSubtle,
+      text: colors.textSecondary,
+    };
   };
 
   const badge = getStatusBadge();
@@ -77,7 +120,7 @@ export const AstrologySubscriptionCard: React.FC<AstrologySubscriptionCardProps>
             Vedic Astrology Subscription
           </Text>
           <Text variant="h3" style={styles.planName}>
-            {subscription.plan?.name || "Active Astrology Membership"}
+            {subscription.plan?.name || "Astrology Membership"}
           </Text>
         </View>
 
@@ -91,7 +134,7 @@ export const AstrologySubscriptionCard: React.FC<AstrologySubscriptionCardProps>
       <View style={styles.detailsGrid}>
         <View style={styles.detailCol}>
           <Text variant="caption" color={colors.textTertiary}>
-            Valid From
+            {isFutureStart ? "Starts On" : "Valid From"}
           </Text>
           <Text variant="captionMedium" style={styles.detailValue}>
             {startDateFormatted}
@@ -114,6 +157,17 @@ export const AstrologySubscriptionCard: React.FC<AstrologySubscriptionCardProps>
             </Text>
             <Text variant="captionMedium" color={colors.primary} style={styles.remainingValue}>
               {remainingDays} {remainingDays === 1 ? "day" : "days"}
+            </Text>
+          </View>
+        )}
+
+        {isFutureStart && (
+          <View style={styles.detailCol}>
+            <Text variant="caption" color={colors.textTertiary}>
+              Starts In
+            </Text>
+            <Text variant="captionMedium" color={colors.primary} style={styles.remainingValue}>
+              {daysUntilStart} {daysUntilStart === 1 ? "day" : "days"}
             </Text>
           </View>
         )}

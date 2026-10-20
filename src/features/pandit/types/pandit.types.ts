@@ -132,6 +132,10 @@ export interface PanditBookingItem {
   location?: PanditBookingServiceLocation;
   line_items?: PanditBookingLineItem[];
   payout?: PanditPayoutItem | null;
+  outstanding_balance?: number;
+  total_paid?: number;
+  net_paid?: number;
+  total_refunded?: number;
 }
 
 export interface PanditDashboardSummary {

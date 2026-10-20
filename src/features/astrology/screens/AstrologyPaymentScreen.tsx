@@ -15,6 +15,7 @@ import { colors, radius, spacing } from "../../../shared/theme/index.ts";
 import { CustomerStackParamList } from "../../../shared/types/navigation.ts";
 import { formatCurrency } from "../../../shared/utils/formatters.ts";
 import { astrologyPaymentService } from "../services/astrologyPaymentService.ts";
+import { astrologyEventBus } from "../services/astrologyEventBus.ts";
 import { AstrologySubscription } from "../types/astrology.types.ts";
 
 type PaymentRouteProp = RouteProp<CustomerStackParamList, "AstrologyPayment">;
@@ -86,6 +87,10 @@ export const AstrologyPaymentScreen: React.FC = () => {
       if (pollResult.confirmed && pollResult.status === "active") {
         setConfirmedSubscription(pollResult.subscription || null);
         setStep("confirmed");
+        astrologyEventBus.emit("SUBSCRIPTION_PURCHASED", {
+          subscriptionId,
+          isActive: true,
+        });
       } else if (pollResult.status === "cancelled") {
         setStep("cancelled");
         setErrorMessage("Subscription payment was cancelled.");
@@ -132,6 +137,10 @@ export const AstrologyPaymentScreen: React.FC = () => {
       if (pollResult.confirmed && pollResult.status === "active") {
         setConfirmedSubscription(pollResult.subscription || null);
         setStep("confirmed");
+        astrologyEventBus.emit("SUBSCRIPTION_PURCHASED", {
+          subscriptionId,
+          isActive: true,
+        });
       } else {
         setStep("timeout");
         setErrorMessage(

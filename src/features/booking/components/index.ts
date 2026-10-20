@@ -7,3 +7,5 @@ export * from "./BookingLocationSelector.tsx";
 export * from "./SamagriSelector.tsx";
 export * from "./PrasadSelector.tsx";
 export * from "./BookingPriceBreakdown.tsx";
+export * from "./SubmitReviewModal.tsx";
+

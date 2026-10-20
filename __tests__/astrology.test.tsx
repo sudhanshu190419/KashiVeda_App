@@ -20,6 +20,7 @@ import {
   AstrologySubscription,
   AstrologySubscriptionPlan,
 } from "../src/features/astrology/types/astrology.types.ts";
+import { astrologyEventBus } from "../src/features/astrology/services/astrologyEventBus.ts";
 
 jest.setTimeout(15000);
 
@@ -39,6 +40,7 @@ jest.mock("@react-navigation/native", () => ({
   useRoute: () => ({
     params: mockRouteParams,
   }),
+  useFocusEffect: jest.fn(),
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -95,6 +97,20 @@ jest.mock("../src/features/auth/AuthContext.tsx", () => ({
     setProfile: jest.fn(),
   }),
   AuthProvider: ({ children }: any) => children,
+}));
+
+jest.mock("../src/features/astrology/services/dailyRashiService.ts", () => ({
+  dailyRashiService: {
+    fetchDailyInsight: jest.fn().mockResolvedValue({
+      success: true,
+      is_entitled: false,
+      is_unverified: false,
+      content: null,
+    }),
+    getPreferredRashi: jest.fn().mockResolvedValue(1),
+    savePreferredRashi: jest.fn().mockResolvedValue(true),
+    clearSessionCache: jest.fn(),
+  },
 }));
 
 function extractAllText(node: any): string {
@@ -165,6 +181,7 @@ describe("M6 Vedic Astrology Subscription & Content Test Suite", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     mockRouteParams = {};
+    astrologyEventBus.clear();
 
     jest.spyOn(supabase.auth, "getSession").mockResolvedValue({
       data: { session: { access_token: "mock-jwt-token-123" } },
@@ -400,6 +417,7 @@ describe("M6 Vedic Astrology Subscription & Content Test Suite", () => {
       payment_order_id: "po-sub-123-new",
       amount: 501,
       currency: "INR",
+      duration_days: 30,
       status: "payment_pending",
       starts_at: null,
       ends_at: null,
@@ -418,6 +436,13 @@ describe("M6 Vedic Astrology Subscription & Content Test Suite", () => {
 
     await act(async () => {
       subscribeBtn.props.onPress();
+    });
+
+    // Tap confirm in Rashi personalization modal to proceed to payment
+    const allButtons = tree.root.findAllByType(require("../src/shared/components/ui/Button.tsx").Button);
+    const confirmModalBtn = allButtons.find((b: any) => b.props.title?.includes("Continue") || b.props.title?.includes("Confirm") || b.props.title?.includes("Later")) || allButtons[allButtons.length - 1];
+    await act(async () => {
+      confirmModalBtn.props.onPress();
     });
 
     expect(mockCreateOrder).toHaveBeenCalledWith("plan-monthly-1");
@@ -450,6 +475,13 @@ describe("M6 Vedic Astrology Subscription & Content Test Suite", () => {
 
     await act(async () => {
       subscribeBtn.props.onPress();
+    });
+
+    // Confirm modal to trigger createSubscriptionOrder
+    const allButtons = tree.root.findAllByType(require("../src/shared/components/ui/Button.tsx").Button);
+    const confirmModalBtn = allButtons.find((b: any) => b.props.title?.includes("Continue") || b.props.title?.includes("Confirm") || b.props.title?.includes("Later")) || allButtons[allButtons.length - 1];
+    await act(async () => {
+      confirmModalBtn.props.onPress();
     });
 
     const str = extractAllText(tree.toJSON());

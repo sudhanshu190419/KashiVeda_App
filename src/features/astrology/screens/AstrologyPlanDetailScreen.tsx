@@ -17,6 +17,9 @@ import { CustomerStackParamList } from "../../../shared/types/navigation.ts";
 import { astrologyService } from "../services/astrologyService.ts";
 import { AstrologySubscriptionPlan } from "../types/astrology.types.ts";
 
+import { RashiPersonalizationModal } from "../components/RashiPersonalizationModal.tsx";
+import { dailyRashiService } from "../services/dailyRashiService.ts";
+
 type CustomerNavigationProp = NativeStackNavigationProp<CustomerStackParamList>;
 
 export const AstrologyPlanDetailScreen: React.FC = () => {
@@ -29,6 +32,8 @@ export const AstrologyPlanDetailScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [subscribing, setSubscribing] = useState<boolean>(false);
   const [subscribeError, setSubscribeError] = useState<string | null>(null);
+  const [showRashiModal, setShowRashiModal] = useState<boolean>(false);
+  const [preferredRashiId, setPreferredRashiId] = useState<number | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -43,13 +48,17 @@ export const AstrologyPlanDetailScreen: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await astrologyService.getPlanById(planId);
+        const [planData, rashiData] = await Promise.all([
+          astrologyService.getPlanById(planId),
+          dailyRashiService.getPreferredRashi(),
+        ]);
         if (isMounted) {
-          if (!data) {
+          if (!planData) {
             setError("The requested astrology plan was not found.");
           } else {
-            setPlan(data);
+            setPlan(planData);
           }
+          setPreferredRashiId(rashiData);
         }
       } catch (err: any) {
         if (isMounted) {
@@ -68,34 +77,38 @@ export const AstrologyPlanDetailScreen: React.FC = () => {
     };
   }, [planId]);
 
-  if (loading) {
-    return (
-      <ScreenContainer>
-        <Header title="Plan Details" onBack={() => navigation.goBack()} />
-        <LoadingState message="Loading plan details..." />
-      </ScreenContainer>
-    );
-  }
+  const isPurchasable = Boolean(
+    plan && plan.is_active && typeof plan.price === "number" && plan.price > 0
+  );
 
-  if (error || !plan) {
-    return (
-      <ScreenContainer>
-        <Header title="Plan Details" onBack={() => navigation.goBack()} />
-        <ErrorState
-          title="Plan Not Found"
-          message={error || "Could not retrieve plan information."}
-          onRetry={() => navigation.goBack()}
-        />
-      </ScreenContainer>
-    );
-  }
+  const handleSubscribeClick = () => {
+    if (!plan || subscribing || !isPurchasable) return;
 
-  const formattedPrice = `₹${plan.price.toLocaleString("en-IN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+    if (plan.daily_in_app_enabled) {
+      setShowRashiModal(true);
+    } else {
+      proceedWithSubscription();
+    }
+  };
 
-  const handleSubscribe = async () => {
+  const handleRashiConfirm = async (selectedRashiId: number | null) => {
+    setShowRashiModal(false);
+    if (selectedRashiId) {
+      try {
+        await dailyRashiService.savePreferredRashi(selectedRashiId);
+      } catch {
+        // Non-blocking preference error
+      }
+    }
+    await proceedWithSubscription();
+  };
+
+  const handleRashiSkip = async () => {
+    setShowRashiModal(false);
+    await proceedWithSubscription();
+  };
+
+  const proceedWithSubscription = async () => {
     if (!plan || subscribing) return;
 
     setSubscribing(true);
@@ -112,7 +125,7 @@ export const AstrologyPlanDetailScreen: React.FC = () => {
         planName: plan.name,
         amount: orderResult.amount,
         currency: orderResult.currency,
-        durationDays: plan.duration_days,
+        durationDays: orderResult.duration_days,
       });
     } catch (err: any) {
       const msg = err?.message || "Failed to initiate subscription order.";
@@ -131,6 +144,43 @@ export const AstrologyPlanDetailScreen: React.FC = () => {
       setSubscribing(false);
     }
   };
+
+  if (loading) {
+    return (
+      <ScreenContainer padded>
+        <Header title="Plan Details" onBack={() => navigation.goBack()} />
+        <LoadingState message="Loading plan details..." />
+      </ScreenContainer>
+    );
+  }
+
+  if (error || !plan) {
+    return (
+      <ScreenContainer padded>
+        <Header title="Plan Details" onBack={() => navigation.goBack()} />
+        <ErrorState
+          title="Unable to Load Plan"
+          message={error || "Plan not found."}
+          onRetry={() => {
+            setLoading(true);
+            setError(null);
+            astrologyService
+              .getPlanById(planId)
+              .then((p) => {
+                setPlan(p);
+                setLoading(false);
+              })
+              .catch((e) => {
+                setError(e?.message || "Failed to load plan");
+                setLoading(false);
+              });
+          }}
+        />
+      </ScreenContainer>
+    );
+  }
+
+  const formattedPrice = `${plan.currency === "INR" ? "₹" : plan.currency + " "}${plan.price.toFixed(2)}`;
 
   return (
     <ScreenContainer scrollable padded>
@@ -219,19 +269,45 @@ export const AstrologyPlanDetailScreen: React.FC = () => {
         </Card>
       )}
 
-      {/* Subscribe CTA with Duplicate-Tap Protection */}
+      {/* Unpurchasable Notice if legacy nonpositive price or inactive */}
+      {!isPurchasable && (
+        <Card variant="outlined" style={styles.noticeCard}>
+          <Text variant="bodyMedium" color={colors.textSecondary} style={styles.noticeText}>
+            This astrology subscription plan is currently unavailable for purchase.
+          </Text>
+        </Card>
+      )}
+
+      {/* Subscribe CTA with Duplicate-Tap & Unpurchasable Protection */}
       <View style={styles.ctaContainer}>
         <Button
-          title={subscribing ? "Preparing Checkout..." : `Subscribe Now • ${formattedPrice}`}
+          title={
+            !isPurchasable
+              ? "Plan Currently Unavailable"
+              : subscribing
+              ? "Preparing Checkout..."
+              : `Subscribe Now • ${formattedPrice}`
+          }
           variant="primary"
           size="lg"
-          disabled={subscribing}
-          onPress={handleSubscribe}
+          disabled={subscribing || !isPurchasable}
+          onPress={handleSubscribeClick}
         />
         <Text variant="caption" color={colors.textTertiary} style={styles.ctaExplanation}>
-          Secure checkout with instant access upon payment confirmation.
+          {isPurchasable
+            ? "Secure checkout with instant access upon payment confirmation."
+            : "Please select an active subscription plan with valid pricing."}
         </Text>
       </View>
+
+      {/* Optional Rashi Personalization Modal */}
+      <RashiPersonalizationModal
+        visible={showRashiModal}
+        initialRashiId={preferredRashiId}
+        onConfirm={handleRashiConfirm}
+        onSkip={handleRashiSkip}
+        onClose={() => setShowRashiModal(false)}
+      />
     </ScreenContainer>
   );
 };

@@ -1,7 +1,6 @@
-// src/features/astrology/screens/AstrologyScreen.tsx
-import React from "react";
+import React, { useCallback, useRef } from "react";
 import { RefreshControl, StyleSheet, TouchableOpacity, View } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   Card,
@@ -13,13 +12,17 @@ import {
   Text,
 } from "../../../shared/components/ui/index.ts";
 import { colors, spacing } from "../../../shared/theme/index.ts";
+import { formatIndianDisplayDate, getIndianCalendarDate } from "../../../shared/utils/date.ts";
 import { CustomerStackParamList } from "../../../shared/types/navigation.ts";
 import { AstrologyPlanCard } from "../components/AstrologyPlanCard.tsx";
 import { AstrologySubscriptionCard } from "../components/AstrologySubscriptionCard.tsx";
 import { AstrologyContentCard } from "../components/AstrologyContentCard.tsx";
+import { RashiSelector } from "../components/RashiSelector.tsx";
+import { DailyRashiInsightCard } from "../components/DailyRashiInsightCard.tsx";
 import { useAstrologyPlans } from "../hooks/useAstrologyPlans.ts";
 import { useCustomerSubscription } from "../hooks/useCustomerSubscription.ts";
 import { useAstrologyContent } from "../hooks/useAstrologyContent.ts";
+import { useDailyRashiInsight } from "../hooks/useDailyRashiInsight.ts";
 import { AstrologyContent as AstrologyContentType, AstrologySubscriptionPlan } from "../types/astrology.types.ts";
 
 type CustomerNavigationProp = NativeStackNavigationProp<CustomerStackParamList>;
@@ -49,11 +52,36 @@ export const AstrologyScreen: React.FC = () => {
     refresh: refreshContent,
   } = useAstrologyContent({ pageSize: 3 });
 
-  const isInitialLoading = plansLoading && subLoading && contentLoading;
+  const {
+    insight,
+    selectedRashiId,
+    selectedRashi,
+    loading: insightLoading,
+    error: insightError,
+    isEntitled,
+    isUnverifiedOffline,
+    selectRashi,
+    refresh: refreshDailyInsight,
+  } = useDailyRashiInsight();
+
+  // Revalidate subscription and daily insight on screen focus (e.g. return after checkout)
+  const isFirstFocusRef = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstFocusRef.current) {
+        isFirstFocusRef.current = false;
+        return;
+      }
+      refreshSub({ force: false });
+      refreshDailyInsight({ force: false, revalidate: true });
+    }, [refreshSub, refreshDailyInsight])
+  );
+
+  const isInitialLoading = plansLoading && subLoading && contentLoading && insightLoading;
   const isRefreshing = contentRefreshing;
 
   const handleRefreshAll = async () => {
-    await Promise.all([refreshPlans(), refreshSub(), refreshContent()]);
+    await Promise.all([refreshPlans(), refreshSub(), refreshContent(), refreshDailyInsight()]);
   };
 
   if (isInitialLoading) {
@@ -110,10 +138,10 @@ export const AstrologyScreen: React.FC = () => {
             style={styles.quickActionButton}
             onPress={() => navigation.navigate("AstrologyContent" as any)}
             accessibilityRole="button"
-            accessibilityLabel="View all daily insights"
+            accessibilityLabel="Browse all daily insights"
           >
             <Text variant="captionMedium" color={colors.primary}>
-              Browse Insights →
+              Browse All Insights →
             </Text>
           </TouchableOpacity>
 
@@ -131,6 +159,87 @@ export const AstrologyScreen: React.FC = () => {
           )}
         </View>
       </Card>
+
+      {/* General Cosmic Insights (Free Articles Feed) */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text variant="h3">Cosmic Insights</Text>
+            <Text variant="caption" color={colors.textSecondary}>
+              Daily celestial transits and spiritual guidance
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("AstrologyContent" as any)}
+            accessibilityRole="button"
+            accessibilityLabel="View all cosmic insights"
+          >
+            <Text variant="captionMedium" color={colors.primary}>
+              View All ›
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {contentError && content.length === 0 ? (
+          <ErrorState
+            title="Unable to Load Insights"
+            message={contentError}
+            onRetry={refreshContent}
+          />
+        ) : content.length === 0 ? (
+          <EmptyState
+            title="No Insights Available"
+            description="No astrology insights are published at this time. Devotees can explore the archive or check back shortly."
+            actionTitle="Browse All Insights"
+            onAction={() => navigation.navigate("AstrologyContent" as any)}
+          />
+        ) : (
+          content.map((item: AstrologyContentType) => (
+            <AstrologyContentCard
+              key={item.id}
+              content={item}
+              onPress={(selectedItem) =>
+                navigation.navigate("AstrologyContentDetail" as any, {
+                  contentId: selectedItem.id,
+                })
+              }
+            />
+          ))
+        )}
+      </View>
+
+      {/* Daily Vedic Astrological Insights (Paid Feature) */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text variant="h3">Daily Vedic Horoscope</Text>
+          <Text variant="captionMedium" color={colors.textSecondary}>
+            {formatIndianDisplayDate(insight?.insight_date || getIndianCalendarDate())}
+          </Text>
+        </View>
+
+        {/* 12-Rashi Selector Strip */}
+        <RashiSelector
+          selectedRashiId={selectedRashiId}
+          onSelectRashi={selectRashi}
+        />
+
+        {/* Daily Insight Content Card / Entitlement Locked State */}
+        <DailyRashiInsightCard
+          rashi={selectedRashi}
+          insight={insight}
+          loading={insightLoading}
+          isEntitled={isEntitled}
+          isUnverifiedOffline={isUnverifiedOffline}
+          error={insightError}
+          onSubscribePress={() => {
+            if (plans.length > 0) {
+              const eligiblePlan = plans.find((p) => p.daily_in_app_enabled) || plans[0];
+              navigation.navigate("AstrologyPlanDetail" as any, { planId: eligiblePlan.id });
+            }
+          }}
+          onRetry={refreshDailyInsight}
+        />
+      </View>
 
       {/* Current Active Subscription Status */}
       {subscription && (
@@ -169,41 +278,6 @@ export const AstrologyScreen: React.FC = () => {
               onSelect={(selectedPlan) =>
                 navigation.navigate("AstrologyPlanDetail" as any, {
                   planId: selectedPlan.id,
-                })
-              }
-            />
-          ))
-        )}
-      </View>
-
-      {/* Latest Published Astrology Insights Feed */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text variant="h3">Today's Cosmic Insights</Text>
-          {content.length > 0 && (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("AstrologyContent" as any)}
-            >
-              <Text variant="captionMedium" color={colors.primary}>
-                View All
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {content.length === 0 ? (
-          <EmptyState
-            title="No Insights Available"
-            description="No published astrology insights are available at this time."
-          />
-        ) : (
-          content.map((item: AstrologyContentType) => (
-            <AstrologyContentCard
-              key={item.id}
-              content={item}
-              onPress={(selectedItem) =>
-                navigation.navigate("AstrologyContentDetail" as any, {
-                  contentId: selectedItem.id,
                 })
               }
             />

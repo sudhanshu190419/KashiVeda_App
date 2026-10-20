@@ -1,7 +1,7 @@
 // src/features/astrology/screens/AstrologySubscriptionScreen.tsx
-import React from "react";
+import React, { useCallback } from "react";
 import { RefreshControl, StyleSheet, View } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   Button,
@@ -22,7 +22,26 @@ type CustomerNavigationProp = NativeStackNavigationProp<CustomerStackParamList>;
 
 export const AstrologySubscriptionScreen: React.FC = () => {
   const navigation = useNavigation<CustomerNavigationProp>();
-  const { subscription, loading, error, refresh } = useCustomerSubscription();
+  const {
+    subscription,
+    activeSubscription,
+    futureSubscription,
+    pendingSubscription,
+    loading,
+    error,
+    refresh,
+  } = useCustomerSubscription();
+
+  const isFirstFocusRef = React.useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstFocusRef.current) {
+        isFirstFocusRef.current = false;
+        return;
+      }
+      refresh({ force: false });
+    }, [refresh])
+  );
 
   if (loading) {
     return (
@@ -77,6 +96,26 @@ export const AstrologySubscriptionScreen: React.FC = () => {
       ) : (
         <View style={styles.content}>
           <AstrologySubscriptionCard subscription={subscription} />
+
+          {/* Scheduled future renewal coexisting with active subscription */}
+          {futureSubscription && futureSubscription.id !== subscription.id && (
+            <View style={styles.auxiliarySection}>
+              <Text variant="captionMedium" color={colors.primaryDark} style={styles.auxiliaryTitle}>
+                Scheduled Renewal
+              </Text>
+              <AstrologySubscriptionCard subscription={futureSubscription} />
+            </View>
+          )}
+
+          {/* Pending renewal checkout coexisting with active subscription */}
+          {pendingSubscription && pendingSubscription.id !== subscription.id && (
+            <View style={styles.auxiliarySection}>
+              <Text variant="captionMedium" color={colors.warning} style={styles.auxiliaryTitle}>
+                Pending Renewal Order
+              </Text>
+              <AstrologySubscriptionCard subscription={pendingSubscription} />
+            </View>
+          )}
 
           {/* Subscription Information Card */}
           <Card variant="outlined" style={styles.infoCard}>
@@ -159,4 +198,14 @@ const styles = StyleSheet.create({
   actionBtn: {
     marginTop: spacing.xs,
   },
+  auxiliarySection: {
+    marginTop: spacing.xs,
+    gap: spacing.xs,
+  },
+  auxiliaryTitle: {
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginLeft: spacing.xs,
+  },
 });
+

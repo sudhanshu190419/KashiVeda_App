@@ -49,6 +49,8 @@ export type CustomerStackParamList = {
     pujaName: string;
     panditName: string;
     isBalancePayment?: boolean;
+    isFullPayment?: boolean;
+    totalAmount?: number;
   };
   BookingSuccess: { bookingId: string };
   BookingDetail: { bookingId: string };

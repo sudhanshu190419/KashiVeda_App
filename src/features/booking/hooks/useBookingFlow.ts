@@ -129,19 +129,35 @@ export const useBookingFlow = ({
 
     const total = basePrice + samagriTotal + prasadTotal;
 
-    // Canonical mode-specific estimated advance calculation (Home: 10%, Remote: 50%, Temple: 10%)
-    let advancePercent = 10;
-    if (serviceMode === "remote") {
-      advancePercent = 50;
-    } else if (serviceMode === "temple") {
-      advancePercent = 10;
-    }
+    // Authoritative 24-hour cutoff preview:
+    // If ritual is scheduled within 24 hours from now, require 100% full payment upfront
+    const isWithin24Hours = Boolean(
+      selectedSlot &&
+      new Date(selectedSlot).getTime() <= Date.now() + 24 * 60 * 60 * 1000
+    );
 
-    const advanceAmount =
-      Math.round(
-        ((basePrice * advancePercent) / 100 + samagriTotal + prasadTotal) * 100
-      ) / 100;
-    const balanceAmount = Math.max(0, total - advanceAmount);
+    let advancePercent = 10;
+    let advanceAmount = 0;
+    let balanceAmount = 0;
+
+    if (isWithin24Hours) {
+      advancePercent = 100;
+      advanceAmount = total;
+      balanceAmount = 0;
+    } else {
+      // Canonical mode-specific estimated advance calculation (Home: 10%, Remote: 50%, Temple: 10%)
+      if (serviceMode === "remote") {
+        advancePercent = 50;
+      } else if (serviceMode === "temple") {
+        advancePercent = 10;
+      }
+
+      advanceAmount =
+        Math.round(
+          ((basePrice * advancePercent) / 100 + samagriTotal + prasadTotal) * 100
+        ) / 100;
+      balanceAmount = Math.max(0, total - advanceAmount);
+    }
 
     return {
       basePrice,
@@ -151,6 +167,7 @@ export const useBookingFlow = ({
       advanceAmount,
       balanceAmount,
       advancePercent,
+      isWithin24Hours,
     };
   }, [
     selectedPandit,
@@ -160,6 +177,7 @@ export const useBookingFlow = ({
     customSamagri,
     prasadSelections,
     serviceMode,
+    selectedSlot,
   ]);
 
   const updateCustomSamagriQty = useCallback((item: SamagriItem, quantity: number) => {

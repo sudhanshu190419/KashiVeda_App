@@ -3,3 +3,4 @@ export * from "./useAstrologyPlans.ts";
 export * from "./useCustomerSubscription.ts";
 export * from "./useAstrologyContent.ts";
 export * from "./useAstrologyDeliveries.ts";
+export * from "./useDailyRashiInsight.ts";

@@ -14,8 +14,8 @@ import { Button, Card, ErrorState, Header, LoadingState, ScreenContainer, Text }
 import { colors, radius, spacing } from "../../../shared/theme/index.ts";
 import { CustomerStackParamList } from "../../../shared/types/navigation.ts";
 import { formatCurrency, formatDate, formatTime } from "../../../shared/utils/formatters.ts";
-import { BookingStatusBadge } from "../components/index.ts";
-import { useBookingDetails } from "../hooks/useBookingDetails.ts";
+import { BookingStatusBadge, SubmitReviewModal } from "../components/index.ts";
+import { useBookingDetails, useBookingReview } from "../hooks/index.ts";
 import { bookingPaymentService } from "../services/bookingPaymentService.ts";
 import { bookingService } from "../services/bookingService.ts";
 import { CancellationRefundPreview } from "../types/booking.types.ts";
@@ -30,8 +30,19 @@ export const BookingDetailsScreen: React.FC = () => {
 
   const { booking, loading, error, refresh } = useBookingDetails(bookingId);
 
+  // Review State & Hook
+  const isCompleted = booking?.status === "completed";
+  const {
+    review,
+    hasReviewed,
+    submitting: submittingReview,
+    submitReview,
+  } = useBookingReview(booking?.id, isCompleted);
+  const [reviewModalVisible, setReviewModalVisible] = useState<boolean>(false);
+
   const [loadingToken, setLoadingToken] = useState<boolean>(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
+
 
   // Financial Lifecycle Action States
   const [payingBalance, setPayingBalance] = useState<boolean>(false);
@@ -187,7 +198,7 @@ export const BookingDetailsScreen: React.FC = () => {
       ? booking.outstanding_balance
       : booking.balance_amount;
   const isBalancePayable =
-    ["confirmed", "upcoming", "rescheduled"].includes(booking.status) &&
+    ["confirmed", "upcoming", "in_progress", "rescheduled"].includes(booking.status) &&
     currentOutstandingBalance > 0;
   const totalPaidAmount =
     booking.total_paid !== undefined
@@ -398,11 +409,23 @@ export const BookingDetailsScreen: React.FC = () => {
           <View style={styles.balanceActionWrap}>
             <View style={styles.balanceNoticeBox}>
               <Text variant="caption" color={colors.textSecondary}>
-                ⚠️ Balance must be settled at least 24 hours prior to ritual start.
+                {startDate.getTime() <= Date.now()
+                  ? "⚠️ Ritual is underway or scheduled time has arrived. You may settle your remaining balance until the pandit completes the ceremony."
+                  : startDate.getTime() - 24 * 60 * 60 * 1000 <= Date.now()
+                  ? "⚠️ Balance settlement deadline (24 hours prior) has passed. Please settle remaining balance promptly before ritual completion."
+                  : "⚠️ Balance must be settled prior to ritual completion."}
               </Text>
             </View>
             <Button
-              title={payingBalance ? "Initializing Balance Checkout..." : `Pay Remaining Balance — ${formatCurrency(currentOutstandingBalance)} 💳`}
+              title={
+                payingBalance
+                  ? "Initializing Balance Checkout..."
+                  : startDate.getTime() <= Date.now()
+                  ? `Pay Remaining Balance — ${formatCurrency(currentOutstandingBalance)} 💳`
+                  : startDate.getTime() - 24 * 60 * 60 * 1000 <= Date.now()
+                  ? `Pay Remaining Balance Promptly — ${formatCurrency(currentOutstandingBalance)} 💳`
+                  : `Pay Remaining Balance — ${formatCurrency(currentOutstandingBalance)} 💳`
+              }
               variant="primary"
               size="md"
               onPress={handlePayBalance}
@@ -425,6 +448,60 @@ export const BookingDetailsScreen: React.FC = () => {
           </View>
         )}
       </Card>
+
+      {/* Customer Review Section (Completed Rituals Only) */}
+      {isCompleted && (
+        <Card style={styles.reviewSectionCard}>
+          {!hasReviewed ? (
+            <View>
+              <Text variant="h3" style={styles.sectionTitle}>
+                Rate & Review Your Pandit
+              </Text>
+              <Text variant="body" color={colors.textSecondary} style={styles.reviewPromptText}>
+                Your sacred ritual has been completed. Share your feedback to help other devotees in the Sanatan community.
+              </Text>
+              <Button
+                title="Write Review & Rate Acharya ★"
+                variant="primary"
+                size="md"
+                onPress={() => setReviewModalVisible(true)}
+                style={styles.reviewBtn}
+                testID="write-review-cta"
+              />
+            </View>
+          ) : review ? (
+            <View>
+              <View style={styles.reviewHeaderRow}>
+                <Text variant="h3" style={styles.sectionTitle}>
+                  Your Sacred Review
+                </Text>
+                <View style={styles.verifiedReviewBadge}>
+                  <Text variant="overline" color={colors.success}>
+                    ✓ Verified Feedback
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.reviewStarsRow}>
+                <Text variant="h3" color={colors.secondary} style={styles.reviewStarsText}>
+                  {"★".repeat(Math.max(1, Math.min(5, review.rating))) + "☆".repeat(Math.max(0, 5 - review.rating))}
+                </Text>
+                <Text variant="caption" color={colors.textTertiary}>
+                  {formatDate(review.created_at)}
+                </Text>
+              </View>
+              {review.comment ? (
+                <Text variant="body" color={colors.textSecondary} style={styles.submittedComment}>
+                  "{review.comment}"
+                </Text>
+              ) : (
+                <Text variant="caption" color={colors.textTertiary} style={styles.submittedComment}>
+                  Rating submitted without written comment.
+                </Text>
+              )}
+            </View>
+          ) : null}
+        </Card>
+      )}
 
       {/* Customer Action CTAs (Reschedule & Cancel) */}
       {(isReschedulable || isCancellable) && (
@@ -453,6 +530,21 @@ export const BookingDetailsScreen: React.FC = () => {
         </Card>
       )}
 
+      {/* Submit Review Modal */}
+      <SubmitReviewModal
+        visible={reviewModalVisible}
+        onClose={() => setReviewModalVisible(false)}
+        onSubmit={async (rating, comment) => {
+          const success = await submitReview(rating, comment);
+          if (success) {
+            Alert.alert("Sacred Feedback Received", "Thank you for reviewing your ritual with the Acharya.");
+          }
+          return success;
+        }}
+        panditName={booking.pandit?.display_name || "the Acharya"}
+        submitting={submittingReview}
+      />
+
       {/* Cancellation Modal with Server-Side Preview */}
       <Modal visible={cancelModalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -477,13 +569,30 @@ export const BookingDetailsScreen: React.FC = () => {
                   <Text variant="body" color={colors.textSecondary}>Net Captured Amount</Text>
                   <Text variant="bodyMedium">{formatCurrency(refundPreview.net_captured)}</Text>
                 </View>
+                {refundPreview.refundable_base < refundPreview.net_captured && (
+                  <>
+                    <View style={styles.previewRow}>
+                      <Text variant="body" color={colors.textSecondary}>Non-Refundable Samagri</Text>
+                      <Text variant="bodyMedium" color={colors.error}>
+                        {formatCurrency(refundPreview.net_captured - refundPreview.refundable_base)}
+                      </Text>
+                    </View>
+                    <View style={styles.previewRow}>
+                      <Text variant="body" color={colors.textSecondary}>Refundable Dakshina</Text>
+                      <Text variant="bodyMedium">{formatCurrency(refundPreview.refundable_base)}</Text>
+                    </View>
+                  </>
+                )}
                 <View style={styles.previewRow}>
                   <Text variant="body" color={colors.textSecondary}>Applied Policy Tier</Text>
                   <Text variant="captionMedium" color={colors.primary}>{refundPreview.policy_name}</Text>
                 </View>
                 <View style={styles.previewRow}>
                   <Text variant="body" color={colors.textSecondary}>Refund Percentage</Text>
-                  <Text variant="bodyMedium">{refundPreview.refund_percent}%</Text>
+                  <Text variant="bodyMedium">
+                    {refundPreview.refund_percent}%
+                    {refundPreview.refundable_base < refundPreview.net_captured ? " (Dakshina)" : ""}
+                  </Text>
                 </View>
                 <View style={styles.previewRow}>
                   <Text variant="body" color={colors.textSecondary}>Cancellation Deduction</Text>
@@ -606,6 +715,44 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: spacing.sm,
+  },
+  reviewSectionCard: {
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: "#FFFAF5",
+    borderColor: "#FDBA74",
+    borderWidth: 1,
+  },
+  reviewPromptText: {
+    marginBottom: spacing.md,
+    lineHeight: 20,
+  },
+  reviewBtn: {
+    marginTop: spacing.xxs,
+  },
+  reviewHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  verifiedReviewBadge: {
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    borderRadius: radius.xs,
+  },
+  reviewStarsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.xs,
+  },
+  reviewStarsText: {
+    letterSpacing: 2,
+  },
+  submittedComment: {
+    fontStyle: "italic",
+    lineHeight: 20,
   },
   panditRow: {
     flexDirection: "row",
@@ -752,3 +899,4 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+

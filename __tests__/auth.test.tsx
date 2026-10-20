@@ -10,6 +10,7 @@ import { authService } from "../src/features/auth/services/authService.ts";
 import { RootNavigator } from "../src/navigation/RootNavigator.tsx";
 import { secureAuthStorage, supabase } from "../src/infrastructure/supabase/client.ts";
 import EncryptedStorage from "react-native-encrypted-storage";
+import { AppState } from "react-native";
 
 const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
@@ -23,6 +24,7 @@ jest.mock("@react-navigation/native", () => ({
   useRoute: () => ({
     params: {},
   }),
+  useFocusEffect: (cb: any) => cb(),
 }));
 
 jest.mock("@react-navigation/native-stack", () => ({
@@ -522,5 +524,628 @@ describe("M4 Authentication — Email/Password & Google Auth Test Suite", () => 
     expect(root.findAllByProps({ children: "Mobile Number" }).length).toBe(0);
     expect(root.findAllByProps({ title: "Get OTP" }).length).toBe(0);
     expect(root.findAllByProps({ children: "Enter 6-Digit OTP" }).length).toBe(0);
+  });
+
+  // 22. Foreground Sync — Logged-in user receives profile refresh when app returns to foreground
+  test("22. Logged-in user receives profile refresh on foreground transition", async () => {
+    let appStateCallback: any = null;
+    const mockRemove = jest.fn();
+    jest.spyOn(AppState, "addEventListener").mockImplementation((event: any, callback: any) => {
+      if (event === "change") appStateCallback = callback;
+      return { remove: mockRemove } as any;
+    });
+
+    jest.spyOn(supabase.auth, "getSession").mockResolvedValueOnce({
+      data: { session: { user: { id: "fg-user-1" } } as any },
+      error: null,
+    });
+
+    let fetchCount = 0;
+    jest.spyOn(supabase, "from").mockImplementation((table: string) => {
+      if (table === "profiles") {
+        fetchCount++;
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { id: "fg-user-1", display_name: `Devotee ${fetchCount}` },
+                  error: null,
+                }),
+            }),
+          }),
+        } as any;
+      }
+      if (table === "user_roles") {
+        return {
+          select: () => ({
+            eq: () => Promise.resolve({ data: [{ role: "customer" }], error: null }),
+          }),
+        } as any;
+      }
+      return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) } as any;
+    });
+
+    let nowTime = 100000;
+    jest.spyOn(Date, "now").mockImplementation(() => nowTime);
+
+    let hookResult: any;
+    const TestComponent = () => {
+      hookResult = useAuth();
+      return null;
+    };
+
+    await act(async () => {
+      ReactTestRenderer.create(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+    });
+
+    expect(hookResult.profile?.display_name).toBe("Devotee 1");
+
+    // Advance time past 30-second throttle
+    nowTime += 35000;
+
+    // Transition from background to active
+    await act(async () => {
+      appStateCallback("background");
+      appStateCallback("active");
+    });
+
+    expect(fetchCount).toBeGreaterThanOrEqual(2);
+    expect(hookResult.profile?.display_name).toBe("Devotee 2");
+  });
+
+  // 23. Foreground Sync — Unauthenticated user does not trigger profile refresh
+  test("23. Unauthenticated user does not trigger foreground profile refresh", async () => {
+    let appStateCallback: any = null;
+    jest.spyOn(AppState, "addEventListener").mockImplementation((event: any, callback: any) => {
+      if (event === "change") appStateCallback = callback;
+      return { remove: jest.fn() } as any;
+    });
+
+    jest.spyOn(supabase.auth, "getSession").mockResolvedValueOnce({
+      data: { session: null },
+      error: null,
+    });
+
+    const fromSpy = jest.spyOn(supabase, "from");
+
+    let nowTime = 200000;
+    jest.spyOn(Date, "now").mockImplementation(() => nowTime);
+
+    await act(async () => {
+      ReactTestRenderer.create(
+        <AuthProvider>
+          <RootNavigator />
+        </AuthProvider>
+      );
+    });
+
+    fromSpy.mockClear();
+    nowTime += 40000;
+
+    await act(async () => {
+      appStateCallback("background");
+      appStateCallback("active");
+    });
+
+    expect(fromSpy).not.toHaveBeenCalled();
+  });
+
+  // 24. Foreground Sync — Repeated foreground transitions within 30 seconds are throttled
+  test("24. Repeated foreground events within 30 seconds are throttled", async () => {
+    let appStateCallback: any = null;
+    jest.spyOn(AppState, "addEventListener").mockImplementation((event: any, callback: any) => {
+      if (event === "change") appStateCallback = callback;
+      return { remove: jest.fn() } as any;
+    });
+
+    jest.spyOn(supabase.auth, "getSession").mockResolvedValueOnce({
+      data: { session: { user: { id: "fg-throttle-user" } } as any },
+      error: null,
+    });
+
+    let profileFetchCount = 0;
+    jest.spyOn(supabase, "from").mockImplementation((table: string) => {
+      if (table === "profiles") {
+        profileFetchCount++;
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { id: "fg-throttle-user", display_name: "Rahul" },
+                  error: null,
+                }),
+            }),
+          }),
+        } as any;
+      }
+      if (table === "user_roles") {
+        return {
+          select: () => ({
+            eq: () => Promise.resolve({ data: [{ role: "customer" }], error: null }),
+          }),
+        } as any;
+      }
+      return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) } as any;
+    });
+
+    let nowTime = 300000;
+    jest.spyOn(Date, "now").mockImplementation(() => nowTime);
+
+    let hookResult: any;
+    const TestComponent = () => {
+      hookResult = useAuth();
+      return null;
+    };
+
+    await act(async () => {
+      ReactTestRenderer.create(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+    });
+
+    expect(profileFetchCount).toBe(1);
+
+    // Transition only 10 seconds later (under 30s throttle)
+    nowTime += 10000;
+    await act(async () => {
+      appStateCallback("background");
+      appStateCallback("active");
+    });
+
+    expect(profileFetchCount).toBe(1);
+  });
+
+  // 25. Foreground Sync — AppState listener is removed on unmount
+  test("25. AppState listener is removed on unmount", async () => {
+    const mockRemove = jest.fn();
+    jest.spyOn(AppState, "addEventListener").mockImplementation(() => ({
+      remove: mockRemove,
+    } as any));
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <AuthProvider>
+          <RootNavigator />
+        </AuthProvider>
+      );
+    });
+
+    act(() => {
+      renderer.unmount();
+    });
+
+    expect(mockRemove).toHaveBeenCalled();
+  });
+
+  // 26. Foreground Sync — Network errors do not crash auth state or set blocking error
+  test("26. Foreground refresh network errors do not crash auth state", async () => {
+    let appStateCallback: any = null;
+    jest.spyOn(AppState, "addEventListener").mockImplementation((event: any, callback: any) => {
+      if (event === "change") appStateCallback = callback;
+      return { remove: jest.fn() } as any;
+    });
+
+    jest.spyOn(supabase.auth, "getSession").mockResolvedValueOnce({
+      data: { session: { user: { id: "fg-err-user" } } as any },
+      error: null,
+    });
+
+    let shouldFail = false;
+    jest.spyOn(supabase, "from").mockImplementation((table: string) => {
+      if (table === "profiles") {
+        if (shouldFail) {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () => Promise.reject(new Error("Network timeout")),
+              }),
+            }),
+          } as any;
+        }
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { id: "fg-err-user", display_name: "Stable User" },
+                  error: null,
+                }),
+            }),
+          }),
+        } as any;
+      }
+      if (table === "user_roles") {
+        return {
+          select: () => ({
+            eq: () => Promise.resolve({ data: [{ role: "customer" }], error: null }),
+          }),
+        } as any;
+      }
+      return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) } as any;
+    });
+
+    let nowTime = 400000;
+    jest.spyOn(Date, "now").mockImplementation(() => nowTime);
+
+    let hookResult: any;
+    const TestComponent = () => {
+      hookResult = useAuth();
+      return null;
+    };
+
+    await act(async () => {
+      ReactTestRenderer.create(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+    });
+
+    expect(hookResult.profile?.display_name).toBe("Stable User");
+    expect(hookResult.error).toBeNull();
+
+    // Foreground refresh fails
+    shouldFail = true;
+    nowTime += 35000;
+
+    await act(async () => {
+      appStateCallback("background");
+      appStateCallback("active");
+    });
+
+    expect(hookResult.profile?.display_name).toBe("Stable User");
+    expect(hookResult.error).toBeNull();
+  });
+
+  // 27. Foreground Sync — Refreshed role updates state dynamically (Pandit promotion)
+  test("27. Refreshed role updates state dynamically on foreground", async () => {
+    let appStateCallback: any = null;
+    jest.spyOn(AppState, "addEventListener").mockImplementation((event: any, callback: any) => {
+      if (event === "change") appStateCallback = callback;
+      return { remove: jest.fn() } as any;
+    });
+
+    jest.spyOn(supabase.auth, "getSession").mockResolvedValueOnce({
+      data: { session: { user: { id: "promotion-user" } } as any },
+      error: null,
+    });
+
+    let isApprovedPandit = false;
+    jest.spyOn(supabase, "from").mockImplementation((table: string) => {
+      if (table === "profiles") {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { id: "promotion-user", display_name: "Pandit Rahul" },
+                  error: null,
+                }),
+            }),
+          }),
+        } as any;
+      }
+      if (table === "user_roles") {
+        return {
+          select: () => ({
+            eq: () =>
+              Promise.resolve({
+                data: isApprovedPandit
+                  ? [{ role: "customer" }, { role: "pandit" }]
+                  : [{ role: "customer" }],
+                error: null,
+              }),
+          }),
+        } as any;
+      }
+      if (table === "pandit_profiles") {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: {
+                    id: "pandit-rahul-1",
+                    user_id: "promotion-user",
+                    verification_status: "approved",
+                    public_status: "available",
+                  },
+                  error: null,
+                }),
+            }),
+          }),
+        } as any;
+      }
+      return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) } as any;
+    });
+
+    let nowTime = 500000;
+    jest.spyOn(Date, "now").mockImplementation(() => nowTime);
+
+    let hookResult: any;
+    const TestComponent = () => {
+      hookResult = useAuth();
+      return null;
+    };
+
+    await act(async () => {
+      ReactTestRenderer.create(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+    });
+
+    expect(hookResult.roles).toEqual(["customer"]);
+    expect(hookResult.canSwitchToPanditMode).toBe(false);
+
+    // Admin approves application in background
+    isApprovedPandit = true;
+    nowTime += 35000;
+
+    await act(async () => {
+      appStateCallback("background");
+      appStateCallback("active");
+    });
+
+    expect(hookResult.roles).toContain("pandit");
+    expect(hookResult.canSwitchToPanditMode).toBe(true);
+    expect(hookResult.panditProfile?.id).toBe("pandit-rahul-1");
+  });
+
+  // 28. Race Condition — Pending profile request cannot restore state after logout
+  test("28. Pending profile request cannot restore state after logout", async () => {
+    let authStateListener: any = null;
+    jest.spyOn(supabase.auth, "onAuthStateChange").mockImplementation((callback: any) => {
+      authStateListener = callback;
+      return {
+        data: { subscription: { unsubscribe: jest.fn() } },
+      } as any;
+    });
+
+    jest.spyOn(supabase.auth, "getSession").mockResolvedValueOnce({
+      data: { session: null },
+      error: null,
+    });
+
+    let resolvePendingProfile: any;
+    const pendingProfilePromise = new Promise((resolve) => {
+      resolvePendingProfile = resolve;
+    });
+
+    jest.spyOn(supabase, "from").mockImplementation((table: string) => {
+      if (table === "profiles") {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () => pendingProfilePromise,
+            }),
+          }),
+        } as any;
+      }
+      if (table === "user_roles") {
+        return {
+          select: () => ({
+            eq: () => Promise.resolve({ data: [{ role: "customer" }], error: null }),
+          }),
+        } as any;
+      }
+      return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) } as any;
+    });
+
+    let hookResult: any;
+    const TestComponent = () => {
+      hookResult = useAuth();
+      return null;
+    };
+
+    await act(async () => {
+      ReactTestRenderer.create(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+    });
+
+    // User logs in, starting pendingProfilePromise
+    await act(async () => {
+      authStateListener("SIGNED_IN", { user: { id: "race-user-logout" } });
+    });
+
+    // User signs out before pendingProfilePromise resolves
+    await act(async () => {
+      await hookResult.signOut();
+    });
+
+    expect(hookResult.user).toBeNull();
+    expect(hookResult.profile).toBeNull();
+
+    // Now slow profile request finally resolves
+    await act(async () => {
+      resolvePendingProfile({
+        data: { id: "race-user-logout", display_name: "Ghost User" },
+        error: null,
+      });
+    });
+
+    // State MUST remain clean and logged out
+    expect(hookResult.user).toBeNull();
+    expect(hookResult.profile).toBeNull();
+    expect(hookResult.roles).toEqual(["customer"]);
+  });
+
+  // 29. Race Condition — Delayed response from User A cannot overwrite User B state
+  test("29. Delayed response from User A cannot overwrite User B state", async () => {
+    let authStateListener: any = null;
+    jest.spyOn(supabase.auth, "onAuthStateChange").mockImplementation((callback: any) => {
+      authStateListener = callback;
+      return {
+        data: { subscription: { unsubscribe: jest.fn() } },
+      } as any;
+    });
+
+    jest.spyOn(supabase.auth, "getSession").mockResolvedValueOnce({
+      data: { session: null },
+      error: null,
+    });
+
+    let resolveUserA: any;
+    const userAPromise = new Promise((resolve) => {
+      resolveUserA = resolve;
+    });
+
+    jest.spyOn(supabase, "from").mockImplementation((table: string) => {
+      if (table === "profiles") {
+        return {
+          select: () => ({
+            eq: (col: string, val: string) => ({
+              maybeSingle: () => {
+                if (val === "user-A") return userAPromise;
+                return Promise.resolve({
+                  data: { id: "user-B", display_name: "Devotee B" },
+                  error: null,
+                });
+              },
+            }),
+          }),
+        } as any;
+      }
+      if (table === "user_roles") {
+        return {
+          select: () => ({
+            eq: () => Promise.resolve({ data: [{ role: "customer" }], error: null }),
+          }),
+        } as any;
+      }
+      return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) } as any;
+    });
+
+    let hookResult: any;
+    const TestComponent = () => {
+      hookResult = useAuth();
+      return null;
+    };
+
+    await act(async () => {
+      ReactTestRenderer.create(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+    });
+
+    // User A signs in
+    await act(async () => {
+      authStateListener("SIGNED_IN", { user: { id: "user-A" } });
+    });
+
+    // User B signs in rapidly
+    await act(async () => {
+      authStateListener("SIGNED_IN", { user: { id: "user-B" } });
+    });
+
+    expect(hookResult.user?.id).toBe("user-B");
+    expect(hookResult.profile?.display_name).toBe("Devotee B");
+
+    // User A's slow request resolves late
+    await act(async () => {
+      resolveUserA({
+        data: { id: "user-A", display_name: "Stale Devotee A" },
+        error: null,
+      });
+    });
+
+    // User B's state MUST NOT be overwritten
+    expect(hookResult.user?.id).toBe("user-B");
+    expect(hookResult.profile?.display_name).toBe("Devotee B");
+  });
+
+  // 30. Race Condition — Stale request cannot overwrite newer response for the same user
+  test("30. Stale request cannot overwrite newer response for the same user", async () => {
+    jest.spyOn(supabase.auth, "getSession").mockResolvedValueOnce({
+      data: { session: { user: { id: "same-user-id" } } as any },
+      error: null,
+    });
+
+    let resolveStaleReq: any;
+    const stalePromise = new Promise((resolve) => {
+      resolveStaleReq = resolve;
+    });
+
+    let callCount = 0;
+    jest.spyOn(supabase, "from").mockImplementation((table: string) => {
+      if (table === "profiles") {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () => stalePromise,
+              }),
+            }),
+          } as any;
+        }
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { id: "same-user-id", display_name: "Fresh Profile" },
+                  error: null,
+                }),
+            }),
+          }),
+        } as any;
+      }
+      if (table === "user_roles") {
+        return {
+          select: () => ({
+            eq: () => Promise.resolve({ data: [{ role: "customer" }], error: null }),
+          }),
+        } as any;
+      }
+      return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) } as any;
+    });
+
+    let hookResult: any;
+    const TestComponent = () => {
+      hookResult = useAuth();
+      return null;
+    };
+
+    await act(async () => {
+      ReactTestRenderer.create(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+    });
+
+    // Trigger newer request (callCount = 2)
+    await act(async () => {
+      await hookResult.refreshProfile();
+    });
+
+    expect(hookResult.profile?.display_name).toBe("Fresh Profile");
+
+    // Older request 1 resolves late
+    await act(async () => {
+      resolveStaleReq({
+        data: { id: "same-user-id", display_name: "Stale Profile" },
+        error: null,
+      });
+    });
+
+    // Newer profile MUST be preserved
+    expect(hookResult.profile?.display_name).toBe("Fresh Profile");
   });
 });

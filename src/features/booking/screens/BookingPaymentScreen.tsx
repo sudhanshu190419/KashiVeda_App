@@ -23,6 +23,7 @@ export const BookingPaymentScreen: React.FC = () => {
     pujaName = "Ritual",
     panditName = "Acharya",
     isBalancePayment = false,
+    isFullPayment = false,
   } = route.params || {};
 
   const {
@@ -62,7 +63,11 @@ export const BookingPaymentScreen: React.FC = () => {
 
         <View style={styles.amountBox}>
           <Text variant="caption" color={colors.textSecondary} align="center">
-            {isBalancePayment ? "Balance Amount Payable" : "Advance Amount Payable"}
+            {isBalancePayment
+              ? "Balance Amount Payable"
+              : isFullPayment
+              ? "Full Booking Amount Payable"
+              : "Advance Amount Payable"}
           </Text>
           <Text variant="h1" color={colors.primary} align="center" style={styles.amountText}>
             {formatCurrency(advanceAmount)}

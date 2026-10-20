@@ -237,6 +237,7 @@ export interface CancellationRefundPreview {
   already_refunded: number;
   net_captured: number;
   refundable_base: number;
+  refund_base_amount?: number;
   refund_percent: number;
   refund_amount: number;
   deduction_amount: number;
@@ -249,6 +250,7 @@ export interface CancellationResult {
   total_captured: number;
   already_refunded: number;
   net_captured: number;
+  refundable_base?: number;
   refund_base_amount: number;
   refund_percent: number;
   refund_amount: number;
@@ -268,14 +270,17 @@ export interface PanditCancellationResult {
 }
 
 export interface RescheduleResult {
-  status: "rescheduled";
+  status: "rescheduled" | "requested";
   reschedule_request_id: string;
   booking_id: string;
   old_start_at: string;
   new_start_at: string;
   new_end_at: string;
   fee_amount: number;
-  reschedule_count: number;
+  reschedule_count?: number;
   balance_due_at?: string;
+  payment_order_id?: string;
+  message?: string;
 }
+
 

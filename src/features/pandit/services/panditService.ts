@@ -365,6 +365,7 @@ export const panditService = {
       { data: locationData },
       { data: lineItemsData },
       payoutResult,
+      balanceResult,
     ] = await Promise.all([
       supabase
         .from("booking_service_locations")
@@ -381,6 +382,9 @@ export const panditService = {
         .select(selectWithExtended)
         .eq("booking_id", bookingId)
         .maybeSingle(),
+      supabase.rpc("calculate_booking_balance", {
+        p_booking_id: bookingId,
+      }),
     ]);
 
     let payoutItem: any = payoutResult.data || null;
@@ -398,11 +402,33 @@ export const panditService = {
       payoutItem = fallback.data || null;
     }
 
+    const balanceData = balanceResult?.data;
+    const outstandingBalance =
+      balanceData?.outstanding_balance !== undefined && balanceData?.outstanding_balance !== null
+        ? Number(balanceData.outstanding_balance)
+        : Number(booking.balance_amount ?? 0);
+    const totalPaid =
+      balanceData?.total_paid !== undefined && balanceData?.total_paid !== null
+        ? Number(balanceData.total_paid)
+        : Number(booking.advance_amount ?? 0);
+    const netPaid =
+      balanceData?.net_paid !== undefined && balanceData?.net_paid !== null
+        ? Number(balanceData.net_paid)
+        : totalPaid;
+    const totalRefunded =
+      balanceData?.total_refunded !== undefined && balanceData?.total_refunded !== null
+        ? Number(balanceData.total_refunded)
+        : 0;
+
     return {
       ...(booking as unknown as PanditBookingItem),
       location: locationData || undefined,
       line_items: lineItemsData || [],
       payout: payoutItem as any,
+      outstanding_balance: outstandingBalance,
+      total_paid: totalPaid,
+      net_paid: netPaid,
+      total_refunded: totalRefunded,
     };
   },
 

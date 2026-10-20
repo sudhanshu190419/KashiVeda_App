@@ -19,6 +19,7 @@ export interface CreateAstrologySubscriptionOrderResult {
   payment_order_id: string;
   amount: number;
   currency: string;
+  duration_days: number;
   status: AstrologySubscriptionStatus;
   starts_at?: string | null;
   ends_at?: string | null;
@@ -54,6 +55,14 @@ export interface AstrologySubscription {
   status: AstrologySubscriptionStatus;
   created_at: string;
   plan?: AstrologySubscriptionPlan | null;
+}
+
+export interface CustomerSubscriptionSummary {
+  currentSubscription: AstrologySubscription | null;
+  futureSubscription: AstrologySubscription | null;
+  pendingSubscription: AstrologySubscription | null;
+  newestSubscription: AstrologySubscription | null;
+  allSubscriptions: AstrologySubscription[];
 }
 
 export interface AstrologyContent {

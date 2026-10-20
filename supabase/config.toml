@@ -424,7 +424,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.execute-razorpay-refund]
-verify_jwt = true
+verify_jwt = false
 
 [functions.calculate-free-kundli]
 verify_jwt = true

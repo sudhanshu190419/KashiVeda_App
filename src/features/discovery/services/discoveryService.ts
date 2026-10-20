@@ -277,22 +277,57 @@ export const discoveryService = {
     }
 
     // 3. Fetch published reviews for this pandit
-    const { data: reviewsData, error: reviewsErr } = await supabase
-      .from("reviews")
-      .select("id, booking_id, customer_id, pandit_id, rating, comment, visibility_status, created_at")
-      .eq("pandit_id", panditId)
-      .eq("visibility_status", "published")
-      .order("created_at", { ascending: false })
-      .limit(20);
+    let reviewsList: Review[] = [];
+    try {
+      const { data: rpcData, error: rpcErr } = await supabase.rpc("get_public_pandit_reviews", {
+        p_pandit_id: panditId,
+        p_limit: 20,
+        p_offset: 0,
+      });
+      if (!rpcErr && rpcData) {
+        reviewsList = rpcData as Review[];
+      } else {
+        // Fallback to table query
+        const { data: reviewsData, error: reviewsErr } = await supabase
+          .from("reviews")
+          .select(`
+            id,
+            booking_id,
+            pandit_id,
+            rating,
+            comment,
+            visibility_status,
+            created_at,
+            booking:bookings(service_mode, puja_service:puja_services(name))
+          `)
+          .eq("pandit_id", panditId)
+          .eq("visibility_status", "published")
+          .order("created_at", { ascending: false })
+          .limit(20);
 
-    if (reviewsErr) {
-      console.warn("Could not load pandit reviews:", reviewsErr.message);
+        if (!reviewsErr && reviewsData) {
+          reviewsList = (reviewsData as any[]).map((r) => ({
+            id: r.id,
+            booking_id: r.booking_id,
+            pandit_id: r.pandit_id,
+            rating: r.rating,
+            comment: r.comment,
+            visibility_status: r.visibility_status,
+            created_at: r.created_at,
+            reviewer_label: "Verified Devotee",
+            service_mode: r.booking?.service_mode,
+            puja_name: r.booking?.puja_service?.name,
+          }));
+        }
+      }
+    } catch (err: any) {
+      console.warn("Could not load pandit reviews:", err?.message);
     }
 
     return {
       pandit,
       offerings: (offeringsData as unknown as PanditPujaOffering[]) || [],
-      reviews: (reviewsData as Review[]) || [],
+      reviews: reviewsList,
     };
   },
 
@@ -300,9 +335,32 @@ export const discoveryService = {
    * Fetch published reviews for a pandit.
    */
   async fetchReviews(panditId: string, limit: number = 20): Promise<Review[]> {
+    try {
+      const { data: rpcData, error: rpcErr } = await supabase.rpc("get_public_pandit_reviews", {
+        p_pandit_id: panditId,
+        p_limit: limit,
+        p_offset: 0,
+      });
+
+      if (!rpcErr && rpcData) {
+        return rpcData as Review[];
+      }
+    } catch {
+      // Fallback
+    }
+
     const { data, error } = await supabase
       .from("reviews")
-      .select("id, booking_id, customer_id, pandit_id, rating, comment, visibility_status, created_at")
+      .select(`
+        id,
+        booking_id,
+        pandit_id,
+        rating,
+        comment,
+        visibility_status,
+        created_at,
+        booking:bookings(service_mode, puja_service:puja_services(name))
+      `)
       .eq("pandit_id", panditId)
       .eq("visibility_status", "published")
       .order("created_at", { ascending: false })
@@ -312,6 +370,18 @@ export const discoveryService = {
       throw new Error(`Failed to fetch reviews: ${error.message}`);
     }
 
-    return (data as Review[]) || [];
+    return ((data as any[]) || []).map((r) => ({
+      id: r.id,
+      booking_id: r.booking_id,
+      pandit_id: r.pandit_id,
+      rating: r.rating,
+      comment: r.comment,
+      visibility_status: r.visibility_status,
+      created_at: r.created_at,
+      reviewer_label: "Verified Devotee",
+      service_mode: r.booking?.service_mode,
+      puja_name: r.booking?.puja_service?.name,
+    }));
   },
 };
+

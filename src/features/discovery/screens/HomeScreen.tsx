@@ -75,6 +75,43 @@ export const HomeScreen: React.FC = () => {
         </Text>
       </View>
 
+      {/* Cosmic Insights & Vedic Astrology Entry Point */}
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => navigation.navigate("Astrology" as any)}
+        accessibilityRole="button"
+        accessibilityLabel="Cosmic Insights & Vedic Astrology"
+        style={styles.cosmicQuickEntryWrapper}
+      >
+        <Card variant="elevated" style={styles.cosmicQuickCard}>
+          <View style={styles.cosmicQuickRow}>
+            <View style={styles.cosmicIconCircle}>
+              <Text style={styles.cosmicIconText}>🪐</Text>
+            </View>
+            <View style={styles.cosmicQuickContent}>
+              <View style={styles.cosmicBadgeRow}>
+                <Text variant="h3" style={styles.cosmicQuickTitle}>
+                  Cosmic Insights
+                </Text>
+                <View style={styles.cosmicTag}>
+                  <Text variant="overline" color={colors.primary}>
+                    Daily Guidance
+                  </Text>
+                </View>
+              </View>
+              <Text variant="caption" color={colors.textSecondary} style={styles.cosmicQuickDesc}>
+                Explore daily planetary transits, auspicious timings, and Vedic Jyotish guidance.
+              </Text>
+            </View>
+            <View style={styles.cosmicActionChevron}>
+              <Text variant="bodyMedium" color={colors.primary}>
+                ›
+              </Text>
+            </View>
+          </View>
+        </Card>
+      </TouchableOpacity>
+
       {/* Service Mode Experience Entry Points */}
       <View style={styles.modeSectionHeader}>
         <Text variant="h2" style={styles.modeSectionTitle}>
@@ -497,5 +534,56 @@ const styles = StyleSheet.create({
   },
   explorePanditsBtn: {
     marginTop: spacing.sm,
+  },
+  cosmicQuickEntryWrapper: {
+    width: "100%",
+    marginBottom: spacing.md,
+  },
+  cosmicQuickCard: {
+    backgroundColor: "#FDF8F0",
+    borderColor: "#FDE68A",
+    borderWidth: 1,
+    padding: spacing.md,
+    borderRadius: radius.md,
+  },
+  cosmicQuickRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  cosmicIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.sm,
+  },
+  cosmicIconText: {
+    fontSize: 22,
+  },
+  cosmicQuickContent: {
+    flex: 1,
+  },
+  cosmicBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.xxs,
+  },
+  cosmicQuickTitle: {
+    color: colors.textPrimary,
+  },
+  cosmicTag: {
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    borderRadius: radius.full,
+  },
+  cosmicQuickDesc: {
+    lineHeight: 16,
+  },
+  cosmicActionChevron: {
+    paddingLeft: spacing.xs,
   },
 });

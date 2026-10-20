@@ -18,6 +18,8 @@ import {
 import { colors, radius, spacing, typography } from "../../../../shared/theme/index.ts";
 import { CustomerStackParamList } from "../../../../shared/types/navigation.ts";
 import { FreeKundliResponse, PlanetPosition } from "../types/freeKundli.types.ts";
+import { mapKundliMoonSignToRashiId, getRashiById } from "../../../astrology/types/rashi.types.ts";
+import { dailyRashiService } from "../../../astrology/services/dailyRashiService.ts";
 
 type RouteProps = RouteProp<CustomerStackParamList, "FreeKundliResult">;
 type NavProps = NativeStackNavigationProp<CustomerStackParamList>;
@@ -51,6 +53,25 @@ export const FreeKundliResultScreen: React.FC = () => {
   }
 
   const { birth, ascendant, moon, planets, houses, panchang, vimshottari, vedic } = kundli;
+
+  const detectedRashiId = mapKundliMoonSignToRashiId(moon.sign_number ?? moon.sign);
+  const rashiInfo = detectedRashiId ? getRashiById(detectedRashiId) : null;
+
+  const handleNavigateToDailyInsights = async () => {
+    if (detectedRashiId) {
+      try {
+        const result = await dailyRashiService.updatePreferredRashi(detectedRashiId);
+        if (result.status === "failed") {
+          console.warn("Could not synchronize Kundli Rashi preference:", result.error);
+        } else if (result.status === "remote_only") {
+          console.warn("Kundli Rashi preference saved remotely, but local cache failed:", result.error);
+        }
+      } catch {
+        // Non-blocking fallback
+      }
+    }
+    navigation.navigate("Astrology" as any);
+  };
 
   const handleOrderHandwritten = () => {
     navigation.navigate("KundliWizard", undefined);
@@ -158,6 +179,33 @@ export const FreeKundliResultScreen: React.FC = () => {
             ) : null}
           </Card>
         </View>
+
+        {/* 2b. Daily Vedic Horoscope Shortcut for Janma Rashi */}
+        {rashiInfo && (
+          <Card variant="elevated" style={styles.horoscopeCtaCard}>
+            <View style={styles.horoscopeCtaContent}>
+              <Text style={styles.horoscopeCtaIcon}>{rashiInfo.symbol}</Text>
+              <View style={styles.horoscopeCtaTextCol}>
+                <Text variant="captionMedium" color={colors.primaryDark}>
+                  DAILY JYOTISH INSIGHTS
+                </Text>
+                <Text variant="h3" color={colors.textPrimary}>
+                  {rashiInfo.fullName}
+                </Text>
+                <Text variant="caption" color={colors.textSecondary}>
+                  Your calculated Moon Sign (Janma Rashi) is {rashiInfo.vedicName}. Read your daily planetary forecast.
+                </Text>
+              </View>
+            </View>
+            <Button
+              title={`View Today's Horoscope for ${rashiInfo.vedicName} →`}
+              variant="outline"
+              size="sm"
+              onPress={handleNavigateToDailyInsights}
+              style={styles.horoscopeCtaBtn}
+            />
+          </Card>
+        )}
 
         {/* 3. Panchang Overview */}
         <Card variant="outlined" style={styles.panchangCard}>
@@ -311,7 +359,7 @@ export const FreeKundliResultScreen: React.FC = () => {
           </View>
 
           <View style={styles.dashaList}>
-            {(expandedDasha ? vimshottari.mahadashas : vimshottari.mahadashas.slice(0, 3)).map(
+            {((vimshottari.mahadashas || []).slice(0, expandedDasha ? undefined : 3)).map(
               (md, idx) => {
                 const lordName = md.lord || (md as any).planet || `Dasha-${idx}`;
                 return (
@@ -593,6 +641,29 @@ const styles = StyleSheet.create({
   },
   upsellBtn: {
     width: "100%",
+    marginTop: spacing.xs,
+  },
+  horoscopeCtaCard: {
+    padding: spacing.md,
+    backgroundColor: "#FFF9F0",
+    borderColor: colors.primarySubtle,
+    borderWidth: 1,
+    gap: spacing.sm,
+  },
+  horoscopeCtaContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  horoscopeCtaIcon: {
+    fontSize: 28,
+  },
+  horoscopeCtaTextCol: {
+    flex: 1,
+    gap: 2,
+  },
+  horoscopeCtaBtn: {
+    alignSelf: "flex-start",
     marginTop: spacing.xs,
   },
 });

@@ -69,6 +69,7 @@ describe("M7: Astrology Subscription Payment Backend", () => {
           payment_order_id: validPaymentOrderId,
           amount: 999.0,
           currency: "INR",
+          duration_days: 30,
           status: "payment_pending",
           starts_at: "2026-10-06T10:00:00Z",
           ends_at: "2026-11-05T10:00:00Z",
@@ -86,6 +87,7 @@ describe("M7: Astrology Subscription Payment Backend", () => {
       expect(result.payment_order_id).toBe(validPaymentOrderId);
       expect(result.amount).toBe(999.0);
       expect(result.currency).toBe("INR");
+      expect(result.duration_days).toBe(30);
       expect(result.status).toBe("payment_pending");
       expect(result.is_reused).toBe(false);
     });
@@ -116,6 +118,7 @@ describe("M7: Astrology Subscription Payment Backend", () => {
           payment_order_id: validPaymentOrderId,
           amount: 999.0,
           currency: "INR",
+          duration_days: 30,
           status: "payment_pending",
           starts_at: "2026-10-06T10:00:00Z",
           ends_at: "2026-11-05T10:00:00Z",
@@ -126,6 +129,7 @@ describe("M7: Astrology Subscription Payment Backend", () => {
 
       const result = await astrologyService.createSubscriptionOrder(validPlanId);
       expect(result.is_reused).toBe(true);
+      expect(result.duration_days).toBe(30);
       expect(result.status).toBe("payment_pending");
     });
   });

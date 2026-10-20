@@ -152,6 +152,8 @@ export const AstrologyContentScreen: React.FC = () => {
           <EmptyState
             title="No Insights Available"
             description="No astrology insights have been published for this channel yet. Check back daily for new cosmic updates."
+            actionTitle="Refresh Insights"
+            onAction={refresh}
           />
         }
         contentContainerStyle={styles.listContent}

@@ -15,6 +15,7 @@ interface BookingPriceBreakdownProps {
   balanceAmount: number;
   serviceMode: ServiceMode;
   isAuthoritative?: boolean;
+  isWithin24Hours?: boolean;
 }
 
 export const BookingPriceBreakdown: React.FC<BookingPriceBreakdownProps> = ({
@@ -26,13 +27,16 @@ export const BookingPriceBreakdown: React.FC<BookingPriceBreakdownProps> = ({
   balanceAmount,
   serviceMode,
   isAuthoritative = false,
+  isWithin24Hours = false,
 }) => {
-  const advancePercentLabel =
-    serviceMode === "home"
-      ? "10% of Ritual + 100% Add-ons"
-      : serviceMode === "remote"
-      ? "50% of Ritual + 100% Add-ons"
-      : "Temple Policy";
+  const isFullPayment = isWithin24Hours || balanceAmount === 0;
+  const advancePercentLabel = isFullPayment
+    ? "100% Full Payment Required"
+    : serviceMode === "home"
+    ? "10% of Ritual + 100% Add-ons"
+    : serviceMode === "remote"
+    ? "50% of Ritual + 100% Add-ons"
+    : "Temple Policy";
 
   return (
     <Card variant="elevated" style={styles.card}>
@@ -91,7 +95,7 @@ export const BookingPriceBreakdown: React.FC<BookingPriceBreakdownProps> = ({
         <View style={[styles.row, styles.advanceRow]}>
           <View>
             <Text variant="bodyMedium" color={colors.primary}>
-              Advance Required Today
+              {isFullPayment ? "Full Amount Payable Today" : "Advance Required Today"}
             </Text>
             <Text variant="caption" color={colors.textSecondary}>
               ({advancePercentLabel})
