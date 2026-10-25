@@ -57,6 +57,6 @@ module.exports = function (api) {
 
   return {
     presets: ['module:@react-native/babel-preset'],
-    plugins: [inlineEnvPlugin],
+    plugins: [inlineEnvPlugin, 'react-native-reanimated/plugin'],
   };
 };
