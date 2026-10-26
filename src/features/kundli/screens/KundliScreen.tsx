@@ -4,15 +4,18 @@ import { FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from "re
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
-  Button,
-  Card,
+  ScreenWrapper,
+  AppBar,
+  VCard,
+  VText,
+  VButton,
+  VBadge,
   EmptyState,
   ErrorState,
   LoadingState,
-  ScreenContainer,
-  Text,
-} from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing, typography } from "../../../shared/theme/index.ts";
+} from "../../../shared/components/index.ts";
+import { useTheme, getDevanagariLineHeight } from "../../../shared/theme/index.ts";
+import { useLanguage } from "../../../shared/i18n/index.ts";
 import { CustomerStackParamList } from "../../../shared/types/navigation.ts";
 import { KundliPanditCard } from "../components/KundliPanditCard.tsx";
 import { useKundliPandits } from "../hooks/useKundliPandits.ts";
@@ -22,6 +25,10 @@ type CustomerNavProp = NativeStackNavigationProp<CustomerStackParamList>;
 
 export const KundliScreen: React.FC = () => {
   const navigation = useNavigation<CustomerNavProp>();
+  const { colors, spacing, radii } = useTheme();
+  const { language } = useLanguage();
+  const isHi = language === "hi";
+
   const { pandits, loading, error, refresh } = useKundliPandits();
 
   const handleSelectPandit = (pandit: KundliPandit) => {
@@ -40,86 +47,165 @@ export const KundliScreen: React.FC = () => {
   };
 
   return (
-    <ScreenContainer scrollable={false} padded={false}>
-      <View style={styles.topBar}>
-        <View>
-          <Text variant="h2" style={styles.topBarTitle}>
-            📜 Vedic Kundli
-          </Text>
-          <Text variant="caption" color={colors.textSecondary}>
-            Authentic handwritten horoscopes from Kashi
-          </Text>
-        </View>
-        <TouchableOpacity
-          onPress={handleOpenOrders}
-          style={styles.ordersButton}
-          accessibilityRole="button"
-          accessibilityLabel="View my Kundli orders"
-        >
-          <Text style={styles.ordersButtonText}>My Orders</Text>
-        </TouchableOpacity>
-      </View>
-
+    <ScreenWrapper
+      headerComponent={
+        <AppBar
+          title="Vedic Kundli"
+          locationBadge="वाराणसी / Varanasi"
+          rightComponent={
+            <TouchableOpacity
+              onPress={handleOpenOrders}
+              style={[
+                styles.ordersButton,
+                {
+                  borderColor: colors.brandPrimary,
+                  backgroundColor: colors.surfaceSubtle,
+                  borderRadius: radii.md,
+                  paddingHorizontal: spacing.sm,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="View my Kundli orders"
+            >
+              <VText variant="labelLarge" weight="600" color="brandPrimary">
+                {isHi ? "मेरे आदेश" : "My Orders"}
+              </VText>
+            </TouchableOpacity>
+          }
+        />
+      }
+    >
       <FlatList
         data={pandits}
         keyExtractor={(item) => item.id}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={refresh} colors={[colors.primary]} />
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={refresh}
+            colors={[colors.brandPrimary]}
+            tintColor={colors.brandPrimary}
+          />
         }
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { padding: spacing.md, paddingBottom: 40 }]}
         ListHeaderComponent={
-          <View style={styles.headerComponent}>
+          <View style={[styles.headerComponent, { marginBottom: spacing.md }]}>
             {/* Free Automated Kundli Card */}
-            <Card style={styles.freeCard}>
-              <View style={styles.freeBadge}>
-                <Text style={styles.freeBadgeText}>100% FREE & INSTANT</Text>
+            <VCard
+              variant="default"
+              elevation={2}
+              style={[
+                styles.freeCard,
+                {
+                  padding: spacing.md,
+                  backgroundColor: colors.surfaceCard,
+                  borderColor: colors.borderAccent,
+                  borderWidth: 1.5,
+                  borderRadius: radii.md,
+                  marginBottom: spacing.md,
+                },
+              ]}
+            >
+              <View style={{ alignSelf: "flex-start", marginBottom: spacing.xs }}>
+                <VBadge
+                  variant="status"
+                  color="brand"
+                  label="100% FREE & INSTANT"
+                />
               </View>
-              <Text variant="h3" style={styles.freeTitle}>
+              <VText variant="headlineMedium" weight="700" color="brandPrimary" style={{ marginBottom: spacing.xxs }}>
                 Free Vedic Kundli
-              </Text>
-              <Text variant="body" color={colors.textSecondary} style={styles.freeDescription}>
+              </VText>
+              <VText
+                variant="bodyMedium"
+                color="textMuted"
+                style={{
+                  marginBottom: spacing.md,
+                  lineHeight: getDevanagariLineHeight(15),
+                }}
+              >
                 Get your birth horoscope, Lagna, Moon sign, planetary degrees, and Vimshottari Mahadasha calculated instantly.
-              </Text>
-              <Button
+              </VText>
+              <VButton
                 title="✨ Calculate Free Kundli"
+                variant="outline"
+                size="md"
                 onPress={() => navigation.navigate("FreeKundliWizard")}
-                style={styles.freeCta}
+                style={{ minHeight: 48 }}
               />
-            </Card>
+            </VCard>
 
-            <Card style={styles.heroCard}>
-              <Text variant="h3" style={styles.heroTitle}>
+            {/* Paid Handwritten Kundli Service Hero Card */}
+            <VCard
+              variant="default"
+              elevation={2}
+              style={[
+                styles.heroCard,
+                {
+                  padding: spacing.md,
+                  backgroundColor: colors.surfaceCard,
+                  borderColor: colors.borderDefault,
+                  borderWidth: 1,
+                  borderRadius: radii.md,
+                  marginBottom: spacing.lg,
+                },
+              ]}
+            >
+              <VText variant="headlineMedium" weight="700" color="brandPrimary" style={{ marginBottom: spacing.xxs }}>
                 Handwritten Kundli Service
-              </Text>
-              <Text variant="body" color={colors.textSecondary} style={styles.heroDescription}>
+              </VText>
+              <VText
+                variant="bodyMedium"
+                color="textMuted"
+                style={{
+                  marginBottom: spacing.md,
+                  lineHeight: getDevanagariLineHeight(15),
+                }}
+              >
                 Receive an authentic, comprehensive Vedic horoscope manually prepared and
                 handwritten by certified astrologers in Kashi, delivered as a high-resolution scanned
                 PDF document.
-              </Text>
-              <View style={styles.bulletList}>
-                <Text variant="caption" color={colors.textPrimary}>
+              </VText>
+              <View
+                style={[
+                  styles.bulletList,
+                  {
+                    backgroundColor: colors.surfaceSubtle,
+                    borderColor: colors.borderDefault,
+                    borderWidth: 1,
+                    padding: spacing.sm,
+                    borderRadius: radii.sm,
+                    gap: 6,
+                    marginBottom: spacing.md,
+                  },
+                ]}
+              >
+                <VText variant="caption" color="textPrimary">
                   ✨ 100% Traditional Vedic calculations & planetary charts
-                </Text>
-                <Text variant="caption" color={colors.textPrimary}>
+                </VText>
+                <VText variant="caption" color="textPrimary">
                   ✨ Complete Dasha analysis & life predictions
-                </Text>
-                <Text variant="caption" color={colors.textPrimary}>
+                </VText>
+                <VText variant="caption" color="textPrimary">
                   ✨ Downloadable secure high-definition PDF
-                </Text>
+                </VText>
               </View>
 
-              <Button
+              <VButton
                 title="Create Kundli Request"
+                variant="primary"
+                size="md"
                 onPress={handleGeneralStart}
-                style={styles.heroCta}
+                style={{ minHeight: 48 }}
               />
-            </Card>
+            </VCard>
 
-            <View style={styles.sectionTitleRow}>
-              <Text variant="h3">Select Astrologer Specialist</Text>
-              <Text variant="caption" color={colors.textSecondary}>
+            <View style={[styles.sectionTitleRow, { marginTop: spacing.xs, marginBottom: spacing.sm }]}>
+              <VText variant="headlineMedium" weight="700" color="textPrimary">
+                Select Astrologer Specialist
+              </VText>
+              <VText variant="caption" color="textMuted">
                 Choose an experienced Panditji in Varanasi
-              </Text>
+              </VText>
             </View>
           </View>
         }
@@ -142,102 +228,22 @@ export const KundliScreen: React.FC = () => {
           )
         }
       />
-    </ScreenContainer>
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
-  topBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
-  topBarTitle: {
-    color: colors.primary,
-  },
   ordersButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.md,
-    backgroundColor: colors.primaryLight,
+    minHeight: 48,
+    minWidth: 48,
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: colors.primary,
   },
-  ordersButtonText: {
-    color: colors.primary,
-    fontWeight: typography.fontWeight.semibold,
-    fontSize: typography.fontSize.sm,
-  },
-  listContent: {
-    padding: spacing.md,
-    paddingBottom: spacing.xxl,
-  },
-  headerComponent: {
-    marginBottom: spacing.md,
-  },
-  freeCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.accent,
-    borderWidth: 1.5,
-    marginBottom: spacing.md,
-    borderRadius: radius.md,
-  },
-  freeBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: colors.secondaryLight,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.full,
-    marginBottom: spacing.xs,
-  },
-  freeBadgeText: {
-    color: colors.secondaryDark,
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.bold,
-    letterSpacing: 0.5,
-  },
-  freeTitle: {
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  freeDescription: {
-    marginBottom: spacing.md,
-    lineHeight: 20,
-  },
-  freeCta: {
-    marginTop: spacing.xs,
-  },
-  heroCard: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primarySubtle,
-    borderWidth: 1,
-    marginBottom: spacing.lg,
-  },
-  heroTitle: {
-    color: colors.primary,
-    marginBottom: spacing.xs,
-  },
-  heroDescription: {
-    marginBottom: spacing.md,
-    lineHeight: 20,
-  },
-  bulletList: {
-    gap: 6,
-    marginBottom: spacing.md,
-    backgroundColor: colors.surface,
-    padding: spacing.sm,
-    borderRadius: radius.sm,
-  },
-  heroCta: {
-    marginTop: spacing.xs,
-  },
-  sectionTitleRow: {
-    marginTop: spacing.xs,
-    marginBottom: spacing.sm,
-  },
+  listContent: {},
+  headerComponent: {},
+  freeCard: {},
+  heroCard: {},
+  bulletList: {},
+  sectionTitleRow: {},
 });

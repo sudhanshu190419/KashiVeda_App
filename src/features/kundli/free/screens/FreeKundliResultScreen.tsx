@@ -1,7 +1,6 @@
 // src/features/kundli/free/screens/FreeKundliResultScreen.tsx
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -9,13 +8,17 @@ import {
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
-  Button,
-  Card,
-  Header,
-  ScreenContainer,
-  Text,
-} from "../../../../shared/components/ui/index.ts";
-import { colors, radius, spacing, typography } from "../../../../shared/theme/index.ts";
+  ScreenWrapper,
+  AppBar,
+  VCard,
+  VText,
+  VButton,
+  VBadge,
+  KundliChartCanvas,
+  PlanetaryPosition,
+} from "../../../../shared/components/index.ts";
+import { useTheme, getDevanagariLineHeight } from "../../../../shared/theme/index.ts";
+import { useLanguage } from "../../../../shared/i18n/index.ts";
 import { CustomerStackParamList } from "../../../../shared/types/navigation.ts";
 import { FreeKundliResponse, PlanetPosition } from "../types/freeKundli.types.ts";
 import { mapKundliMoonSignToRashiId, getRashiById } from "../../../astrology/types/rashi.types.ts";
@@ -29,26 +32,53 @@ export const FreeKundliResultScreen: React.FC = () => {
   const route = useRoute<RouteProps>();
   const kundli = route.params?.kundliData as FreeKundliResponse;
 
+  const { colors, spacing, radii } = useTheme();
+  const { language } = useLanguage();
+  const isHi = language === "hi";
+
   const [expandedDasha, setExpandedDasha] = useState<boolean>(false);
+  const [selectedBhava, setSelectedBhava] = useState<number | undefined>(undefined);
 
   if (!kundli || !kundli.ascendant || !kundli.planets) {
     return (
-      <ScreenContainer padded>
-        <Header title="Vedic Kundli" onBack={() => navigation.goBack()} />
-        <Card variant="outlined" style={styles.errorCard}>
-          <Text variant="h3" color={colors.error} align="center">
+      <ScreenWrapper
+        headerComponent={
+          <AppBar
+            title="Vedic Kundli"
+            titleHi="वैदिक कुण्डली"
+            showBackButton
+            onBackPress={() => navigation.goBack()}
+          />
+        }
+        contentContainerStyle={[styles.scrollContent, { padding: spacing.md }]}
+      >
+        <VCard
+          variant="outlined"
+          elevation={0}
+          style={[
+            styles.errorCard,
+            {
+              padding: spacing.xl,
+              gap: spacing.md,
+              backgroundColor: colors.surfaceCard,
+              borderColor: colors.borderDefault,
+            },
+          ]}
+        >
+          <VText variant="headlineMedium" weight="600" color="error" align="center">
             Horoscope Not Found
-          </Text>
-          <Text variant="body" color={colors.textSecondary} align="center">
+          </VText>
+          <VText variant="bodyMedium" color="textMuted" align="center">
             No chart data available. Please generate your free Kundli again.
-          </Text>
-          <Button
+          </VText>
+          <VButton
             title="Create Kundli"
             variant="primary"
             onPress={() => navigation.navigate("FreeKundliWizard")}
+            style={{ minHeight: 48 }}
           />
-        </Card>
-      </ScreenContainer>
+        </VCard>
+      </ScreenWrapper>
     );
   }
 
@@ -56,6 +86,18 @@ export const FreeKundliResultScreen: React.FC = () => {
 
   const detectedRashiId = mapKundliMoonSignToRashiId(moon.sign_number ?? moon.sign);
   const rashiInfo = detectedRashiId ? getRashiById(detectedRashiId) : null;
+
+  const chartPlanets = useMemo<PlanetaryPosition[]>(() => {
+    if (!planets) return [];
+    return planets.map((p) => ({
+      planet: p.name,
+      planetHi: p.sanskrit_name,
+      rashi: p.sign_number ?? 1,
+      bhava: p.house ?? 1,
+      degree: `${p.sign_degree?.toFixed(1) ?? "0.0"}°`,
+      isRetrograde: Boolean(p.is_retrograde),
+    }));
+  }, [planets]);
 
   const handleNavigateToDailyInsights = async () => {
     if (detectedRashiId) {
@@ -78,352 +120,532 @@ export const FreeKundliResultScreen: React.FC = () => {
   };
 
   return (
-    <ScreenContainer scrollable={false} padded={false}>
-      <Header title="Janam Kundli" onBack={() => navigation.goBack()} />
-
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* 1. Devotee & Birth Details Card */}
-        <Card variant="elevated" style={styles.birthCard}>
-          <View style={styles.birthHeaderRow}>
-            <View>
-              <Text variant="h2" color={colors.primary}>
-                {birth.name ? `${birth.name}'s Horoscope` : "Vedic Janam Kundli"}
-              </Text>
-              <Text variant="caption" color={colors.textSecondary}>
-                Calculated with Kashi Veda Astronomical Engine (Lahiri)
-              </Text>
-            </View>
-            <Text style={styles.sunIcon}>☀️</Text>
+    <ScreenWrapper
+      scrollable
+      headerComponent={
+        <AppBar
+          title="Janam Kundli"
+          titleHi="जन्म कुण्डली"
+          showBackButton
+          onBackPress={() => navigation.goBack()}
+        />
+      }
+      contentContainerStyle={[styles.scrollContent, { padding: spacing.md, gap: spacing.md }]}
+    >
+      {/* 1. Devotee & Birth Details Card */}
+      <VCard
+        variant="default"
+        elevation={2}
+        style={[
+          styles.birthCard,
+          {
+            padding: spacing.md,
+            backgroundColor: colors.surfaceCard,
+            borderColor: colors.borderAccent,
+            borderWidth: 1,
+          },
+        ]}
+      >
+        <View style={styles.birthHeaderRow}>
+          <View style={{ flex: 1 }}>
+            <VText variant="headlineMedium" weight="700" color="brandPrimary">
+              {birth.name ? `${birth.name}'s Horoscope` : "Vedic Janam Kundli"}
+            </VText>
+            <VText variant="caption" color="textMuted">
+              Calculated with Kashi Veda Astronomical Engine (Lahiri)
+            </VText>
           </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.detailsGrid}>
-            <View style={styles.detailItem}>
-              <Text variant="caption" color={colors.textSecondary}>
-                Date of Birth
-              </Text>
-              <Text variant="bodyMedium" color={colors.textPrimary}>
-                {birth.date}
-              </Text>
-            </View>
-
-            <View style={styles.detailItem}>
-              <Text variant="caption" color={colors.textSecondary}>
-                Time of Birth
-              </Text>
-              <Text variant="bodyMedium" color={colors.textPrimary}>
-                {birth.time}
-              </Text>
-            </View>
-
-            <View style={styles.detailItem}>
-              <Text variant="caption" color={colors.textSecondary}>
-                Birth Place
-              </Text>
-              <Text variant="bodyMedium" color={colors.textPrimary} numberOfLines={1}>
-                {birth.place}
-              </Text>
-            </View>
-
-            <View style={styles.detailItem}>
-              <Text variant="caption" color={colors.textSecondary}>
-                Coordinates & Zone
-              </Text>
-              <Text variant="bodyMedium" color={colors.textPrimary}>
-                {birth.latitude.toFixed(2)}°N, {birth.longitude.toFixed(2)}°E ({birth.timezone})
-              </Text>
-            </View>
-          </View>
-        </Card>
-
-        {/* 2. Lagna & Moon Sign Hero Cards */}
-        <View style={styles.heroRow}>
-          <Card variant="outlined" style={styles.heroHalfCard}>
-            <Text variant="caption" color={colors.primary} style={styles.badgeLabel}>
-              ASCENDANT / LAGNA
-            </Text>
-            <Text variant="h3" color={colors.textPrimary} style={styles.heroSignText}>
-              {ascendant.sign.split(" ")[0]}
-            </Text>
-            <Text variant="caption" color={colors.textSecondary}>
-              {ascendant.sign_degree.toFixed(2)}° in sign
-            </Text>
-            <Text variant="caption" color={colors.textTertiary}>
-              Nakshatra: {ascendant.nakshatra} (Pada {ascendant.pada})
-            </Text>
-            {ascendant.d9_sign ? (
-              <Text variant="caption" color={colors.textTertiary}>
-                Navamsa D9: {ascendant.d9_sign.split(" ")[0]}
-              </Text>
-            ) : null}
-          </Card>
-
-          <Card variant="outlined" style={styles.heroHalfCard}>
-            <Text variant="caption" color={colors.primary} style={styles.badgeLabel}>
-              MOON SIGN / RASHI
-            </Text>
-            <Text variant="h3" color={colors.textPrimary} style={styles.heroSignText}>
-              {moon.sign.split(" ")[0]}
-            </Text>
-            <Text variant="caption" color={colors.textSecondary}>
-              {moon.sign_degree.toFixed(2)}° in sign
-            </Text>
-            <Text variant="caption" color={colors.textTertiary}>
-              Nakshatra: {moon.nakshatra} (Pada {moon.pada})
-            </Text>
-            {moon.d9_sign ? (
-              <Text variant="caption" color={colors.textTertiary}>
-                Navamsa D9: {moon.d9_sign.split(" ")[0]}
-              </Text>
-            ) : null}
-          </Card>
+          <VText style={styles.sunIcon}>☀️</VText>
         </View>
 
-        {/* 2b. Daily Vedic Horoscope Shortcut for Janma Rashi */}
-        {rashiInfo && (
-          <Card variant="elevated" style={styles.horoscopeCtaCard}>
-            <View style={styles.horoscopeCtaContent}>
-              <Text style={styles.horoscopeCtaIcon}>{rashiInfo.symbol}</Text>
-              <View style={styles.horoscopeCtaTextCol}>
-                <Text variant="captionMedium" color={colors.primaryDark}>
-                  DAILY JYOTISH INSIGHTS
-                </Text>
-                <Text variant="h3" color={colors.textPrimary}>
-                  {rashiInfo.fullName}
-                </Text>
-                <Text variant="caption" color={colors.textSecondary}>
-                  Your calculated Moon Sign (Janma Rashi) is {rashiInfo.vedicName}. Read your daily planetary forecast.
-                </Text>
-              </View>
-            </View>
-            <Button
-              title={`View Today's Horoscope for ${rashiInfo.vedicName} →`}
-              variant="outline"
-              size="sm"
-              onPress={handleNavigateToDailyInsights}
-              style={styles.horoscopeCtaBtn}
-            />
-          </Card>
-        )}
+        <View style={[styles.divider, { backgroundColor: colors.borderDefault, marginVertical: spacing.sm }]} />
 
-        {/* 3. Panchang Overview */}
-        <Card variant="outlined" style={styles.panchangCard}>
-          <Text variant="h3" style={styles.sectionHeading}>
-            Panchang at Birth
-          </Text>
-          <View style={styles.panchangRow}>
-            <View style={styles.panchangCol}>
-              <Text variant="caption" color={colors.textSecondary}>
-                Tithi
-              </Text>
-              <Text variant="bodyMedium" color={colors.textPrimary}>
-                {panchang.tithi || "Shukla"}
-              </Text>
-            </View>
-            <View style={styles.panchangCol}>
-              <Text variant="caption" color={colors.textSecondary}>
-                Birth Nakshatra
-              </Text>
-              <Text variant="bodyMedium" color={colors.textPrimary}>
-                {panchang.nakshatra || moon.nakshatra}
-              </Text>
-            </View>
-            <View style={styles.panchangCol}>
-              <Text variant="caption" color={colors.textSecondary}>
-                Weekday (Vara)
-              </Text>
-              <Text variant="bodyMedium" color={colors.textPrimary}>
-                {panchang.vara}
-              </Text>
-            </View>
-          </View>
-        </Card>
-
-        {/* 4. Active Vimshottari Dasha Card */}
-        {vimshottari.current ? (
-          <Card variant="elevated" style={styles.dashaActiveCard}>
-            <View style={styles.dashaActiveHeader}>
-              <Text style={styles.dashaIcon}>⏳</Text>
-              <View style={styles.dashaTitleCol}>
-                <Text variant="caption" color={colors.primary}>
-                  CURRENT VIMSHOTTARI DASHA
-                </Text>
-                <Text variant="h3" color={colors.textPrimary}>
-                  Mahadasha: {vimshottari.current.mahadasha_lord} • Antardasha: {vimshottari.current.antardasha_lord}
-                </Text>
-                <Text variant="caption" color={colors.textSecondary}>
-                  Active period: {vimshottari.current.start_date} to {vimshottari.current.end_date}
-                </Text>
-              </View>
-            </View>
-          </Card>
-        ) : null}
-
-        {/* 5. Planetary Positions Table (Navagrahas) */}
-        <Card variant="outlined" style={styles.planetsCard}>
-          <Text variant="h3" style={styles.sectionHeading}>
-            Navagraha Positions (Planetary Degrees)
-          </Text>
-          <Text variant="caption" color={colors.textSecondary} style={styles.sectionSub}>
-            Sidereal Lahiri Ayanamsa ({vedic.ayanamsha_degrees.toFixed(2)}°) • Whole-Sign Bhavas
-          </Text>
-
-          <View style={styles.tableHeader}>
-            <Text variant="caption" style={[styles.thCell, styles.colRashi]}>
-              Graha
-            </Text>
-            <Text variant="caption" style={[styles.thCell, styles.colRashi]}>
-              Rashi
-            </Text>
-            <Text variant="caption" style={[styles.thCell, styles.colHouse]}>
-              House
-            </Text>
-            <Text variant="caption" style={[styles.thCell, styles.colDegree]}>
-              Degree
-            </Text>
-            <Text variant="caption" style={[styles.thCell, styles.colNakshatra]}>
-              Nakshatra
-            </Text>
+        <View style={[styles.detailsGrid, { gap: spacing.sm }]}>
+          <View style={styles.detailItem}>
+            <VText variant="caption" color="textMuted">
+              Date of Birth
+            </VText>
+            <VText variant="bodyMedium" weight="600" color="textPrimary">
+              {birth.date}
+            </VText>
           </View>
 
-          {planets.map((planet: PlanetPosition) => (
-            <View key={planet.name} style={styles.tableRow}>
-              <View style={[styles.tdCell, styles.colGraha]}>
-                <Text variant="bodyMedium" color={colors.textPrimary}>
-                  {planet.name}
-                </Text>
-                {planet.is_retrograde ? (
-                  <View style={styles.retroBadge}>
-                    <Text variant="caption" color={colors.error} style={styles.retroText}>
-                      R
-                    </Text>
-                  </View>
-                ) : null}
+          <View style={styles.detailItem}>
+            <VText variant="caption" color="textMuted">
+              Time of Birth
+            </VText>
+            <VText variant="bodyMedium" weight="600" color="textPrimary">
+              {birth.time}
+            </VText>
+          </View>
+
+          <View style={styles.detailItem}>
+            <VText variant="caption" color="textMuted">
+              Birth Place
+            </VText>
+            <VText variant="bodyMedium" weight="600" color="textPrimary" numberOfLines={1}>
+              {birth.place}
+            </VText>
+          </View>
+
+          <View style={styles.detailItem}>
+            <VText variant="caption" color="textMuted">
+              Coordinates & Zone
+            </VText>
+            <VText variant="bodyMedium" weight="600" color="textPrimary">
+              {birth.latitude.toFixed(2)}°N, {birth.longitude.toFixed(2)}°E ({birth.timezone})
+            </VText>
+          </View>
+        </View>
+      </VCard>
+
+      {/* 2. Lagna & Moon Sign Hero Cards */}
+      <View style={[styles.heroRow, { gap: spacing.sm }]}>
+        <VCard
+          variant="default"
+          elevation={1}
+          style={[
+            styles.heroHalfCard,
+            {
+              padding: spacing.md,
+              backgroundColor: colors.surfaceCard,
+              borderColor: colors.borderDefault,
+              borderWidth: 1,
+            },
+          ]}
+        >
+          <VText variant="caption" weight="700" color="brandPrimary" style={styles.badgeLabel}>
+            ASCENDANT / LAGNA
+          </VText>
+          <VText variant="headlineMedium" weight="700" color="textPrimary" style={styles.heroSignText}>
+            {ascendant.sign.split(" ")[0]}
+          </VText>
+          <VText variant="caption" color="textMuted">
+            {ascendant.sign_degree.toFixed(2)}° in sign
+          </VText>
+          <VText variant="caption" color="brandPrimary">
+            Nakshatra: {ascendant.nakshatra} (Pada {ascendant.pada})
+          </VText>
+          {ascendant.d9_sign ? (
+            <VText variant="caption" color="textMuted">
+              Navamsa D9: {ascendant.d9_sign.split(" ")[0]}
+            </VText>
+          ) : null}
+        </VCard>
+
+        <VCard
+          variant="default"
+          elevation={1}
+          style={[
+            styles.heroHalfCard,
+            {
+              padding: spacing.md,
+              backgroundColor: colors.surfaceCard,
+              borderColor: colors.borderDefault,
+              borderWidth: 1,
+            },
+          ]}
+        >
+          <VText variant="caption" weight="700" color="brandPrimary" style={styles.badgeLabel}>
+            MOON SIGN / RASHI
+          </VText>
+          <VText variant="headlineMedium" weight="700" color="textPrimary" style={styles.heroSignText}>
+            {moon.sign.split(" ")[0]}
+          </VText>
+          <VText variant="caption" color="textMuted">
+            {moon.sign_degree.toFixed(2)}° in sign
+          </VText>
+          <VText variant="caption" color="brandPrimary">
+            Nakshatra: {moon.nakshatra} (Pada {moon.pada})
+          </VText>
+          {moon.d9_sign ? (
+            <VText variant="caption" color="textMuted">
+              Navamsa D9: {moon.d9_sign.split(" ")[0]}
+            </VText>
+          ) : null}
+        </VCard>
+      </View>
+
+      {/* 2b. Daily Vedic Horoscope Shortcut for Janma Rashi */}
+      {rashiInfo && (
+        <VCard
+          variant="default"
+          elevation={1}
+          style={[
+            styles.horoscopeCtaCard,
+            {
+              padding: spacing.md,
+              backgroundColor: colors.surfaceCard,
+              borderColor: colors.borderAccent,
+              borderWidth: 1,
+            },
+          ]}
+        >
+          <View style={[styles.horoscopeCtaContent, { gap: spacing.sm, marginBottom: spacing.sm }]}>
+            <VText style={styles.horoscopeCtaIcon}>{rashiInfo.symbol}</VText>
+            <View style={styles.horoscopeCtaTextCol}>
+              <VText variant="caption" weight="700" color="brandPrimary">
+                DAILY JYOTISH INSIGHTS
+              </VText>
+              <VText variant="titleMedium" weight="700" color="textPrimary">
+                {rashiInfo.fullName}
+              </VText>
+              <VText variant="caption" color="textMuted">
+                Your calculated Moon Sign (Janma Rashi) is {rashiInfo.vedicName}. Read your daily planetary forecast.
+              </VText>
+            </View>
+          </View>
+          <VButton
+            title={`View Today's Horoscope for ${rashiInfo.vedicName} →`}
+            variant="outline"
+            size="md"
+            onPress={handleNavigateToDailyInsights}
+            style={styles.horoscopeCtaBtn}
+          />
+        </VCard>
+      )}
+
+      {/* 3. Panchang Overview */}
+      <VCard
+        variant="default"
+        elevation={1}
+        style={[
+          styles.panchangCard,
+          {
+            padding: spacing.md,
+            backgroundColor: colors.surfaceCard,
+            borderColor: colors.borderDefault,
+            borderWidth: 1,
+          },
+        ]}
+      >
+        <VText variant="titleMedium" weight="700" color="textPrimary" style={{ marginBottom: spacing.xs }}>
+          Panchang at Birth
+        </VText>
+        <View style={styles.panchangRow}>
+          <View style={styles.panchangCol}>
+            <VText variant="caption" color="textMuted">
+              Tithi
+            </VText>
+            <VText variant="bodyMedium" weight="600" color="textPrimary">
+              {panchang.tithi || "Shukla"}
+            </VText>
+          </View>
+          <View style={styles.panchangCol}>
+            <VText variant="caption" color="textMuted">
+              Birth Nakshatra
+            </VText>
+            <VText variant="bodyMedium" weight="600" color="textPrimary">
+              {panchang.nakshatra || moon.nakshatra}
+            </VText>
+          </View>
+          <View style={styles.panchangCol}>
+            <VText variant="caption" color="textMuted">
+              Weekday (Vara)
+            </VText>
+            <VText variant="bodyMedium" weight="600" color="textPrimary">
+              {panchang.vara}
+            </VText>
+          </View>
+        </View>
+      </VCard>
+
+      {/* 4. Authentic North Indian Sacred Diamond Chart */}
+      <View style={{ alignItems: "center", marginVertical: spacing.xs }}>
+        <KundliChartCanvas
+          chartType="NORTH_INDIAN"
+          planetaryPositions={chartPlanets}
+          selectedBhava={selectedBhava}
+          onSelectBhava={setSelectedBhava}
+        />
+      </View>
+
+      {/* 5. Active Vimshottari Dasha Card */}
+      {vimshottari.current ? (
+        <VCard
+          variant="default"
+          elevation={1}
+          style={[
+            styles.dashaActiveCard,
+            {
+              padding: spacing.md,
+              backgroundColor: colors.surfaceCard,
+              borderColor: colors.brandPrimary,
+              borderWidth: 1,
+            },
+          ]}
+        >
+          <View style={[styles.dashaActiveHeader, { gap: spacing.sm }]}>
+            <VText style={styles.dashaIcon}>⏳</VText>
+            <View style={styles.dashaTitleCol}>
+              <VText variant="caption" weight="700" color="brandPrimary">
+                CURRENT VIMSHOTTARI DASHA
+              </VText>
+              <VText variant="titleMedium" weight="600" color="textPrimary">
+                Mahadasha: {vimshottari.current.mahadasha_lord} • Antardasha: {vimshottari.current.antardasha_lord}
+              </VText>
+              <VText variant="caption" color="textMuted">
+                Active period: {vimshottari.current.start_date} to {vimshottari.current.end_date}
+              </VText>
+            </View>
+          </View>
+        </VCard>
+      ) : null}
+
+      {/* 6. Planetary Positions Table (Navagrahas) */}
+      <VCard
+        variant="default"
+        elevation={1}
+        style={[
+          styles.planetsCard,
+          {
+            padding: spacing.md,
+            backgroundColor: colors.surfaceCard,
+            borderColor: colors.borderDefault,
+            borderWidth: 1,
+          },
+        ]}
+      >
+        <VText variant="titleMedium" weight="700" color="textPrimary">
+          Navagraha Positions (Planetary Degrees)
+        </VText>
+        <VText variant="caption" color="textMuted" style={{ marginBottom: spacing.sm }}>
+          Sidereal Lahiri Ayanamsa ({vedic.ayanamsha_degrees.toFixed(2)}°) • Whole-Sign Bhavas
+        </VText>
+
+        <View
+          style={[
+            styles.tableHeader,
+            {
+              borderBottomColor: colors.borderDefault,
+              paddingBottom: spacing.xs,
+              marginBottom: spacing.xs,
+            },
+          ]}
+        >
+          <VText variant="caption" weight="600" color="textMuted" style={[styles.thCell, styles.colGraha]}>
+            Graha
+          </VText>
+          <VText variant="caption" weight="600" color="textMuted" style={[styles.thCell, styles.colRashi]}>
+            Rashi
+          </VText>
+          <VText variant="caption" weight="600" color="textMuted" style={[styles.thCell, styles.colHouse]}>
+            House
+          </VText>
+          <VText variant="caption" weight="600" color="textMuted" style={[styles.thCell, styles.colDegree]}>
+            Degree
+          </VText>
+          <VText variant="caption" weight="600" color="textMuted" style={[styles.thCell, styles.colNakshatra]}>
+            Nakshatra
+          </VText>
+        </View>
+
+        {planets.map((planet: PlanetPosition) => (
+          <View
+            key={planet.name}
+            style={[
+              styles.tableRow,
+              {
+                borderBottomColor: colors.borderDefault,
+                paddingVertical: spacing.xs,
+              },
+            ]}
+          >
+            <View style={[styles.tdCell, styles.colGraha]}>
+              <VText variant="bodyMedium" weight="600" color="textPrimary">
+                {planet.name}
+              </VText>
+              {planet.is_retrograde ? (
+                <View style={[styles.retroBadge, { backgroundColor: colors.surfaceSubtle }]}>
+                  <VText variant="caption" color="error" style={styles.retroText}>
+                    R
+                  </VText>
+                </View>
+              ) : null}
+            </View>
+
+            <VText variant="bodyMedium" color="textMuted" style={[styles.tdCell, styles.colRashi]}>
+              {planet.sign.split(" ")[0]}
+            </VText>
+
+            <VText variant="bodyMedium" weight="600" color="brandPrimary" style={[styles.tdCell, styles.colHouse]}>
+              {planet.house}H
+            </VText>
+
+            <VText variant="bodyMedium" color="textMuted" style={[styles.tdCell, styles.colDegree]}>
+              {planet.sign_degree.toFixed(1)}°
+            </VText>
+
+            <VText variant="caption" color="brandPrimary" style={[styles.tdCell, styles.colNakshatra]}>
+              {planet.nakshatra} ({planet.pada})
+            </VText>
+          </View>
+        ))}
+      </VCard>
+
+      {/* 7. 12 Bhavas (Whole-Sign Houses) Summary */}
+      <VCard
+        variant="default"
+        elevation={1}
+        style={[
+          styles.housesCard,
+          {
+            padding: spacing.md,
+            backgroundColor: colors.surfaceCard,
+            borderColor: colors.borderDefault,
+            borderWidth: 1,
+          },
+        ]}
+      >
+        <VText variant="titleMedium" weight="700" color="textPrimary" style={{ marginBottom: spacing.sm }}>
+          12 Bhavas (Houses)
+        </VText>
+        <View style={[styles.housesGrid, { gap: spacing.xs }]}>
+          {houses.map((house) => (
+            <View
+              key={house.house}
+              style={[
+                styles.houseBox,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.borderDefault,
+                  borderRadius: radii.sm,
+                  padding: spacing.xs,
+                },
+              ]}
+            >
+              <View style={styles.houseHeader}>
+                <VText variant="caption" weight="700" color="brandPrimary" style={styles.houseNumText}>
+                  {house.house}H
+                </VText>
+                <VText variant="caption" color="textMuted" numberOfLines={1}>
+                  {house.sign ? house.sign.split(" ")[0] : ""}
+                </VText>
               </View>
-
-              <Text variant="bodyMedium" color={colors.textSecondary} style={[styles.tdCell, styles.colRashi]}>
-                {planet.sign.split(" ")[0]}
-              </Text>
-
-              <Text variant="bodyMedium" color={colors.primary} style={[styles.tdCell, styles.colHouse]}>
-                {planet.house}H
-              </Text>
-
-              <Text variant="bodyMedium" color={colors.textSecondary} style={[styles.tdCell, styles.colDegree]}>
-                {planet.sign_degree.toFixed(1)}°
-              </Text>
-
-              <Text variant="caption" color={colors.textTertiary} style={[styles.tdCell, styles.colNakshatra]}>
-                {planet.nakshatra} ({planet.pada})
-              </Text>
+              <VText variant="caption" color="textPrimary" style={styles.occupantsText}>
+                {house.occupants && house.occupants.length > 0 ? house.occupants.join(", ") : "Empty"}
+              </VText>
             </View>
           ))}
-        </Card>
+        </View>
+      </VCard>
 
-        {/* 6. 12 Bhavas (Whole-Sign Houses) Summary */}
-        <Card variant="outlined" style={styles.housesCard}>
-          <Text variant="h3" style={styles.sectionHeading}>
-            12 Bhavas (Houses)
-          </Text>
-          <View style={styles.housesGrid}>
-            {houses.map((house) => (
-              <View key={house.house} style={styles.houseBox}>
-                <View style={styles.houseHeader}>
-                  <Text variant="caption" color={colors.primary} style={styles.houseNumText}>
-                    {house.house}H
-                  </Text>
-                  <Text variant="caption" color={colors.textSecondary} numberOfLines={1}>
-                    {house.sign ? house.sign.split(" ")[0] : ""}
-                  </Text>
-                </View>
-                <Text variant="caption" color={colors.textPrimary} style={styles.occupantsText}>
-                  {house.occupants && house.occupants.length > 0 ? house.occupants.join(", ") : "Empty"}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </Card>
+      {/* 8. Vimshottari Mahadasha Timeline */}
+      <VCard
+        variant="default"
+        elevation={1}
+        style={[
+          styles.dashaCard,
+          {
+            padding: spacing.md,
+            backgroundColor: colors.surfaceCard,
+            borderColor: colors.borderDefault,
+            borderWidth: 1,
+          },
+        ]}
+      >
+        <View style={[styles.dashaHeaderRow, { marginBottom: spacing.xs }]}>
+          <VText variant="titleMedium" weight="700" color="textPrimary">
+            Vimshottari Dasha Timeline
+          </VText>
+          <TouchableOpacity
+            onPress={() => setExpandedDasha(!expandedDasha)}
+            style={styles.dashaToggleBtn}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <VText variant="labelLarge" weight="600" color="brandPrimary">
+              {expandedDasha ? "Hide Periods ▲" : "View All Periods ▼"}
+            </VText>
+          </TouchableOpacity>
+        </View>
 
-        {/* 7. Vimshottari Mahadasha Timeline */}
-        <Card variant="outlined" style={styles.dashaCard}>
-          <View style={styles.dashaHeaderRow}>
-            <Text variant="h3" style={styles.sectionHeading}>
-              Vimshottari Dasha Timeline
-            </Text>
-            <TouchableOpacity onPress={() => setExpandedDasha(!expandedDasha)}>
-              <Text variant="caption" color={colors.primary}>
-                {expandedDasha ? "Hide Periods ▲" : "View All Periods ▼"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.dashaList}>
-            {((vimshottari.mahadashas || []).slice(0, expandedDasha ? undefined : 3)).map(
-              (md, idx) => {
-                const lordName = md.lord || (md as any).planet || `Dasha-${idx}`;
-                return (
-                  <View key={`${lordName}-${md.start_date}`} style={[styles.dashaItem, md.is_current && styles.dashaItemActive]}>
-                    <View style={styles.dashaItemLeft}>
-                      <Text variant="bodyMedium" color={md.is_current ? colors.primary : colors.textPrimary}>
-                        {lordName} Mahadasha
-                      </Text>
-                      {md.is_current ? (
-                        <View style={styles.activeTag}>
-                          <Text variant="caption" color={colors.surface} style={styles.activeTagText}>
-                            Current
-                          </Text>
-                        </View>
-                      ) : null}
-                    </View>
-                    <Text variant="caption" color={colors.textSecondary}>
-                      {md.start_date} to {md.end_date}
-                    </Text>
+        <View style={styles.dashaList}>
+          {((vimshottari.mahadashas || []).slice(0, expandedDasha ? undefined : 3)).map(
+            (md, idx) => {
+              const lordName = md.lord || (md as any).planet || `Dasha-${idx}`;
+              return (
+                <View
+                  key={`${lordName}-${md.start_date}`}
+                  style={[
+                    styles.dashaItem,
+                    {
+                      borderBottomColor: colors.borderDefault,
+                      paddingVertical: spacing.xs,
+                    },
+                  ]}
+                >
+                  <View style={styles.dashaItemLeft}>
+                    <VText
+                      variant="bodyMedium"
+                      weight={md.is_current ? "700" : "500"}
+                      color={md.is_current ? "brandPrimary" : "textPrimary"}
+                    >
+                      {lordName} Mahadasha
+                    </VText>
+                    {md.is_current ? (
+                      <View style={[styles.activeTag, { backgroundColor: colors.brandPrimary, borderRadius: radii.sm }]}>
+                        <VText variant="caption" color="textOnPrimary" style={styles.activeTagText}>
+                          Current
+                        </VText>
+                      </View>
+                    ) : null}
                   </View>
-                );
-              }
-            )}
-          </View>
-        </Card>
+                  <VText variant="caption" color="textMuted">
+                    {md.start_date} to {md.end_date}
+                  </VText>
+                </View>
+              );
+            }
+          )}
+        </View>
+      </VCard>
 
-        {/* 8. Upsell to Certified Kashi Pandit Handwritten Kundli */}
-        <Card variant="elevated" style={styles.upsellCard}>
-          <Text style={styles.templeIcon}>🛕</Text>
-          <Text variant="h3" align="center" style={styles.upsellTitle}>
-            Want Deep Personal Guidance?
-          </Text>
-          <Text variant="body" color={colors.textSecondary} align="center" style={styles.upsellDesc}>
-            Get a comprehensive handwritten horoscope personally prepared and analyzed by certified
-            Vedic astrologers in Varanasi, delivered as a high-definition PDF document with remedial guidance.
-          </Text>
-          <Button
-            title="Order Handwritten Kundli from Kashi 📜"
-            variant="primary"
-            size="md"
-            onPress={handleOrderHandwritten}
-            style={styles.upsellBtn}
-          />
-        </Card>
-      </ScrollView>
-    </ScreenContainer>
+      {/* 9. Upsell to Certified Kashi Pandit Handwritten Kundli */}
+      <VCard
+        variant="default"
+        elevation={2}
+        style={[
+          styles.upsellCard,
+          {
+            padding: spacing.lg,
+            backgroundColor: colors.surfaceCard,
+            borderColor: colors.borderAccent,
+            borderWidth: 1,
+            alignItems: "center",
+          },
+        ]}
+      >
+        <VText style={styles.templeIcon}>🛕</VText>
+        <VText variant="headlineSmall" weight="700" align="center" color="brandPrimary" style={{ marginVertical: spacing.xxs }}>
+          Want Deep Personal Guidance?
+        </VText>
+        <VText
+          variant="bodyMedium"
+          color="textMuted"
+          align="center"
+          style={{ lineHeight: getDevanagariLineHeight(15), marginBottom: spacing.md }}
+        >
+          Get a comprehensive handwritten horoscope personally prepared and analyzed by certified
+          Vedic astrologers in Varanasi, delivered as a high-definition PDF document with remedial guidance.
+        </VText>
+        <VButton
+          title="Order Handwritten Kundli from Kashi 📜"
+          variant="primary"
+          size="lg"
+          onPress={handleOrderHandwritten}
+          style={styles.upsellBtn}
+        />
+      </VCard>
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
   scrollContent: {
-    padding: spacing.md,
-    gap: spacing.md,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 40,
   },
-  errorCard: {
-    padding: spacing.xl,
-    gap: spacing.md,
-    alignItems: "center",
-  },
-  birthCard: {
-    padding: spacing.lg,
-    backgroundColor: "#FFFBF7",
-  },
+  errorCard: {},
+  birthCard: {},
   birthHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -434,64 +656,55 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: colors.borderLight,
-    marginVertical: spacing.md,
   },
   detailsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    rowGap: spacing.sm,
+    justifyContent: "space-between",
   },
   detailItem: {
-    width: "50%",
-    paddingRight: spacing.xs,
+    width: "48%",
   },
   heroRow: {
     flexDirection: "row",
-    gap: spacing.md,
   },
   heroHalfCard: {
     flex: 1,
-    padding: spacing.md,
-    gap: 2,
-    backgroundColor: colors.surface,
   },
   badgeLabel: {
-    fontWeight: typography.fontWeight.bold,
     fontSize: 10,
     letterSpacing: 0.5,
+    marginBottom: 4,
   },
   heroSignText: {
-    marginVertical: 2,
+    marginBottom: 2,
   },
-  panchangCard: {
-    padding: spacing.md,
-    backgroundColor: colors.surface,
+  horoscopeCtaCard: {},
+  horoscopeCtaContent: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  sectionHeading: {
-    marginBottom: spacing.xxs,
+  horoscopeCtaIcon: {
+    fontSize: 28,
   },
-  sectionSub: {
-    marginBottom: spacing.sm,
+  horoscopeCtaTextCol: {
+    flex: 1,
   },
+  horoscopeCtaBtn: {
+    minHeight: 48,
+  },
+  panchangCard: {},
   panchangRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: spacing.xs,
   },
   panchangCol: {
     flex: 1,
   },
-  dashaActiveCard: {
-    padding: spacing.md,
-    backgroundColor: "#F3E5F5",
-    borderColor: "#CE93D8",
-    borderWidth: 1,
-  },
+  dashaActiveCard: {},
   dashaActiveHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
   },
   dashaIcon: {
     fontSize: 24,
@@ -499,35 +712,22 @@ const styles = StyleSheet.create({
   dashaTitleCol: {
     flex: 1,
   },
-  planetsCard: {
-    padding: spacing.md,
-    backgroundColor: colors.surface,
-  },
+  planetsCard: {},
   tableHeader: {
     flexDirection: "row",
-    paddingVertical: spacing.xs,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.surfaceSubtle,
-    paddingHorizontal: 4,
-  },
-  thCell: {
-    fontWeight: typography.fontWeight.bold,
   },
   tableRow: {
     flexDirection: "row",
-    paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
     alignItems: "center",
-    paddingHorizontal: 4,
   },
+  thCell: {},
   tdCell: {},
   colGraha: {
     flex: 2,
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
   },
   colRashi: {
     flex: 2,
@@ -539,131 +739,76 @@ const styles = StyleSheet.create({
     flex: 1.5,
   },
   colNakshatra: {
-    flex: 2.2,
+    flex: 2.3,
   },
   retroBadge: {
-    backgroundColor: "#FFEBEE",
+    marginLeft: 4,
     paddingHorizontal: 4,
-    borderRadius: 2,
+    borderRadius: 3,
   },
   retroText: {
     fontSize: 10,
-    fontWeight: typography.fontWeight.bold,
+    fontWeight: "bold",
   },
-  housesCard: {
-    padding: spacing.md,
-    backgroundColor: colors.surface,
-  },
+  housesCard: {},
   housesGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacing.xs,
-    marginTop: spacing.xs,
+    justifyContent: "space-between",
   },
   houseBox: {
     width: "31%",
     borderWidth: 1,
-    borderColor: colors.borderLight,
-    borderRadius: radius.sm,
-    padding: spacing.xs,
-    backgroundColor: colors.surfaceSubtle,
+    marginBottom: 6,
   },
   houseHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  houseNumText: {
-    fontWeight: typography.fontWeight.bold,
-  },
+  houseNumText: {},
   occupantsText: {
     marginTop: 2,
-    fontSize: 11,
+    fontSize: 10,
   },
-  dashaCard: {
-    padding: spacing.md,
-    backgroundColor: colors.surface,
-  },
+  dashaCard: {},
   dashaHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: spacing.xs,
   },
-  dashaList: {
-    gap: spacing.xs,
+  dashaToggleBtn: {
+    minHeight: 48,
+    minWidth: 48,
+    justifyContent: "center",
+    alignItems: "flex-end",
   },
+  dashaList: {},
   dashaItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: spacing.xs,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
-  dashaItemActive: {
-    backgroundColor: "#F1F8E9",
-    paddingHorizontal: spacing.xs,
-    borderRadius: radius.sm,
   },
   dashaItemLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: 6,
   },
   activeTag: {
-    backgroundColor: colors.success,
     paddingHorizontal: 6,
     paddingVertical: 1,
-    borderRadius: radius.sm,
   },
   activeTagText: {
     fontSize: 10,
-    fontWeight: typography.fontWeight.bold,
+    fontWeight: "bold",
   },
-  upsellCard: {
-    padding: spacing.lg,
-    alignItems: "center",
-    backgroundColor: "#FFF8E1",
-    borderColor: "#FFE082",
-    borderWidth: 1,
-    gap: spacing.xs,
-  },
+  upsellCard: {},
   templeIcon: {
     fontSize: 32,
   },
-  upsellTitle: {
-    color: colors.primary,
-  },
-  upsellDesc: {
-    lineHeight: 20,
-    marginVertical: spacing.xs,
-  },
   upsellBtn: {
+    minHeight: 48,
     width: "100%",
-    marginTop: spacing.xs,
-  },
-  horoscopeCtaCard: {
-    padding: spacing.md,
-    backgroundColor: "#FFF9F0",
-    borderColor: colors.primarySubtle,
-    borderWidth: 1,
-    gap: spacing.sm,
-  },
-  horoscopeCtaContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  horoscopeCtaIcon: {
-    fontSize: 28,
-  },
-  horoscopeCtaTextCol: {
-    flex: 1,
-    gap: 2,
-  },
-  horoscopeCtaBtn: {
-    alignSelf: "flex-start",
-    marginTop: spacing.xs,
   },
 });

@@ -10,17 +10,19 @@ import {
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
-  Button,
-  Card,
+  ScreenWrapper,
+  AppBar,
+  VCard,
+  VText,
+  VButton,
+  VBadge,
+  VInput,
   EmptyState,
   ErrorState,
-  Header,
-  Input,
   LoadingState,
-  ScreenContainer,
-  Text,
-} from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing, typography } from "../../../shared/theme/index.ts";
+} from "../../../shared/components/index.ts";
+import { useTheme, getDevanagariLineHeight } from "../../../shared/theme/index.ts";
+import { useLanguage } from "../../../shared/i18n/index.ts";
 import { CustomerStackParamList } from "../../../shared/types/navigation.ts";
 import { formatCurrency } from "../../../shared/utils/formatters.ts";
 import { useKundliPandits } from "../hooks/useKundliPandits.ts";
@@ -33,6 +35,10 @@ type WizardNavProp = NativeStackNavigationProp<CustomerStackParamList, "KundliWi
 export const KundliWizardScreen: React.FC = () => {
   const route = useRoute<WizardRouteProp>();
   const navigation = useNavigation<WizardNavProp>();
+
+  const { colors, spacing, radii } = useTheme();
+  const { language } = useLanguage();
+  const isHi = language === "hi";
 
   const { pandits, loading: loadingPandits, error: panditsError } = useKundliPandits();
 
@@ -70,7 +76,6 @@ export const KundliWizardScreen: React.FC = () => {
       setFormError("Date of Birth is required (YYYY-MM-DD).");
       return false;
     }
-    // Simple format validation for YYYY-MM-DD
     const dobRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dobRegex.test(dateOfBirth.trim())) {
       setFormError("Date of Birth must be in YYYY-MM-DD format (e.g., 1995-08-15).");
@@ -122,294 +127,331 @@ export const KundliWizardScreen: React.FC = () => {
 
   if (loadingPandits) {
     return (
-      <ScreenContainer>
-        <Header title="Create Kundli Order" onBack={() => navigation.goBack()} />
+      <ScreenWrapper
+        headerComponent={
+          <AppBar
+            title="Create Kundli Order"
+            titleHi="कुण्डली आवेदन"
+            showBackButton
+            onBackPress={() => navigation.goBack()}
+          />
+        }
+      >
         <LoadingState message="Loading astrologer details..." />
-      </ScreenContainer>
+      </ScreenWrapper>
     );
   }
 
   if (panditsError) {
     return (
-      <ScreenContainer>
-        <Header title="Create Kundli Order" onBack={() => navigation.goBack()} />
+      <ScreenWrapper
+        headerComponent={
+          <AppBar
+            title="Create Kundli Order"
+            titleHi="कुण्डली आवेदन"
+            showBackButton
+            onBackPress={() => navigation.goBack()}
+          />
+        }
+      >
         <ErrorState message={panditsError} />
-      </ScreenContainer>
+      </ScreenWrapper>
     );
   }
 
   if (pandits.length === 0) {
     return (
-      <ScreenContainer>
-        <Header title="Create Kundli Order" onBack={() => navigation.goBack()} />
+      <ScreenWrapper
+        headerComponent={
+          <AppBar
+            title="Create Kundli Order"
+            titleHi="कुण्डली आवेदन"
+            showBackButton
+            onBackPress={() => navigation.goBack()}
+          />
+        }
+      >
         <EmptyState
           title="No Astrologers Available"
           description="No Kundli specialists are currently active. Please try again later."
         />
-      </ScreenContainer>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <ScreenContainer scrollable padded={false}>
-      <Header title="Vedic Kundli Details" onBack={() => navigation.goBack()} />
-
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Astrologer Selection */}
-        <Card style={styles.sectionCard}>
-          <Text variant="h3" style={styles.sectionTitle}>
-            1. Select Astrologer
-          </Text>
-          <Text variant="caption" color={colors.textSecondary} style={styles.sectionSubtitle}>
-            Choose the Vedic scholar who will calculate and prepare your horoscope
-          </Text>
-
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.panditPicker}>
-            {pandits.map((pandit) => {
-              const isSelected = selectedPandit?.id === pandit.id;
-              return (
-                <TouchableOpacity
-                  key={pandit.id}
-                  style={[
-                    styles.panditChip,
-                    isSelected && styles.panditChipSelected,
-                  ]}
-                  onPress={() => setSelectedPandit(pandit)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Select ${pandit.display_name}`}
-                >
-                  <Text
-                    style={[
-                      styles.panditChipName,
-                      isSelected && styles.panditChipNameSelected,
-                    ]}
-                  >
-                    {pandit.display_name}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.panditChipPrice,
-                      isSelected && styles.panditChipPriceSelected,
-                    ]}
-                  >
-                    {formatCurrency(pandit.kundli_price)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
-          {selectedPandit && (
-            <View style={styles.selectedPanditBanner}>
-              <Text variant="caption" color={colors.primary} style={styles.panditHighlight}>
-                ✨ {selectedPandit.display_name} • {selectedPandit.experience_years || 5}+ yrs exp •{" "}
-                {selectedPandit.kundli_turnaround_days || 3} days delivery
-              </Text>
-            </View>
-          )}
-        </Card>
-
-        {/* Birth Chart Data */}
-        <Card style={styles.sectionCard}>
-          <Text variant="h3" style={styles.sectionTitle}>
-            2. Birth Information
-          </Text>
-          <Text variant="caption" color={colors.textSecondary} style={styles.sectionSubtitle}>
-            Accurate birth time and coordinates are crucial for precise Vedic planetary calculations
-          </Text>
-
-          <Input
-            label="Date of Birth *"
-            placeholder="YYYY-MM-DD (e.g. 1995-08-15)"
-            value={dateOfBirth}
-            onChangeText={setDateOfBirth}
-            autoCapitalize="none"
-          />
-
-          <Input
-            label="Time of Birth *"
-            placeholder="HH:MM:SS or HH:MM (e.g. 14:30:00)"
-            value={timeOfBirth}
-            onChangeText={setTimeOfBirth}
-            autoCapitalize="none"
-          />
-
-          <Input
-            label="Place of Birth *"
-            placeholder="City, State, Country (e.g. Varanasi, UP, India)"
-            value={placeOfBirth}
-            onChangeText={setPlaceOfBirth}
-          />
-
-          <Input
-            label="Questions / Specific Focus (Optional)"
-            placeholder="e.g. Career progression, marriage compatibility, health..."
-            value={additionalNotes}
-            onChangeText={setAdditionalNotes}
-            multiline
-            numberOfLines={3}
-          />
-        </Card>
-
-        {/* Price & Summary */}
-        <Card style={styles.summaryCard}>
-          <Text variant="h3" style={styles.summaryTitle}>
-            3. Order Summary
-          </Text>
-          <View style={styles.summaryRow}>
-            <Text variant="body" color={colors.textSecondary}>
-              Service
-            </Text>
-            <Text variant="body" style={styles.summaryBold}>
-              Handwritten Vedic Kundli
-            </Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text variant="body" color={colors.textSecondary}>
-              Selected Astrologer
-            </Text>
-            <Text variant="body" style={styles.summaryBold}>
-              {selectedPandit?.display_name || "—"}
-            </Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text variant="body" color={colors.textSecondary}>
-              Turnaround Time
-            </Text>
-            <Text variant="body">
-              {selectedPandit?.kundli_turnaround_days || 3} business days
-            </Text>
-          </View>
-          <View style={[styles.summaryRow, styles.totalRow]}>
-            <View>
-              <Text variant="h3">Total (100% Upfront)</Text>
-              <Text variant="caption" color={colors.textTertiary}>
-                Includes full report & chart scanning
-              </Text>
-            </View>
-            <Text variant="h2" style={styles.totalPrice}>
-              {formatCurrency(selectedPandit?.kundli_price || 0)}
-            </Text>
-          </View>
-        </Card>
-
-        {formError ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>⚠️ {formError}</Text>
-          </View>
-        ) : null}
-
-        <Button
-          title={submitting ? "Creating Order..." : "Proceed to Payment"}
-          onPress={handleCreateOrder}
-          disabled={submitting}
-          style={styles.submitBtn}
+    <ScreenWrapper
+      scrollable
+      keyboardAvoiding
+      headerComponent={
+        <AppBar
+          title="Vedic Kundli Details"
+          titleHi="वैदिक कुण्डली विवरण"
+          showBackButton
+          onBackPress={() => navigation.goBack()}
         />
-      </ScrollView>
-    </ScreenContainer>
+      }
+      contentContainerStyle={[styles.content, { padding: spacing.md, gap: spacing.md }]}
+    >
+      {/* Astrologer Selection */}
+      <VCard
+        variant="default"
+        elevation={1}
+        style={[
+          styles.sectionCard,
+          {
+            padding: spacing.md,
+            backgroundColor: colors.surfaceCard,
+            borderColor: colors.borderDefault,
+            borderWidth: 1,
+          },
+        ]}
+      >
+        <VText variant="titleMedium" weight="700" color="brandPrimary">
+          1. Select Astrologer
+        </VText>
+        <VText variant="caption" color="textMuted" style={{ marginBottom: spacing.md }}>
+          Choose the Vedic scholar who will calculate and prepare your horoscope
+        </VText>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.panditPicker}>
+          {pandits.map((pandit) => {
+            const isSelected = selectedPandit?.id === pandit.id;
+            return (
+              <TouchableOpacity
+                key={pandit.id}
+                style={[
+                  styles.panditChip,
+                  {
+                    borderRadius: radii.md,
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: spacing.sm,
+                    backgroundColor: isSelected ? colors.surfaceCard : colors.surfaceSubtle,
+                    borderColor: isSelected ? colors.brandPrimary : colors.borderDefault,
+                    borderWidth: isSelected ? 2 : 1,
+                    marginRight: spacing.sm,
+                  },
+                ]}
+                onPress={() => setSelectedPandit(pandit)}
+                accessibilityRole="button"
+                accessibilityLabel={`Select ${pandit.display_name}`}
+              >
+                <VText
+                  variant="bodyMedium"
+                  weight={isSelected ? "700" : "500"}
+                  color={isSelected ? "brandPrimary" : "textPrimary"}
+                >
+                  {pandit.display_name}
+                </VText>
+                <VText
+                  variant="caption"
+                  weight="600"
+                  color={isSelected ? "brandPrimary" : "textMuted"}
+                  style={{ marginTop: 2 }}
+                >
+                  {formatCurrency(pandit.kundli_price)}
+                </VText>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {selectedPandit && (
+          <View
+            style={[
+              styles.selectedPanditBanner,
+              {
+                backgroundColor: colors.surfaceSubtle,
+                borderColor: colors.borderDefault,
+                borderWidth: 1,
+                borderRadius: radii.sm,
+                padding: spacing.sm,
+                marginTop: spacing.sm,
+              },
+            ]}
+          >
+            <VText variant="caption" weight="600" color="brandPrimary">
+              ✨ {selectedPandit.display_name} • {selectedPandit.experience_years || 5}+ yrs exp •{" "}
+              {selectedPandit.kundli_turnaround_days || 3} days delivery
+            </VText>
+          </View>
+        )}
+      </VCard>
+
+      {/* Birth Chart Data */}
+      <VCard
+        variant="default"
+        elevation={1}
+        style={[
+          styles.sectionCard,
+          {
+            padding: spacing.md,
+            gap: spacing.sm,
+            backgroundColor: colors.surfaceCard,
+            borderColor: colors.borderDefault,
+            borderWidth: 1,
+          },
+        ]}
+      >
+        <VText variant="titleMedium" weight="700" color="brandPrimary">
+          2. Birth Information
+        </VText>
+        <VText variant="caption" color="textMuted" style={{ marginBottom: spacing.xs }}>
+          Accurate birth time and coordinates are crucial for precise Vedic planetary calculations
+        </VText>
+
+        <VInput
+          label="Date of Birth *"
+          placeholder="YYYY-MM-DD (e.g. 1995-08-15)"
+          value={dateOfBirth}
+          onChangeText={setDateOfBirth}
+          autoCapitalize="none"
+        />
+
+        <VInput
+          label="Time of Birth *"
+          placeholder="HH:MM:SS or HH:MM (e.g. 14:30:00)"
+          value={timeOfBirth}
+          onChangeText={setTimeOfBirth}
+          autoCapitalize="none"
+        />
+
+        <VInput
+          label="Place of Birth *"
+          placeholder="City, State, Country (e.g. Varanasi, UP, India)"
+          value={placeOfBirth}
+          onChangeText={setPlaceOfBirth}
+        />
+
+        <VInput
+          label="Questions / Specific Focus (Optional)"
+          placeholder="e.g. Career progression, marriage compatibility, health..."
+          value={additionalNotes}
+          onChangeText={setAdditionalNotes}
+          multiline
+          numberOfLines={3}
+        />
+      </VCard>
+
+      {/* Price & Summary */}
+      <VCard
+        variant="default"
+        elevation={2}
+        style={[
+          styles.summaryCard,
+          {
+            padding: spacing.md,
+            backgroundColor: colors.surfaceCard,
+            borderColor: colors.borderAccent,
+            borderWidth: 1,
+          },
+        ]}
+      >
+        <VText variant="titleMedium" weight="700" color="brandPrimary" style={{ marginBottom: spacing.sm }}>
+          3. Order Summary
+        </VText>
+        <View style={[styles.summaryRow, { paddingVertical: 4 }]}>
+          <VText variant="bodyMedium" color="textMuted">
+            Service
+          </VText>
+          <VText variant="bodyMedium" weight="600" color="textPrimary">
+            Handwritten Vedic Kundli
+          </VText>
+        </View>
+        <View style={[styles.summaryRow, { paddingVertical: 4 }]}>
+          <VText variant="bodyMedium" color="textMuted">
+            Selected Astrologer
+          </VText>
+          <VText variant="bodyMedium" weight="600" color="textPrimary">
+            {selectedPandit?.display_name || "—"}
+          </VText>
+        </View>
+        <View style={[styles.summaryRow, { paddingVertical: 4 }]}>
+          <VText variant="bodyMedium" color="textMuted">
+            Turnaround Time
+          </VText>
+          <VText variant="bodyMedium" color="textPrimary">
+            {selectedPandit?.kundli_turnaround_days || 3} business days
+          </VText>
+        </View>
+        <View
+          style={[
+            styles.summaryRow,
+            styles.totalRow,
+            {
+              borderTopColor: colors.borderDefault,
+              borderTopWidth: 1,
+              marginTop: spacing.sm,
+              paddingTop: spacing.sm,
+            },
+          ]}
+        >
+          <View>
+            <VText variant="titleMedium" weight="700" color="textPrimary">
+              Total (100% Upfront)
+            </VText>
+            <VText variant="caption" color="textMuted">
+              Includes full report & chart scanning
+            </VText>
+          </View>
+          <VText variant="headlineSmall" weight="700" color="brandPrimary">
+            {formatCurrency(selectedPandit?.kundli_price || 0)}
+          </VText>
+        </View>
+      </VCard>
+
+      {formError ? (
+        <View
+          style={[
+            styles.errorContainer,
+            {
+              backgroundColor: colors.surfaceSubtle,
+              borderColor: colors.errorFg,
+              borderWidth: 1,
+              borderRadius: radii.sm,
+              padding: spacing.sm,
+            },
+          ]}
+        >
+          <VText variant="caption" color="error">
+            ⚠️ {formError}
+          </VText>
+        </View>
+      ) : null}
+
+      <VButton
+        title={submitting ? "Creating Order..." : "Proceed to Payment"}
+        variant="primary"
+        size="lg"
+        onPress={handleCreateOrder}
+        disabled={submitting}
+        style={{ minHeight: 48 }}
+      />
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
   content: {
-    padding: spacing.md,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 40,
   },
-  sectionCard: {
-    marginBottom: spacing.md,
-  },
-  sectionTitle: {
-    color: colors.textPrimary,
-    marginBottom: 2,
-  },
-  sectionSubtitle: {
-    marginBottom: spacing.md,
-  },
+  sectionCard: {},
   panditPicker: {
     flexDirection: "row",
-    marginBottom: spacing.sm,
   },
   panditChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    backgroundColor: colors.surface,
-    marginRight: spacing.sm,
     alignItems: "center",
+    justifyContent: "center",
+    minHeight: 48,
+    minWidth: 80,
   },
-  panditChipSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
-  },
-  panditChipName: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.textPrimary,
-  },
-  panditChipNameSelected: {
-    color: colors.primary,
-    fontWeight: typography.fontWeight.bold,
-  },
-  panditChipPrice: {
-    fontSize: typography.fontSize.xs,
-    color: colors.textTertiary,
-    marginTop: 2,
-  },
-  panditChipPriceSelected: {
-    color: colors.primary,
-    fontWeight: typography.fontWeight.semibold,
-  },
-  selectedPanditBanner: {
-    backgroundColor: colors.primaryLight,
-    padding: spacing.sm,
-    borderRadius: radius.sm,
-    marginTop: spacing.xs,
-  },
-  panditHighlight: {
-    fontWeight: typography.fontWeight.medium,
-  },
-  summaryCard: {
-    marginBottom: spacing.md,
-    backgroundColor: colors.surfaceSubtle,
-    borderColor: colors.borderLight,
-    borderWidth: 1,
-  },
-  summaryTitle: {
-    marginBottom: spacing.sm,
-  },
+  selectedPanditBanner: {},
+  summaryCard: {},
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: spacing.xs,
-  },
-  summaryBold: {
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
-  },
-  totalRow: {
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
     alignItems: "center",
   },
-  totalPrice: {
-    color: colors.primary,
-    fontWeight: typography.fontWeight.bold,
-  },
-  errorContainer: {
-    backgroundColor: "#FFEBEE",
-    padding: spacing.sm,
-    borderRadius: radius.sm,
-    marginBottom: spacing.md,
-  },
-  errorText: {
-    color: "#C62828",
-    fontSize: typography.fontSize.sm,
-  },
-  submitBtn: {
-    marginTop: spacing.xs,
-  },
+  totalRow: {},
+  errorContainer: {},
 });

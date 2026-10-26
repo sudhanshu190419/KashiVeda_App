@@ -2,14 +2,16 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import {
-  Button,
-  Card,
+  VButton,
+  VCard,
+  VText,
+  VBadge,
   EmptyState,
   ErrorState,
   LoadingState,
-  Text,
-} from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing } from "../../../shared/theme/index.ts";
+} from "../../../shared/components/index.ts";
+import { useTheme, getDevanagariLineHeight } from "../../../shared/theme/index.ts";
+import { useLanguage } from "../../../shared/i18n/index.ts";
 import { formatIndianDisplayDate, getIndianCalendarDate } from "../../../shared/utils/date.ts";
 import { DailyRashiInsight, RashiDefinition, getRashiById } from "../types/rashi.types.ts";
 
@@ -43,28 +45,32 @@ export const DailyRashiInsightCard: React.FC<DailyRashiInsightCardProps> = ({
   onSubscribePress,
   onRetry,
 }) => {
+  const { colors, spacing, radii } = useTheme();
+  const { language } = useLanguage();
+  const isHi = language === "hi";
+
   const rashi = propRashi || getRashiById(1);
   const todayFormatted = formatIndianDisplayDate(insight?.insight_date || getIndianCalendarDate());
 
   // 1. Loading State
   if (loading) {
     return (
-      <Card variant="elevated" style={styles.card}>
+      <VCard variant="default" elevation={1} style={[styles.card, { padding: spacing.md, marginVertical: spacing.xs }]}>
         <LoadingState message={`Reading cosmic planetary transits for ${rashi.vedicName}...`} />
-      </Card>
+      </VCard>
     );
   }
 
-  // 2. Genuine Retrieval Failure (Backend, database, or unexpected error)
+  // 2. Genuine Retrieval Failure (Backend, database, or network error)
   if (error && !isSubscriptionNotice(error) && !isUnverifiedOffline && !insight) {
     return (
-      <Card variant="outlined" style={styles.card}>
+      <VCard variant="outlined" elevation={0} style={[styles.card, { padding: spacing.md, marginVertical: spacing.xs }]}>
         <ErrorState
           title={`Unable to Load Daily Guidance for ${rashi.vedicName}`}
           message={error}
           onRetry={onRetry}
         />
-      </Card>
+      </VCard>
     );
   }
 
@@ -74,282 +80,399 @@ export const DailyRashiInsightCard: React.FC<DailyRashiInsightCardProps> = ({
     if (!isEntitled) {
       if (isUnverifiedOffline) {
         return (
-          <Card variant="elevated" style={[styles.card, styles.lockedCard]}>
-            <View style={styles.lockedHeader}>
-              <Text style={styles.lockedIcon}>📡</Text>
-              <View style={[styles.lockedBadge, { backgroundColor: colors.surfaceSubtle }]}>
-                <Text variant="overline" color={colors.textSecondary}>
-                  Offline Mode
-                </Text>
-              </View>
+          <VCard
+            variant="default"
+            elevation={1}
+            style={[
+              styles.card,
+              {
+                padding: spacing.md,
+                marginVertical: spacing.xs,
+                backgroundColor: colors.surfaceCard,
+                borderColor: colors.borderDefault,
+              },
+            ]}
+          >
+            <View style={[styles.lockedHeader, { marginBottom: spacing.xs }]}>
+              <VText style={styles.lockedIcon}>📡</VText>
+              <VBadge variant="status" color="muted" label={isHi ? "ऑफ़लाइन मोड" : "Offline Mode"} />
             </View>
 
-            <Text variant="h2" style={styles.lockedTitle}>
+            <VText variant="headlineMedium" weight="600" color="textPrimary" style={styles.lockedTitle}>
               Daily Horoscope for {rashi.fullName}
-            </Text>
-            <Text variant="body" color={colors.textSecondary} style={styles.lockedDesc}>
+            </VText>
+            <VText
+              variant="bodyMedium"
+              color="textMuted"
+              style={[
+                styles.lockedDesc,
+                {
+                  lineHeight: getDevanagariLineHeight(15),
+                  marginVertical: spacing.xs,
+                },
+              ]}
+            >
               Unable to verify subscription status while offline. Please connect to the internet to load today's astrological guidance.
-            </Text>
+            </VText>
 
             {onRetry && (
-              <Button
-                title="Retry Connection 🔄"
+              <VButton
+                title={isHi ? "पुनः प्रयास करें 🔄" : "Retry Connection 🔄"}
                 variant="outline"
                 size="md"
                 onPress={onRetry}
-                style={styles.subscribeBtn}
+                style={[styles.subscribeBtn, { marginTop: spacing.sm }]}
               />
             )}
-          </Card>
+          </VCard>
         );
       }
 
       return (
-        <Card variant="elevated" style={[styles.card, styles.lockedCard]}>
-          <View style={styles.lockedHeader}>
-            <Text style={styles.lockedIcon}>🔒</Text>
-            <View style={styles.lockedBadge}>
-              <Text variant="overline" color={colors.secondaryDark}>
-                Paid Vedic Guidance
-              </Text>
-            </View>
+        <VCard
+          variant="default"
+          elevation={1}
+          style={[
+            styles.card,
+            {
+              padding: spacing.md,
+              marginVertical: spacing.xs,
+              backgroundColor: colors.surfaceCard,
+              borderColor: colors.borderAccent,
+            },
+          ]}
+        >
+          <View style={[styles.lockedHeader, { marginBottom: spacing.xs }]}>
+            <VText style={styles.lockedIcon}>🔒</VText>
+            <VBadge variant="status" color="brand" label={isHi ? "वैदिक राशिफल" : "Paid Vedic Guidance"} />
           </View>
 
-          <Text variant="h2" style={styles.lockedTitle}>
+          <VText variant="headlineMedium" weight="600" color="textPrimary" style={styles.lockedTitle}>
             Daily Horoscope for {rashi.fullName}
-          </Text>
-          <Text variant="body" color={colors.textSecondary} style={styles.lockedDesc}>
+          </VText>
+          <VText
+            variant="bodyMedium"
+            color="textMuted"
+            style={[
+              styles.lockedDesc,
+              {
+                lineHeight: getDevanagariLineHeight(15),
+                marginVertical: spacing.xs,
+              },
+            ]}
+          >
             Subscribe to Kashi Veda Astrology to unlock personalized daily Jyotish insights,
             career guidance, financial outlook, and auspicious transit timings calculated by certified scholars.
-          </Text>
+          </VText>
 
-          <View style={styles.lockedFeatureList}>
-            <Text variant="caption" color={colors.textPrimary}>
+          <View style={[styles.lockedFeatureList, { marginVertical: spacing.sm, gap: spacing.xxs }]}>
+            <VText variant="caption" color="textPrimary">
               ✓ Daily 12-Rashi Transit Analysis
-            </Text>
-            <Text variant="caption" color={colors.textPrimary}>
+            </VText>
+            <VText variant="caption" color="textPrimary">
               ✓ Career, Finance, Love & Health Guidance
-            </Text>
-            <Text variant="caption" color={colors.textPrimary}>
+            </VText>
+            <VText variant="caption" color="textPrimary">
               ✓ Daily Auspicious Colors & Lucky Numbers
-            </Text>
+            </VText>
           </View>
 
           {onSubscribePress && (
-            <Button
+            <VButton
               title="Unlock Daily Astrological Insights ✨"
               variant="primary"
               size="md"
               onPress={onSubscribePress}
-              style={styles.subscribeBtn}
+              style={[styles.subscribeBtn, { marginTop: spacing.sm }]}
             />
           )}
-        </Card>
+        </VCard>
       );
     }
 
     // Entitled user but content not published yet
     return (
-      <Card variant="outlined" style={styles.card}>
+      <VCard variant="outlined" elevation={0} style={[styles.card, { padding: spacing.md, marginVertical: spacing.xs }]}>
         <EmptyState
           title={`No Insight for ${rashi.vedicName} Today`}
           description={`Today's astrological guidance for ${rashi.fullName} is currently being prepared by Vedic scholars in Varanasi. Please check back shortly.`}
-          actionTitle={onRetry ? "Check Again" : undefined}
+          actionTitle={onRetry ? (isHi ? "पुनः जांचें" : "Check Again") : undefined}
           onAction={onRetry}
         />
-      </Card>
+      </VCard>
     );
   }
 
-  // 3. Render Daily Insight (Free preview or full entitled content)
+  // 4. Render Daily Insight (Full entitled content or free preview)
   return (
-    <Card variant="elevated" style={styles.card}>
+    <VCard
+      variant="default"
+      elevation={1}
+      style={[
+        styles.card,
+        {
+          padding: spacing.md,
+          marginVertical: spacing.xs,
+          backgroundColor: colors.surfaceCard,
+          borderColor: colors.borderDefault,
+        },
+      ]}
+    >
       {/* Header Banner */}
-      <View style={styles.insightHeader}>
+      <View
+        style={[
+          styles.insightHeader,
+          {
+            borderBottomColor: colors.borderDefault,
+            paddingBottom: spacing.sm,
+            marginBottom: spacing.sm,
+          },
+        ]}
+      >
         <View style={styles.rashiTitleRow}>
-          <View style={styles.symbolCircle}>
-            <Text style={styles.symbolText}>{rashi.symbol}</Text>
+          <View
+            style={[
+              styles.symbolCircle,
+              {
+                backgroundColor: colors.surfaceSubtle,
+                borderColor: colors.borderDefault,
+                borderWidth: 1,
+                borderRadius: 22,
+                marginRight: spacing.sm,
+              },
+            ]}
+          >
+            <VText style={styles.symbolText}>{rashi.symbol}</VText>
           </View>
-          <View>
+          <View style={{ flex: 1 }}>
             <View style={styles.nameRow}>
-              <Text variant="h2" color={colors.primaryDark}>
+              <VText variant="headlineMedium" weight="700" color="brandPrimary">
                 {rashi.vedicName}
-              </Text>
-              <Text variant="body" color={colors.textSecondary}>
+              </VText>
+              <VText variant="bodyMedium" color="textMuted">
                 {" "}({rashi.westernName})
-              </Text>
-              <Text variant="captionMedium" color={colors.secondaryDark} style={styles.sanskritTag}>
+              </VText>
+              <VText variant="caption" color="brandPrimary" style={styles.sanskritTag}>
                 ॥ {rashi.sanskritName} ॥
-              </Text>
+              </VText>
             </View>
-            <Text variant="caption" color={colors.textTertiary}>
+            <VText variant="caption" color="textMuted">
               {todayFormatted} • {rulerText(rashi)}
-            </Text>
+            </VText>
           </View>
         </View>
       </View>
 
-      {/* Auspicious Attributes Strip (Free attribute) */}
-      {(insight.auspicious_color || insight.auspicious_number) && (
-        <View style={styles.auspiciousStrip}>
+      {/* Auspicious Attributes Strip */}
+      {(insight.auspicious_color || insight.auspicious_number !== null) && (
+        <View
+          style={[
+            styles.auspiciousStrip,
+            {
+              backgroundColor: colors.surfaceSubtle,
+              borderColor: colors.borderDefault,
+              borderRadius: radii.md,
+              padding: spacing.sm,
+              marginBottom: spacing.md,
+            },
+          ]}
+        >
           {insight.auspicious_color ? (
             <View style={styles.attributeItem}>
-              <Text variant="overline" color={colors.textSecondary}>
+              <VText variant="caption" color="textMuted" style={{ fontSize: 10 }}>
                 Auspicious Color
-              </Text>
-              <Text variant="captionMedium" color={colors.primaryDark}>
+              </VText>
+              <VText variant="caption" weight="600" color="brandPrimary">
                 🎨 {insight.auspicious_color}
-              </Text>
+              </VText>
             </View>
           ) : null}
 
           {insight.auspicious_number !== null && insight.auspicious_number !== undefined ? (
             <View style={styles.attributeItem}>
-              <Text variant="overline" color={colors.textSecondary}>
+              <VText variant="caption" color="textMuted" style={{ fontSize: 10 }}>
                 Lucky Number
-              </Text>
-              <Text variant="captionMedium" color={colors.secondaryDark}>
+              </VText>
+              <VText variant="caption" weight="600" color="brandPrimary">
                 🔢 {insight.auspicious_number}
-              </Text>
+              </VText>
             </View>
           ) : null}
 
           <View style={styles.attributeItem}>
-            <Text variant="overline" color={colors.textSecondary}>
+            <VText variant="caption" color="textMuted" style={{ fontSize: 10 }}>
               Element
-            </Text>
-            <Text variant="captionMedium" color={colors.textPrimary}>
+            </VText>
+            <VText variant="caption" weight="600" color="textPrimary">
               {elementIcon(rashi.element)} {rashi.element}
-            </Text>
+            </VText>
           </View>
         </View>
       )}
 
-      {/* Section 1: General Cosmic Outlook (Free Content) */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionIcon}>🌟</Text>
-          <Text variant="h3" color={colors.textPrimary}>
+      {/* Section 1: General Cosmic Outlook */}
+      <View style={[styles.sectionContainer, { marginBottom: spacing.md }]}>
+        <View style={[styles.sectionHeaderRow, { marginBottom: spacing.xxs }]}>
+          <VText style={styles.sectionIcon}>🌟</VText>
+          <VText variant="titleMedium" weight="600" color="textPrimary">
             General Cosmic Outlook
-          </Text>
+          </VText>
         </View>
-        <Text variant="body" color={colors.textPrimary} style={styles.sectionBody}>
+        <VText
+          variant="bodyMedium"
+          color="textPrimary"
+          style={[styles.sectionBody, { lineHeight: getDevanagariLineHeight(15) }]}
+        >
           {insight.general_outlook}
-        </Text>
+        </VText>
       </View>
 
-      {/* Entitlement Enforcement: Premium Guidance Sections ONLY rendered if verified entitled */}
+      {/* Premium Guidance Sections */}
       {isEntitled && (
         <>
-          {/* Section 2: Career & Business */}
           {insight.career_business ? (
-            <View style={styles.sectionContainer}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionIcon}>💼</Text>
-                <Text variant="h3" color={colors.textPrimary}>
+            <View style={[styles.sectionContainer, { marginBottom: spacing.md }]}>
+              <View style={[styles.sectionHeaderRow, { marginBottom: spacing.xxs }]}>
+                <VText style={styles.sectionIcon}>💼</VText>
+                <VText variant="titleMedium" weight="600" color="textPrimary">
                   Career & Profession
-                </Text>
+                </VText>
               </View>
-              <Text variant="body" color={colors.textSecondary} style={styles.sectionBody}>
+              <VText
+                variant="bodyMedium"
+                color="textMuted"
+                style={[styles.sectionBody, { lineHeight: getDevanagariLineHeight(15) }]}
+              >
                 {insight.career_business}
-              </Text>
+              </VText>
             </View>
           ) : null}
 
-          {/* Section 3: Finance & Wealth */}
           {insight.finance_wealth ? (
-            <View style={styles.sectionContainer}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionIcon}>💰</Text>
-                <Text variant="h3" color={colors.textPrimary}>
+            <View style={[styles.sectionContainer, { marginBottom: spacing.md }]}>
+              <View style={[styles.sectionHeaderRow, { marginBottom: spacing.xxs }]}>
+                <VText style={styles.sectionIcon}>💰</VText>
+                <VText variant="titleMedium" weight="600" color="textPrimary">
                   Wealth & Finance
-                </Text>
+                </VText>
               </View>
-              <Text variant="body" color={colors.textSecondary} style={styles.sectionBody}>
+              <VText
+                variant="bodyMedium"
+                color="textMuted"
+                style={[styles.sectionBody, { lineHeight: getDevanagariLineHeight(15) }]}
+              >
                 {insight.finance_wealth}
-              </Text>
+              </VText>
             </View>
           ) : null}
 
-          {/* Section 4: Love & Relationships */}
           {insight.love_relationships ? (
-            <View style={styles.sectionContainer}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionIcon}>❤️</Text>
-                <Text variant="h3" color={colors.textPrimary}>
+            <View style={[styles.sectionContainer, { marginBottom: spacing.md }]}>
+              <View style={[styles.sectionHeaderRow, { marginBottom: spacing.xxs }]}>
+                <VText style={styles.sectionIcon}>❤️</VText>
+                <VText variant="titleMedium" weight="600" color="textPrimary">
                   Love & Relationships
-                </Text>
+                </VText>
               </View>
-              <Text variant="body" color={colors.textSecondary} style={styles.sectionBody}>
+              <VText
+                variant="bodyMedium"
+                color="textMuted"
+                style={[styles.sectionBody, { lineHeight: getDevanagariLineHeight(15) }]}
+              >
                 {insight.love_relationships}
-              </Text>
+              </VText>
             </View>
           ) : null}
 
-          {/* Section 5: Health & Wellbeing */}
           {insight.health_wellbeing ? (
-            <View style={styles.sectionContainer}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionIcon}>🌿</Text>
-                <Text variant="h3" color={colors.textPrimary}>
+            <View style={[styles.sectionContainer, { marginBottom: spacing.md }]}>
+              <View style={[styles.sectionHeaderRow, { marginBottom: spacing.xxs }]}>
+                <VText style={styles.sectionIcon}>🌿</VText>
+                <VText variant="titleMedium" weight="600" color="textPrimary">
                   Health & Vitality
-                </Text>
+                </VText>
               </View>
-              <Text variant="body" color={colors.textSecondary} style={styles.sectionBody}>
+              <VText
+                variant="bodyMedium"
+                color="textMuted"
+                style={[styles.sectionBody, { lineHeight: getDevanagariLineHeight(15) }]}
+              >
                 {insight.health_wellbeing}
-              </Text>
+              </VText>
             </View>
           ) : null}
         </>
       )}
 
-      {/* When unentitled: Render locked premium guidance teaser / offline unverified notice */}
+      {/* When unentitled */}
       {!isEntitled && (
         isUnverifiedOffline ? (
-          <View style={styles.lockedOfflineNotice}>
+          <View
+            style={[
+              styles.lockedOfflineNotice,
+              {
+                backgroundColor: colors.surfaceSubtle,
+                borderColor: colors.borderDefault,
+                borderRadius: radii.md,
+                padding: spacing.sm,
+                marginTop: spacing.xs,
+              },
+            ]}
+          >
             <View style={styles.lockedNoticeHeader}>
-              <Text style={styles.lockedNoticeIcon}>📡</Text>
-              <Text variant="captionMedium" color={colors.secondaryDark}>
+              <VText style={styles.lockedNoticeIcon}>📡</VText>
+              <VText variant="caption" weight="600" color="brandPrimary">
                 Offline Mode — Subscription Unverified
-              </Text>
+              </VText>
             </View>
-            <Text variant="caption" color={colors.textSecondary}>
+            <VText variant="caption" color="textMuted" style={{ marginTop: spacing.xxs }}>
               Unable to verify your active subscription while offline. Connect to the internet to unlock personalized career, finance, love, and health guidance.
-            </Text>
+            </VText>
             {onRetry && (
-              <Button
-                title="Retry Connection 🔄"
+              <VButton
+                title={isHi ? "पुनः प्रयास करें 🔄" : "Retry Connection 🔄"}
                 variant="outline"
                 size="sm"
                 onPress={onRetry}
-                style={{ marginTop: spacing.xs }}
+                style={{ marginTop: spacing.xs, minHeight: 48 }}
               />
             )}
           </View>
         ) : (
-          <View style={styles.lockedInlineContainer}>
+          <View
+            style={[
+              styles.lockedInlineContainer,
+              {
+                backgroundColor: colors.surfaceSubtle,
+                borderColor: colors.borderDefault,
+                borderRadius: radii.md,
+                padding: spacing.sm,
+                marginTop: spacing.xs,
+              },
+            ]}
+          >
             <View style={styles.lockedNoticeHeader}>
-              <Text style={styles.lockedNoticeIcon}>🔒</Text>
-              <Text variant="captionMedium" color={colors.secondaryDark}>
+              <VText style={styles.lockedNoticeIcon}>🔒</VText>
+              <VText variant="caption" weight="600" color="brandPrimary">
                 Detailed Vedic Guidance (Paid)
-              </Text>
+              </VText>
             </View>
-            <Text variant="caption" color={colors.textSecondary}>
+            <VText variant="caption" color="textMuted" style={{ marginTop: spacing.xxs }}>
               Subscribe to Kashi Veda Astrology to unlock personalized career, finance, love, and health transits.
-            </Text>
+            </VText>
             {onSubscribePress && (
-              <Button
+              <VButton
                 title="Unlock Full Jyotish Guidance ✨"
                 variant="primary"
                 size="sm"
                 onPress={onSubscribePress}
-                style={{ marginTop: spacing.xs }}
+                style={{ marginTop: spacing.xs, minHeight: 48 }}
               />
             )}
           </View>
         )
       )}
-    </Card>
+    </VCard>
   );
 };
 
@@ -373,15 +496,9 @@ function elementIcon(element: string): string {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    padding: spacing.md,
-    marginVertical: spacing.xs,
-  },
+  card: {},
   insightHeader: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-    paddingBottom: spacing.sm,
-    marginBottom: spacing.sm,
   },
   rashiTitleRow: {
     flexDirection: "row",
@@ -390,11 +507,8 @@ const styles = StyleSheet.create({
   symbolCircle: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primaryLight,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: spacing.sm,
   },
   symbolText: {
     fontSize: 22,
@@ -405,98 +519,53 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   sanskritTag: {
-    marginLeft: spacing.xs,
+    marginLeft: 6,
   },
   auspiciousStrip: {
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: colors.surfaceSubtle,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.borderLight,
   },
   attributeItem: {
     alignItems: "center",
     flex: 1,
   },
-  sectionContainer: {
-    marginBottom: spacing.md,
-  },
+  sectionContainer: {},
   sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: spacing.xs,
   },
   sectionIcon: {
     fontSize: 16,
-    marginRight: spacing.xs,
+    marginRight: 6,
   },
-  sectionBody: {
-    lineHeight: 22,
-  },
-  lockedCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.secondaryLight,
-    borderWidth: 1,
-  },
+  sectionBody: {},
   lockedHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: spacing.xs,
   },
   lockedIcon: {
-    fontSize: 24,
+    fontSize: 22,
   },
-  lockedBadge: {
-    backgroundColor: colors.secondaryLight,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-  },
-  lockedTitle: {
-    marginVertical: spacing.xs,
-  },
-  lockedDesc: {
-    lineHeight: 20,
-    marginBottom: spacing.sm,
-  },
-  lockedFeatureList: {
-    gap: spacing.xs,
-    backgroundColor: colors.surfaceSubtle,
-    padding: spacing.sm,
-    borderRadius: radius.md,
-    marginBottom: spacing.md,
-  },
+  lockedTitle: {},
+  lockedDesc: {},
+  lockedFeatureList: {},
   subscribeBtn: {
-    marginTop: spacing.xs,
-  },
-  lockedInlineContainer: {
-    backgroundColor: colors.surfaceSubtle,
-    borderColor: colors.secondaryLight,
-    borderWidth: 1,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    marginTop: spacing.sm,
+    minHeight: 48,
   },
   lockedOfflineNotice: {
-    backgroundColor: colors.surfaceSubtle,
-    borderColor: colors.borderLight,
     borderWidth: 1,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    marginTop: spacing.sm,
+  },
+  lockedInlineContainer: {
+    borderWidth: 1,
   },
   lockedNoticeHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: spacing.xs,
+    gap: 6,
   },
   lockedNoticeIcon: {
     fontSize: 16,
-    marginRight: spacing.xs,
   },
 });
-

@@ -6,8 +6,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Text } from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing } from "../../../shared/theme/index.ts";
+import { VText } from "../../../shared/components/index.ts";
+import { useTheme } from "../../../shared/theme/index.ts";
+import { useLanguage } from "../../../shared/i18n/index.ts";
 import { CANONICAL_RASHIS, RashiDefinition } from "../types/rashi.types.ts";
 
 interface RashiSelectorProps {
@@ -21,12 +22,16 @@ export const RashiSelector: React.FC<RashiSelectorProps> = ({
   onSelectRashi,
   disabled = false,
 }) => {
+  const { colors, spacing, radii } = useTheme();
+  const { language } = useLanguage();
+  const isHi = language === "hi";
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { marginVertical: spacing.xs }]}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingHorizontal: spacing.xs, gap: spacing.xs }]}
       >
         {CANONICAL_RASHIS.map((rashi: RashiDefinition) => {
           const isSelected = rashi.id === selectedRashiId;
@@ -38,41 +43,48 @@ export const RashiSelector: React.FC<RashiSelectorProps> = ({
               onPress={() => onSelectRashi(rashi.id)}
               style={[
                 styles.chip,
-                isSelected ? styles.chipSelected : styles.chipUnselected,
+                {
+                  borderRadius: radii.md,
+                  paddingHorizontal: spacing.sm,
+                  paddingVertical: spacing.xs,
+                  backgroundColor: isSelected ? colors.surfaceCard : colors.surfaceSubtle,
+                  borderColor: isSelected ? colors.brandPrimary : colors.borderDefault,
+                  borderWidth: isSelected ? 2 : 1,
+                },
               ]}
               accessibilityRole="button"
               accessibilityLabel={`${rashi.fullName} zodiac sign`}
               accessibilityState={{ selected: isSelected }}
               testID={`rashi-chip-${rashi.id}`}
             >
-              <Text
+              <VText
                 variant="bodyMedium"
                 style={[
                   styles.symbol,
-                  { color: isSelected ? colors.primaryDark : colors.textSecondary },
+                  {
+                    color: isSelected ? colors.brandPrimary : colors.textMuted,
+                    marginRight: spacing.xs,
+                  },
                 ]}
               >
                 {rashi.symbol}
-              </Text>
+              </VText>
               <View style={styles.textContainer}>
-                <Text
-                  variant="captionMedium"
-                  style={[
-                    styles.label,
-                    { color: isSelected ? colors.primaryDark : colors.textPrimary },
-                  ]}
+                <VText
+                  variant="caption"
+                  weight="600"
+                  color={isSelected ? "brandPrimary" : "textPrimary"}
+                  style={styles.label}
                 >
-                  {rashi.vedicName}
-                </Text>
-                <Text
-                  variant="overline"
-                  style={[
-                    styles.sublabel,
-                    { color: isSelected ? colors.primary : colors.textTertiary },
-                  ]}
+                  {isHi && rashi.sanskritName ? rashi.sanskritName : rashi.vedicName}
+                </VText>
+                <VText
+                  variant="caption"
+                  color={isSelected ? "brandPrimary" : "textMuted"}
+                  style={styles.sublabel}
                 >
                   {rashi.westernName}
-                </Text>
+                </VText>
               </View>
             </TouchableOpacity>
           );
@@ -83,41 +95,29 @@ export const RashiSelector: React.FC<RashiSelectorProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    marginVertical: spacing.xs,
-  },
+  container: {},
   scrollContent: {
-    paddingHorizontal: spacing.xs,
-    gap: spacing.xs,
+    alignItems: "center",
   },
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-  },
-  chipSelected: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primary,
-  },
-  chipUnselected: {
-    backgroundColor: colors.surface,
-    borderColor: colors.borderLight,
+    justifyContent: "center",
+    minHeight: 48,
+    minWidth: 64,
   },
   symbol: {
-    fontSize: 16,
-    marginRight: spacing.xs,
+    fontSize: 18,
   },
   textContainer: {
     flexDirection: "column",
+    justifyContent: "center",
   },
   label: {
     fontSize: 12,
-    fontWeight: "600",
   },
   sublabel: {
-    fontSize: 9,
+    fontSize: 10,
+    lineHeight: 12,
   },
 });

@@ -1,17 +1,19 @@
+// src/features/astrology/screens/AstrologyScreen.tsx
 import React, { useCallback, useRef } from "react";
-import { RefreshControl, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
-  Card,
+  ScreenWrapper,
+  AppBar,
+  VCard,
+  VText,
   EmptyState,
   ErrorState,
-  Header,
   LoadingState,
-  ScreenContainer,
-  Text,
-} from "../../../shared/components/ui/index.ts";
-import { colors, spacing } from "../../../shared/theme/index.ts";
+} from "../../../shared/components/index.ts";
+import { useTheme, getDevanagariLineHeight } from "../../../shared/theme/index.ts";
+import { useLanguage } from "../../../shared/i18n/index.ts";
 import { formatIndianDisplayDate, getIndianCalendarDate } from "../../../shared/utils/date.ts";
 import { CustomerStackParamList } from "../../../shared/types/navigation.ts";
 import { AstrologyPlanCard } from "../components/AstrologyPlanCard.tsx";
@@ -29,6 +31,9 @@ type CustomerNavigationProp = NativeStackNavigationProp<CustomerStackParamList>;
 
 export const AstrologyScreen: React.FC = () => {
   const navigation = useNavigation<CustomerNavigationProp>();
+  const { colors, spacing, radii } = useTheme();
+  const { language } = useLanguage();
+  const isHi = language === "hi";
 
   const {
     plans,
@@ -64,7 +69,7 @@ export const AstrologyScreen: React.FC = () => {
     refresh: refreshDailyInsight,
   } = useDailyRashiInsight();
 
-  // Revalidate subscription and daily insight on screen focus (e.g. return after checkout)
+  // Revalidate subscription and daily insight on screen focus
   const isFirstFocusRef = useRef(true);
   useFocusEffect(
     useCallback(() => {
@@ -86,63 +91,113 @@ export const AstrologyScreen: React.FC = () => {
 
   if (isInitialLoading) {
     return (
-      <ScreenContainer>
-        <Header title="Vedic Astrology" />
+      <ScreenWrapper
+        headerComponent={
+          <AppBar
+            title="Vedic Astrology"
+            titleHi="वैदिक ज्योतिष"
+            locationBadge="वाराणसी / Varanasi"
+          />
+        }
+      >
         <LoadingState message="Loading planetary insights and plans..." />
-      </ScreenContainer>
+      </ScreenWrapper>
     );
   }
 
   if (plansError && plans.length === 0 && !subscription && content.length === 0) {
     return (
-      <ScreenContainer>
-        <Header title="Vedic Astrology" />
+      <ScreenWrapper
+        headerComponent={
+          <AppBar
+            title="Vedic Astrology"
+            titleHi="वैदिक ज्योतिष"
+            locationBadge="वाराणसी / Varanasi"
+          />
+        }
+      >
         <ErrorState
           title="Unable to Load Astrology Hub"
           message={plansError || subError || contentError || "Please check your network and try again."}
           onRetry={handleRefreshAll}
         />
-      </ScreenContainer>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <ScreenContainer
+    <ScreenWrapper
       scrollable
-      padded
-      refreshControl={
-        <RefreshControl
-          refreshing={isRefreshing}
-          onRefresh={handleRefreshAll}
-          colors={[colors.primary]}
-          tintColor={colors.primary}
+      refreshing={isRefreshing}
+      onRefresh={handleRefreshAll}
+      headerComponent={
+        <AppBar
+          title="Vedic Astrology"
+          titleHi="वैदिक ज्योतिष"
+          locationBadge="वाराणसी / Varanasi"
         />
       }
+      contentContainerStyle={[styles.scrollContent, { padding: spacing.md }]}
     >
-      <Header title="Vedic Astrology" />
-
       {/* Vedic Astrology Introduction Banner */}
-      <Card variant="elevated" style={styles.bannerCard}>
-        <Text variant="captionMedium" color={colors.primaryDark}>
+      <VCard
+        variant="default"
+        elevation={2}
+        style={[
+          styles.bannerCard,
+          {
+            padding: spacing.md,
+            backgroundColor: colors.surfaceCard,
+            borderColor: colors.borderAccent,
+            marginBottom: spacing.md,
+          },
+        ]}
+      >
+        <VText variant="caption" weight="600" color="brandPrimary">
           ॥ ग्रहाणां चरितं शुभम् ॥
-        </Text>
-        <Text variant="h2" style={styles.bannerTitle}>
+        </VText>
+        <VText
+          variant="headlineMedium"
+          weight="700"
+          color="brandPrimary"
+          style={[styles.bannerTitle, { marginVertical: spacing.xxs }]}
+        >
           Cosmic Planetary Wisdom
-        </Text>
-        <Text variant="body" color={colors.textSecondary} style={styles.bannerDesc}>
+        </VText>
+        <VText
+          variant="bodyMedium"
+          color="textMuted"
+          style={[
+            styles.bannerDesc,
+            {
+              lineHeight: getDevanagariLineHeight(15),
+              marginBottom: spacing.sm,
+            },
+          ]}
+        >
           Receive authentic daily Jyotish guidance and planetary transits calculated according to classical Vedic principles.
-        </Text>
+        </VText>
 
-        <View style={styles.quickActionsRow}>
+        <View
+          style={[
+            styles.quickActionsRow,
+            {
+              borderTopColor: colors.borderDefault,
+              paddingTop: spacing.xs,
+              gap: spacing.md,
+            },
+          ]}
+        >
           <TouchableOpacity
             style={styles.quickActionButton}
             onPress={() => navigation.navigate("AstrologyContent" as any)}
             accessibilityRole="button"
             accessibilityLabel="Browse all daily insights"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text variant="captionMedium" color={colors.primary}>
+            <VText variant="labelLarge" weight="600" color="brandPrimary">
               Browse All Insights →
-            </Text>
+            </VText>
           </TouchableOpacity>
 
           {subscription && (
@@ -151,32 +206,37 @@ export const AstrologyScreen: React.FC = () => {
               onPress={() => navigation.navigate("AstrologyDeliveries" as any)}
               accessibilityRole="button"
               accessibilityLabel="View delivery history"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text variant="captionMedium" color={colors.secondaryDark}>
+              <VText variant="labelLarge" weight="600" color="brandPrimary">
                 Delivery History →
-              </Text>
+              </VText>
             </TouchableOpacity>
           )}
         </View>
-      </Card>
+      </VCard>
 
       {/* General Cosmic Insights (Free Articles Feed) */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
+      <View style={[styles.section, { marginBottom: spacing.lg }]}>
+        <View style={[styles.sectionHeader, { marginBottom: spacing.xs }]}>
           <View>
-            <Text variant="h3">Cosmic Insights</Text>
-            <Text variant="caption" color={colors.textSecondary}>
+            <VText variant="headlineMedium" weight="600" color="textPrimary">
+              Cosmic Insights
+            </VText>
+            <VText variant="caption" color="textMuted">
               Daily celestial transits and spiritual guidance
-            </Text>
+            </VText>
           </View>
           <TouchableOpacity
             onPress={() => navigation.navigate("AstrologyContent" as any)}
             accessibilityRole="button"
             accessibilityLabel="View all cosmic insights"
+            style={styles.viewAllButton}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Text variant="captionMedium" color={colors.primary}>
+            <VText variant="labelLarge" weight="600" color="brandPrimary">
               View All ›
-            </Text>
+            </VText>
           </TouchableOpacity>
         </View>
 
@@ -209,12 +269,14 @@ export const AstrologyScreen: React.FC = () => {
       </View>
 
       {/* Daily Vedic Astrological Insights (Paid Feature) */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text variant="h3">Daily Vedic Horoscope</Text>
-          <Text variant="captionMedium" color={colors.textSecondary}>
+      <View style={[styles.section, { marginBottom: spacing.lg }]}>
+        <View style={[styles.sectionHeader, { marginBottom: spacing.xs }]}>
+          <VText variant="headlineMedium" weight="600" color="textPrimary">
+            Daily Vedic Horoscope
+          </VText>
+          <VText variant="caption" color="textMuted">
             {formatIndianDisplayDate(insight?.insight_date || getIndianCalendarDate())}
-          </Text>
+          </VText>
         </View>
 
         {/* 12-Rashi Selector Strip */}
@@ -243,15 +305,19 @@ export const AstrologyScreen: React.FC = () => {
 
       {/* Current Active Subscription Status */}
       {subscription && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text variant="h3">Your Membership</Text>
+        <View style={[styles.section, { marginBottom: spacing.lg }]}>
+          <View style={[styles.sectionHeader, { marginBottom: spacing.xs }]}>
+            <VText variant="headlineMedium" weight="600" color="textPrimary">
+              Your Membership
+            </VText>
             <TouchableOpacity
               onPress={() => navigation.navigate("AstrologySubscription" as any)}
+              style={styles.viewAllButton}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Text variant="captionMedium" color={colors.primary}>
+              <VText variant="labelLarge" weight="600" color="brandPrimary">
                 Details
-              </Text>
+              </VText>
             </TouchableOpacity>
           </View>
           <AstrologySubscriptionCard subscription={subscription} />
@@ -259,9 +325,11 @@ export const AstrologyScreen: React.FC = () => {
       )}
 
       {/* Available Plans Catalog */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text variant="h3">Subscription Plans</Text>
+      <View style={[styles.section, { marginBottom: spacing.lg }]}>
+        <View style={[styles.sectionHeader, { marginBottom: spacing.xs }]}>
+          <VText variant="headlineMedium" weight="600" color="textPrimary">
+            Subscription Plans
+          </VText>
         </View>
 
         {plans.length === 0 ? (
@@ -284,43 +352,38 @@ export const AstrologyScreen: React.FC = () => {
           ))
         )}
       </View>
-    </ScreenContainer>
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    paddingBottom: 40,
+  },
   bannerCard: {
-    padding: spacing.md,
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primarySubtle,
     borderWidth: 1,
-    marginBottom: spacing.md,
   },
-  bannerTitle: {
-    marginVertical: spacing.xs,
-    color: colors.primaryDark,
-  },
-  bannerDesc: {
-    lineHeight: 20,
-    marginBottom: spacing.sm,
-  },
+  bannerTitle: {},
+  bannerDesc: {},
   quickActionsRow: {
     flexDirection: "row",
-    gap: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.primarySubtle,
-    paddingTop: spacing.xs,
+    alignItems: "center",
   },
   quickActionButton: {
-    paddingVertical: spacing.xs,
+    minHeight: 48,
+    justifyContent: "center",
   },
-  section: {
-    marginBottom: spacing.lg,
+  viewAllButton: {
+    minHeight: 48,
+    minWidth: 48,
+    justifyContent: "center",
+    alignItems: "flex-end",
   },
+  section: {},
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: spacing.xs,
   },
 });

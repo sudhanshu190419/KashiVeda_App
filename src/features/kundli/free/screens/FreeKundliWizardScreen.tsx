@@ -3,9 +3,6 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -13,14 +10,16 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
-  Button,
-  Card,
-  Header,
-  Input,
-  ScreenContainer,
-  Text,
-} from "../../../../shared/components/ui/index.ts";
-import { colors, radius, spacing } from "../../../../shared/theme/index.ts";
+  ScreenWrapper,
+  AppBar,
+  VCard,
+  VText,
+  VButton,
+  VBadge,
+  VInput,
+} from "../../../../shared/components/index.ts";
+import { useTheme, getDevanagariLineHeight } from "../../../../shared/theme/index.ts";
+import { useLanguage } from "../../../../shared/i18n/index.ts";
 import { CustomerStackParamList } from "../../../../shared/types/navigation.ts";
 import { CityLocation, resolveCityLocation, searchCities } from "../data/indianCities.ts";
 import { freeKundliService } from "../services/freeKundliService.ts";
@@ -29,6 +28,9 @@ type NavigationProp = NativeStackNavigationProp<CustomerStackParamList, "FreeKun
 
 export const FreeKundliWizardScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const { colors, spacing, radii } = useTheme();
+  const { language } = useLanguage();
+  const isHi = language === "hi";
 
   const [name, setName] = useState<string>("");
   const [dateOfBirth, setDateOfBirth] = useState<string>("");
@@ -127,206 +129,242 @@ export const FreeKundliWizardScreen: React.FC = () => {
   };
 
   return (
-    <ScreenContainer scrollable={false} padded={false}>
-      <Header title="Free Vedic Kundli" onBack={() => navigation.goBack()} />
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.keyboardContainer}
+    <ScreenWrapper
+      scrollable
+      keyboardAvoiding
+      headerComponent={
+        <AppBar
+          title="Free Vedic Kundli"
+          showBackButton
+          onBackPress={() => navigation.goBack()}
+        />
+      }
+      contentContainerStyle={[styles.scrollContent, { padding: spacing.md, gap: spacing.md }]}
+    >
+      <VCard
+        variant="default"
+        elevation={2}
+        style={[
+          styles.introCard,
+          {
+            padding: spacing.md,
+            backgroundColor: colors.surfaceCard,
+            borderColor: colors.borderAccent,
+            borderWidth: 1,
+          },
+        ]}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <Card variant="elevated" style={styles.introCard}>
-            <View style={styles.badgeRow}>
-              <View style={styles.omBadge}>
-                <Text style={styles.omText}>🕉️</Text>
-              </View>
-              <View style={styles.badgeTag}>
-                <Text variant="caption" color={colors.primary}>
-                  100% Free • Pure Vedic Lahiri
-                </Text>
-              </View>
-            </View>
-            <Text variant="h2" style={styles.title}>
-              Instant Vedic Kundli
-            </Text>
-            <Text variant="body" color={colors.textSecondary} style={styles.subtitle}>
-              Generate your authentic birth horoscope, Lagna, Moon sign (Rashi), Nakshatra Pada,
-              planetary degrees, Whole-Sign houses, and Vimshottari Dasha timeline.
-            </Text>
-          </Card>
+        <View style={[styles.badgeRow, { gap: spacing.sm, marginBottom: spacing.xs }]}>
+          <View
+            style={[
+              styles.omBadge,
+              {
+                backgroundColor: colors.surfaceSubtle,
+                borderColor: colors.borderDefault,
+                borderWidth: 1,
+                borderRadius: 16,
+              },
+            ]}
+          >
+            <VText style={styles.omText}>🕉️</VText>
+          </View>
+          <VBadge
+            variant="status"
+            color="brand"
+            label="100% Free • Pure Vedic Lahiri"
+          />
+        </View>
 
-          <Card variant="outlined" style={styles.formCard}>
-            {formError ? (
-              <View style={styles.errorBox}>
-                <Text variant="caption" color={colors.error}>
-                  ⚠️ {formError}
-                </Text>
-              </View>
-            ) : null}
+        <VText variant="headlineMedium" weight="700" color="brandPrimary" style={{ marginBottom: spacing.xxs }}>
+          Instant Vedic Kundli
+        </VText>
+        <VText
+          variant="bodyMedium"
+          color="textMuted"
+          style={{ lineHeight: getDevanagariLineHeight(15) }}
+        >
+          Generate your authentic birth horoscope, Lagna, Moon sign (Rashi), Nakshatra Pada,
+          planetary degrees, Whole-Sign houses, and Vimshottari Dasha timeline.
+        </VText>
+      </VCard>
 
-            <Input
-              label="Devotee Name (Optional)"
-              placeholder="e.g. Aditya Sharma"
-              value={name}
-              onChangeText={setName}
-            />
+      <VCard
+        variant="default"
+        elevation={1}
+        style={[
+          styles.formCard,
+          {
+            padding: spacing.md,
+            gap: spacing.sm,
+            backgroundColor: colors.surfaceCard,
+            borderColor: colors.borderDefault,
+            borderWidth: 1,
+          },
+        ]}
+      >
+        {formError ? (
+          <View
+            style={[
+              styles.errorBox,
+              {
+                backgroundColor: colors.surfaceSubtle,
+                borderColor: colors.errorFg,
+                borderWidth: 1,
+                padding: spacing.sm,
+                borderRadius: radii.sm,
+              },
+            ]}
+          >
+            <VText variant="caption" color="error">
+              ⚠️ {formError}
+            </VText>
+          </View>
+        ) : null}
 
-            <Input
-              label="Date of Birth *"
-              placeholder="YYYY-MM-DD (e.g. 1995-08-15)"
-              value={dateOfBirth}
-              onChangeText={setDateOfBirth}
-            />
+        <VInput
+          label="Devotee Name (Optional)"
+          placeholder="e.g. Aditya Sharma"
+          value={name}
+          onChangeText={setName}
+        />
 
-            <Input
-              label="Time of Birth (24-Hour) *"
-              placeholder="HH:MM (e.g. 14:30 for 2:30 PM)"
-              value={timeOfBirth}
-              onChangeText={setTimeOfBirth}
-            />
+        <VInput
+          label="Date of Birth *"
+          placeholder="YYYY-MM-DD (e.g. 1995-08-15)"
+          value={dateOfBirth}
+          onChangeText={setDateOfBirth}
+          autoCapitalize="none"
+        />
 
-            <Input
-              label="Place of Birth *"
-              placeholder="Type city (e.g. Varanasi, Delhi, Mumbai)"
-              value={cityQuery}
-              onChangeText={handleCityChange}
-            />
+        <VInput
+          label="Time of Birth (24-Hour) *"
+          placeholder="HH:MM (e.g. 14:30 for 2:30 PM)"
+          value={timeOfBirth}
+          onChangeText={setTimeOfBirth}
+          autoCapitalize="none"
+        />
 
-            {showSuggestions && citySuggestions.length > 0 ? (
-              <View style={styles.suggestionsContainer}>
-                {citySuggestions.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={styles.suggestionItem}
-                    onPress={() => handleSelectCity(item)}
-                  >
-                    <Text variant="bodyMedium" color={colors.primary}>
-                      📍 {item.name}
-                    </Text>
-                    <Text variant="caption" color={colors.textSecondary}>
-                      {item.state}, {item.country}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ) : null}
+        <VInput
+          label="Place of Birth *"
+          placeholder="Type city (e.g. Varanasi, Delhi, Mumbai)"
+          value={cityQuery}
+          onChangeText={handleCityChange}
+        />
 
-            {selectedCity ? (
-              <View style={styles.cityConfirmedBox}>
-                <Text variant="caption" color={colors.success}>
-                  ✓ Coordinates: {selectedCity.latitude.toFixed(2)}°N, {selectedCity.longitude.toFixed(2)}°E • {selectedCity.timezone}
-                </Text>
-              </View>
-            ) : null}
+        {showSuggestions && citySuggestions.length > 0 ? (
+          <View
+            style={[
+              styles.suggestionsContainer,
+              {
+                backgroundColor: colors.surfaceCard,
+                borderColor: colors.borderDefault,
+                borderRadius: radii.md,
+              },
+            ]}
+          >
+            {citySuggestions.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[
+                  styles.suggestionItem,
+                  {
+                    borderBottomColor: colors.borderDefault,
+                    padding: spacing.sm,
+                  },
+                ]}
+                onPress={() => handleSelectCity(item)}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.name}, ${item.state}`}
+              >
+                <VText variant="bodyMedium" weight="600" color="brandPrimary">
+                  📍 {item.name}
+                </VText>
+                <VText variant="caption" color="textMuted">
+                  {item.state}, {item.country}
+                </VText>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : null}
 
-            <View style={styles.ctaWrapper}>
-              <Button
-                title={loading ? "Calculating Positions..." : "Calculate Sacred Kundli 🔮"}
-                variant="primary"
-                size="lg"
-                onPress={handleCalculate}
-                disabled={loading}
-              />
-            </View>
+        {selectedCity ? (
+          <View
+            style={[
+              styles.cityConfirmedBox,
+              {
+                backgroundColor: colors.surfaceSubtle,
+                borderColor: colors.successFg,
+                borderWidth: 1,
+                padding: spacing.sm,
+                borderRadius: radii.sm,
+              },
+            ]}
+          >
+            <VText variant="caption" color="success">
+              ✓ Coordinates: {selectedCity.latitude.toFixed(2)}°N, {selectedCity.longitude.toFixed(2)}°E • {selectedCity.timezone}
+            </VText>
+          </View>
+        ) : null}
 
-            {loading ? (
-              <View style={styles.loadingBox}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text variant="caption" color={colors.textSecondary} align="center">
-                  Computing sidereal planetary longitudes and Vimshottari Dasha...
-                </Text>
-              </View>
-            ) : null}
-          </Card>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </ScreenContainer>
+        <View style={[styles.ctaWrapper, { marginTop: spacing.sm }]}>
+          <VButton
+            title={loading ? "Calculating Positions..." : "Calculate Sacred Kundli 🔮"}
+            variant="primary"
+            size="lg"
+            onPress={handleCalculate}
+            disabled={loading}
+          />
+        </View>
+
+        {loading ? (
+          <View style={[styles.loadingBox, { gap: spacing.sm, marginTop: spacing.sm }]}>
+            <ActivityIndicator size="small" color={colors.brandPrimary} />
+            <VText variant="caption" color="textMuted" align="center">
+              Computing sidereal planetary longitudes and Vimshottari Dasha...
+            </VText>
+          </View>
+        ) : null}
+      </VCard>
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
-  keyboardContainer: {
-    flex: 1,
-  },
   scrollContent: {
-    padding: spacing.md,
-    gap: spacing.md,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 40,
   },
-  introCard: {
-    padding: spacing.lg,
-    backgroundColor: "#FFFBF7",
-    borderColor: colors.borderLight,
-    borderWidth: 1,
-  },
+  introCard: {},
   badgeRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
   },
   omBadge: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.primaryLight,
     justifyContent: "center",
     alignItems: "center",
   },
   omText: {
     fontSize: 18,
   },
-  badgeTag: {
-    backgroundColor: colors.primaryLight,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-  },
-  title: {
-    marginBottom: spacing.xxs,
-    color: colors.primary,
-  },
-  subtitle: {
-    lineHeight: 20,
-  },
-  formCard: {
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
-  errorBox: {
-    backgroundColor: "#FFEBEE",
-    padding: spacing.sm,
-    borderRadius: radius.sm,
-    marginBottom: spacing.xs,
-  },
+  formCard: {},
+  errorBox: {},
   suggestionsContainer: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: radius.md,
     overflow: "hidden",
-    marginTop: -spacing.xs,
-    marginBottom: spacing.sm,
+    marginTop: -4,
+    marginBottom: 8,
   },
   suggestionItem: {
-    padding: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    minHeight: 48,
+    justifyContent: "center",
   },
-  cityConfirmedBox: {
-    backgroundColor: "#E8F5E9",
-    padding: spacing.sm,
-    borderRadius: radius.sm,
-    marginTop: spacing.xxs,
-  },
-  ctaWrapper: {
-    marginTop: spacing.md,
-  },
+  cityConfirmedBox: {},
+  ctaWrapper: {},
   loadingBox: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: spacing.sm,
-    marginTop: spacing.sm,
   },
 });
