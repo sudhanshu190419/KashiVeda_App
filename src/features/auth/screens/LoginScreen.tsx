@@ -1,18 +1,26 @@
 // src/features/auth/screens/LoginScreen.tsx
 import React, { useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, View, Pressable } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Button, Card, Input, ScreenContainer, Text } from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing } from "../../../shared/theme/index.ts";
+import {
+  ScreenWrapper,
+  VCard,
+  VInput,
+  VButton,
+  VText,
+  SolarBrandGlyph,
+  Ionicons,
+} from "../../../shared/components/index.ts";
+import { useTheme } from "../../../shared/theme/index.ts";
 import { AuthStackParamList } from "../../../shared/types/navigation.ts";
 import { authService } from "../services/authService.ts";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 
 export const LoginScreen: React.FC<Props> = ({ navigation }) => {
+  const { colors, spacing, radii } = useTheme();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [googleLoading, setGoogleLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,213 +71,256 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <ScreenContainer scrollable padded>
-      {/* Sacred Kashi Header */}
-      <View style={styles.header}>
-        <Text variant="captionMedium" color={colors.primary} style={styles.omGlyph}>
-          ॥ श्री काशीविश्वनाथो विजयते ॥
-        </Text>
-        <Text variant="display" align="center" style={styles.brandTitle}>
-          Kashi Veda
-        </Text>
-        <Text variant="body" color={colors.textSecondary} align="center" style={styles.subtitle}>
-          Authentic Vedic rituals, certified Pandits, and sacred traditions of Varanasi.
-        </Text>
-      </View>
-
-      {/* Login Credentials Card */}
-      <Card variant="elevated" style={styles.card}>
-        <Text variant="h3" style={styles.cardTitle}>
-          Sign In
-        </Text>
-
-        <Input
-          label="Email Address"
-          placeholder="your.email@example.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          value={email}
-          onChangeText={(text) => {
-            setEmail(text);
-            if (error) setError(null);
-          }}
-          editable={!isFormBusy}
-        />
-
-        <Input
-          label="Password"
-          placeholder="••••••••"
-          secureTextEntry={!showPassword}
-          autoCapitalize="none"
-          value={password}
-          onChangeText={(text) => {
-            setPassword(text);
-            if (error) setError(null);
-          }}
-          editable={!isFormBusy}
-          rightElement={
-            <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text variant="captionMedium" color={colors.textSecondary}>
-                {showPassword ? "Hide" : "Show"}
-              </Text>
-            </TouchableOpacity>
-          }
-        />
-
-        {/* Forgot Password Link */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate("ForgotPassword")}
-          style={styles.forgotBtn}
-          disabled={isFormBusy}
-          activeOpacity={0.7}
-        >
-          <Text variant="captionMedium" color={colors.primary}>
-            Forgot Password?
-          </Text>
-        </TouchableOpacity>
-
-        {error ? (
-          <View style={styles.errorContainer}>
-            <Text variant="caption" color={colors.error} align="center">
-              {error}
-            </Text>
-          </View>
-        ) : null}
-
-        {/* Sign In CTA */}
-        <Button
-          title={loading ? "Signing In..." : "Sign In"}
-          onPress={handleSignIn}
-          loading={loading}
-          disabled={isFormBusy}
-          variant="primary"
-          size="lg"
-          style={styles.actionBtn}
-        />
-
-        {/* Divider */}
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text variant="caption" color={colors.textTertiary} style={styles.dividerText}>
-            OR
-          </Text>
-          <View style={styles.dividerLine} />
+    <ScreenWrapper scrollable keyboardAvoiding background="surfaceBase">
+      <View style={[styles.container, { paddingHorizontal: spacing.lg }]}>
+        {/* Sacred Kashi Vedic Header */}
+        <View style={[styles.header, { marginTop: spacing.xl, marginBottom: spacing.lg }]}>
+          <SolarBrandGlyph size={64} style={styles.brandGlyph} />
+          <VText
+            variant="labelMedium"
+            color={colors.brandPrimary}
+            align="center"
+            isDevanagari
+            style={styles.omGlyph}
+          >
+            ॥ श्री काशीविश्वनाथो विजयते ॥
+          </VText>
+          <VText variant="displayHero" align="center" style={styles.brandTitle}>
+            Kashi Veda
+          </VText>
+          <VText
+            variant="bodyMedium"
+            color={colors.textMuted}
+            align="center"
+            style={styles.subtitle}
+          >
+            Authentic Vedic rituals, certified Pandits, and sacred traditions of Varanasi.
+          </VText>
         </View>
 
-        {/* Google Sign-In Button */}
-        <TouchableOpacity
-          style={[styles.googleBtn, isFormBusy && styles.googleBtnDisabled]}
-          onPress={handleGoogleSignIn}
-          disabled={isFormBusy}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.googleIcon}>🌐</Text>
-          <Text variant="bodyMedium" color={colors.textPrimary}>
-            {googleLoading ? "Connecting with Google..." : "Continue with Google"}
-          </Text>
-        </TouchableOpacity>
-      </Card>
+        {/* Login Credentials Card */}
+        <VCard elevation={1} style={styles.card}>
+          <VText variant="headlineMedium" style={styles.cardTitle}>
+            Sign In
+          </VText>
 
-      {/* Create Account Footer */}
-      <View style={styles.footer}>
-        <Text variant="body" color={colors.textSecondary}>
-          Don't have an account?{" "}
-        </Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Register")}
-          disabled={isFormBusy}
-          activeOpacity={0.7}
-        >
-          <Text variant="bodyMedium" color={colors.primary}>
-            Create Account
-          </Text>
-        </TouchableOpacity>
+          <VInput
+            label="Email Address"
+            placeholder="your.email@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (error) setError(null);
+            }}
+            isDisabled={isFormBusy}
+            leadingIcon={<Ionicons name="mail-outline" size={20} color={colors.textMuted} />}
+            containerStyle={styles.inputSpacing}
+          />
+
+          <VInput
+            label="Password"
+            placeholder="••••••••"
+            isSecure={true}
+            autoCapitalize="none"
+            value={password}
+            onChangeText={(text) => {
+              setPassword(text);
+              if (error) setError(null);
+            }}
+            isDisabled={isFormBusy}
+            leadingIcon={<Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} />}
+            containerStyle={styles.inputSpacing}
+          />
+
+          {/* Forgot Password Link - 48dp min touch height */}
+          <Pressable
+            onPress={() => navigation.navigate("ForgotPassword")}
+            style={styles.forgotBtn}
+            disabled={isFormBusy}
+            accessibilityRole="button"
+            accessibilityLabel="Forgot Password?"
+            hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
+          >
+            <VText variant="labelMedium" color={colors.brandPrimary}>
+              Forgot Password?
+            </VText>
+          </Pressable>
+
+          {error ? (
+            <View
+              style={[
+                styles.errorContainer,
+                {
+                  backgroundColor: colors.errorBg,
+                  borderColor: colors.statusAlert,
+                  borderRadius: radii.sm,
+                  padding: spacing.sm,
+                  marginBottom: spacing.md,
+                },
+              ]}
+              accessibilityRole="alert"
+            >
+              <Ionicons
+                name="alert-circle-outline"
+                size={18}
+                color={colors.statusAlert}
+                style={{ marginRight: spacing.xs }}
+              />
+              <VText variant="caption" color={colors.statusAlert} style={styles.errorText}>
+                {error}
+              </VText>
+            </View>
+          ) : null}
+
+          {/* Sign In CTA */}
+          <VButton
+            title="Sign In"
+            label={loading ? "Signing In..." : "Sign In"}
+            onPress={handleSignIn}
+            loading={loading}
+            disabled={isFormBusy}
+            variant="primary"
+            size="lg"
+            fullWidth
+            style={styles.actionBtn}
+          />
+
+          {/* Divider */}
+          <View style={[styles.dividerRow, { marginVertical: spacing.md }]}>
+            <View style={[styles.dividerLine, { backgroundColor: colors.borderDefault }]} />
+            <VText variant="labelMedium" color={colors.textMuted} style={styles.dividerText}>
+              OR
+            </VText>
+            <View style={[styles.dividerLine, { backgroundColor: colors.borderDefault }]} />
+          </View>
+
+          {/* Google Sign-In Button */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.googleBtn,
+              {
+                backgroundColor: colors.surfaceCard,
+                borderColor: colors.borderDefault,
+                borderRadius: radii.md,
+                minHeight: spacing.touch,
+                opacity: isFormBusy ? 0.6 : pressed ? 0.8 : 1,
+              },
+            ]}
+            onPress={handleGoogleSignIn}
+            disabled={isFormBusy}
+            accessibilityRole="button"
+            accessibilityLabel="Continue with Google"
+          >
+            <Ionicons name="logo-google" size={20} color={colors.brandPrimary} style={styles.googleIcon} />
+            <VText variant="labelLarge" color={colors.textPrimary}>
+              {googleLoading ? "Connecting with Google..." : "Continue with Google"}
+            </VText>
+          </Pressable>
+        </VCard>
+
+        {/* Create Account Footer */}
+        <View style={[styles.footer, { marginTop: spacing.xl, marginBottom: spacing.xxl }]}>
+          <VText variant="bodyMedium" color={colors.textMuted}>
+            Don't have an account?{" "}
+          </VText>
+          <Pressable
+            onPress={() => navigation.navigate("Register")}
+            disabled={isFormBusy}
+            style={styles.inlineLink}
+            accessibilityRole="button"
+            accessibilityLabel="Create Account"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <VText variant="labelLarge" color={colors.brandPrimary}>
+              Create Account
+            </VText>
+          </Pressable>
+        </View>
       </View>
-    </ScreenContainer>
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   header: {
     alignItems: "center",
-    marginTop: spacing.xl,
-    marginBottom: spacing.lg,
+  },
+  brandGlyph: {
+    marginBottom: 12,
   },
   omGlyph: {
-    marginBottom: spacing.xs,
-    fontSize: 14,
+    marginBottom: 6,
     letterSpacing: 1.5,
   },
   brandTitle: {
-    marginBottom: spacing.xs,
+    marginBottom: 6,
   },
   subtitle: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 16,
     lineHeight: 20,
   },
   card: {
-    padding: spacing.lg,
-    borderRadius: radius.lg,
+    padding: 20,
   },
   cardTitle: {
-    marginBottom: spacing.base,
+    marginBottom: 16,
+  },
+  inputSpacing: {
+    marginBottom: 14,
   },
   forgotBtn: {
     alignSelf: "flex-end",
-    marginBottom: spacing.base,
-    marginTop: -spacing.xs,
+    minHeight: 40,
+    justifyContent: "center",
+    marginBottom: 12,
+    marginTop: -4,
   },
   errorContainer: {
-    backgroundColor: "#FEE2E2",
-    borderRadius: radius.sm,
-    padding: spacing.sm,
-    marginBottom: spacing.base,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+  },
+  errorText: {
+    flex: 1,
   },
   actionBtn: {
-    marginTop: spacing.xs,
-    marginBottom: spacing.base,
+    marginTop: 4,
+    marginBottom: 8,
   },
   dividerRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: spacing.md,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.borderLight,
   },
   dividerText: {
-    marginHorizontal: spacing.md,
-    fontWeight: "600",
+    marginHorizontal: 16,
   },
   googleBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.base,
-  },
-  googleBtnDisabled: {
-    opacity: 0.6,
+    paddingHorizontal: 16,
   },
   googleIcon: {
-    fontSize: 18,
-    marginRight: spacing.sm,
+    marginRight: 10,
   },
   footer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: spacing.xl,
-    marginBottom: spacing.xxl,
+  },
+  inlineLink: {
+    minHeight: 48,
+    justifyContent: "center",
   },
 });

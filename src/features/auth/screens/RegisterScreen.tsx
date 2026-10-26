@@ -1,20 +1,28 @@
 // src/features/auth/screens/RegisterScreen.tsx
 import React, { useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, View, Pressable } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Button, Card, Header, Input, ScreenContainer, Text } from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing } from "../../../shared/theme/index.ts";
+import {
+  ScreenWrapper,
+  AppBar,
+  VCard,
+  VInput,
+  VButton,
+  VText,
+  Ionicons,
+} from "../../../shared/components/index.ts";
+import { useTheme } from "../../../shared/theme/index.ts";
 import { AuthStackParamList } from "../../../shared/types/navigation.ts";
 import { authService } from "../services/authService.ts";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Register">;
 
 export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
+  const { colors, spacing, radii } = useTheme();
   const [displayName, setDisplayName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
-  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmationPending, setConfirmationPending] = useState<boolean>(false);
@@ -60,197 +68,262 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
   if (confirmationPending) {
     return (
-      <ScreenContainer scrollable padded>
-        <Header title="Verify Email" onBack={() => navigation.navigate("Login")} />
-        <Card variant="elevated" style={styles.confirmCard}>
-          <Text style={styles.mailIcon}>✉️</Text>
-          <Text variant="h2" align="center" style={styles.confirmTitle}>
-            Check Your Email
-          </Text>
-          <Text variant="body" color={colors.textSecondary} align="center" style={styles.confirmText}>
-            We have sent a verification link to:
-          </Text>
-          <Text variant="bodyMedium" color={colors.primary} align="center" style={styles.emailHighlight}>
-            {email.trim().toLowerCase()}
-          </Text>
-          <Text variant="caption" color={colors.textTertiary} align="center" style={styles.instructionText}>
-            Please tap the link in the email to verify your account and activate your KashiVeda access.
-          </Text>
+      <ScreenWrapper scrollable background="surfaceBase">
+        <AppBar
+          title="Verify Email"
+          showBackButton={true}
+          onBackPress={() => navigation.navigate("Login")}
+        />
+        <View style={[styles.container, { paddingHorizontal: spacing.lg, paddingTop: spacing.lg }]}>
+          <VCard elevation={1} style={styles.confirmCard}>
+            <Ionicons
+              name="mail-unread-outline"
+              size={56}
+              color={colors.brandPrimary}
+              style={styles.mailIcon}
+            />
+            <VText variant="headlineLarge" align="center" style={styles.confirmTitle}>
+              Check Your Email
+            </VText>
+            <VText
+              variant="bodyMedium"
+              color={colors.textMuted}
+              align="center"
+              style={styles.confirmText}
+            >
+              We have sent a verification link to:
+            </VText>
+            <VText
+              variant="titleMedium"
+              color={colors.brandPrimary}
+              align="center"
+              style={styles.emailHighlight}
+            >
+              {email.trim().toLowerCase()}
+            </VText>
+            <VText
+              variant="caption"
+              color={colors.textMuted}
+              align="center"
+              style={styles.instructionText}
+            >
+              Please tap the link in the email to verify your account and activate your KashiVeda access.
+            </VText>
 
-          <Button
-            title="Back to Sign In"
-            variant="primary"
-            size="lg"
-            onPress={() => navigation.navigate("Login")}
-            style={styles.backBtn}
-          />
-        </Card>
-      </ScreenContainer>
+            <VButton
+              title="Back to Sign In"
+              label="Back to Sign In"
+              variant="primary"
+              size="lg"
+              onPress={() => navigation.navigate("Login")}
+              fullWidth
+              style={styles.backBtn}
+            />
+          </VCard>
+        </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <ScreenContainer scrollable padded>
-      <Header title="Create Account" onBack={() => navigation.navigate("Login")} />
+    <ScreenWrapper scrollable keyboardAvoiding background="surfaceBase">
+      <AppBar
+        title="Create Account"
+        showBackButton={true}
+        onBackPress={() => navigation.navigate("Login")}
+      />
 
-      <Card variant="elevated" style={styles.card}>
-        <Text variant="h3" style={styles.cardTitle}>
-          Devotee Registration
-        </Text>
-        <Text variant="caption" color={colors.textSecondary} style={styles.cardSubtitle}>
-          Enter your information to register for Vedic rituals and consultations.
-        </Text>
+      <View style={[styles.container, { paddingHorizontal: spacing.lg, paddingTop: spacing.md }]}>
+        <VCard elevation={1} style={styles.card}>
+          <VText variant="headlineMedium" style={styles.cardTitle}>
+            Devotee Registration
+          </VText>
+          <VText
+            variant="bodyMedium"
+            color={colors.textMuted}
+            style={styles.cardSubtitle}
+          >
+            Enter your information to register for Vedic rituals and consultations.
+          </VText>
 
-        <Input
-          label="Full Name *"
-          placeholder="e.g. Rahul Sharma"
-          value={displayName}
-          onChangeText={(text) => {
-            setDisplayName(text);
-            if (error) setError(null);
-          }}
-          editable={!loading}
-        />
+          <VInput
+            label="Full Name *"
+            placeholder="e.g. Rahul Sharma"
+            value={displayName}
+            onChangeText={(text) => {
+              setDisplayName(text);
+              if (error) setError(null);
+            }}
+            isDisabled={loading}
+            leadingIcon={<Ionicons name="person-outline" size={20} color={colors.textMuted} />}
+            containerStyle={styles.inputSpacing}
+          />
 
-        <Input
-          label="Email Address *"
-          placeholder="your.email@example.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          value={email}
-          onChangeText={(text) => {
-            setEmail(text);
-            if (error) setError(null);
-          }}
-          editable={!loading}
-        />
+          <VInput
+            label="Email Address *"
+            placeholder="your.email@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (error) setError(null);
+            }}
+            isDisabled={loading}
+            leadingIcon={<Ionicons name="mail-outline" size={20} color={colors.textMuted} />}
+            containerStyle={styles.inputSpacing}
+          />
 
-        <Input
-          label="Password (min 6 characters) *"
-          placeholder="••••••••"
-          secureTextEntry={!showPassword}
-          autoCapitalize="none"
-          value={password}
-          onChangeText={(text) => {
-            setPassword(text);
-            if (error) setError(null);
-          }}
-          editable={!loading}
-          rightElement={
-            <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          <VInput
+            label="Password (min 6 characters) *"
+            placeholder="••••••••"
+            isSecure={true}
+            autoCapitalize="none"
+            value={password}
+            onChangeText={(text) => {
+              setPassword(text);
+              if (error) setError(null);
+            }}
+            isDisabled={loading}
+            leadingIcon={<Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} />}
+            containerStyle={styles.inputSpacing}
+          />
+
+          <VInput
+            label="Confirm Password *"
+            placeholder="••••••••"
+            isSecure={true}
+            autoCapitalize="none"
+            value={confirmPassword}
+            onChangeText={(text) => {
+              setConfirmPassword(text);
+              if (error) setError(null);
+            }}
+            isDisabled={loading}
+            leadingIcon={<Ionicons name="shield-checkmark-outline" size={20} color={colors.textMuted} />}
+            containerStyle={styles.inputSpacing}
+          />
+
+          {error ? (
+            <View
+              style={[
+                styles.errorContainer,
+                {
+                  backgroundColor: colors.errorBg,
+                  borderColor: colors.statusAlert,
+                  borderRadius: radii.sm,
+                  padding: spacing.sm,
+                  marginBottom: spacing.md,
+                },
+              ]}
+              accessibilityRole="alert"
             >
-              <Text variant="captionMedium" color={colors.textSecondary}>
-                {showPassword ? "Hide" : "Show"}
-              </Text>
-            </TouchableOpacity>
-          }
-        />
+              <Ionicons
+                name="alert-circle-outline"
+                size={18}
+                color={colors.statusAlert}
+                style={{ marginRight: spacing.xs }}
+              />
+              <VText variant="caption" color={colors.statusAlert} style={styles.errorText}>
+                {error}
+              </VText>
+            </View>
+          ) : null}
 
-        <Input
-          label="Confirm Password *"
-          placeholder="••••••••"
-          secureTextEntry={!showPassword}
-          autoCapitalize="none"
-          value={confirmPassword}
-          onChangeText={(text) => {
-            setConfirmPassword(text);
-            if (error) setError(null);
-          }}
-          editable={!loading}
-        />
+          <VButton
+            title="Create Account"
+            label={loading ? "Creating Account..." : "Create Account"}
+            onPress={handleRegister}
+            loading={loading}
+            disabled={loading}
+            variant="primary"
+            size="lg"
+            fullWidth
+            style={styles.actionBtn}
+          />
+        </VCard>
 
-        {error ? (
-          <View style={styles.errorContainer}>
-            <Text variant="caption" color={colors.error} align="center">
-              {error}
-            </Text>
-          </View>
-        ) : null}
-
-        <Button
-          title={loading ? "Creating Account..." : "Create Account"}
-          onPress={handleRegister}
-          loading={loading}
-          disabled={loading}
-          variant="primary"
-          size="lg"
-          style={styles.actionBtn}
-        />
-      </Card>
-
-      <View style={styles.footer}>
-        <Text variant="body" color={colors.textSecondary}>
-          Already have an account?{" "}
-        </Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Login")}
-          disabled={loading}
-          activeOpacity={0.7}
-        >
-          <Text variant="bodyMedium" color={colors.primary}>
-            Sign In
-          </Text>
-        </TouchableOpacity>
+        {/* Sign In Footer */}
+        <View style={[styles.footer, { marginTop: spacing.xl, marginBottom: spacing.xxl }]}>
+          <VText variant="bodyMedium" color={colors.textMuted}>
+            Already have an account?{" "}
+          </VText>
+          <Pressable
+            onPress={() => navigation.navigate("Login")}
+            disabled={loading}
+            style={styles.inlineLink}
+            accessibilityRole="button"
+            accessibilityLabel="Sign In"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <VText variant="labelLarge" color={colors.brandPrimary}>
+              Sign In
+            </VText>
+          </Pressable>
+        </View>
       </View>
-    </ScreenContainer>
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   card: {
-    marginTop: spacing.md,
-    padding: spacing.lg,
-    borderRadius: radius.lg,
+    padding: 20,
   },
   cardTitle: {
     marginBottom: 4,
   },
   cardSubtitle: {
-    marginBottom: spacing.base,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  inputSpacing: {
+    marginBottom: 14,
   },
   errorContainer: {
-    backgroundColor: "#FEE2E2",
-    borderRadius: radius.sm,
-    padding: spacing.sm,
-    marginBottom: spacing.base,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+  },
+  errorText: {
+    flex: 1,
   },
   actionBtn: {
-    marginTop: spacing.sm,
+    marginTop: 6,
   },
   footer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: spacing.xl,
-    marginBottom: spacing.xxl,
+  },
+  inlineLink: {
+    minHeight: 48,
+    justifyContent: "center",
   },
   confirmCard: {
-    marginTop: spacing.xl,
-    padding: spacing.xl,
+    padding: 24,
     alignItems: "center",
-    borderRadius: radius.lg,
   },
   mailIcon: {
-    fontSize: 48,
-    marginBottom: spacing.md,
+    marginBottom: 16,
   },
   confirmTitle: {
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   confirmText: {
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
   emailHighlight: {
-    fontWeight: "700",
-    marginBottom: spacing.md,
+    marginBottom: 16,
   },
   instructionText: {
     lineHeight: 18,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.xl,
+    paddingHorizontal: 16,
+    marginBottom: 24,
   },
   backBtn: {
     width: "100%",

@@ -1,15 +1,24 @@
 // src/features/auth/screens/ForgotPasswordScreen.tsx
 import React, { useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, View, Pressable } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Button, Card, Header, Input, ScreenContainer, Text } from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing } from "../../../shared/theme/index.ts";
+import {
+  ScreenWrapper,
+  AppBar,
+  VCard,
+  VInput,
+  VButton,
+  VText,
+  Ionicons,
+} from "../../../shared/components/index.ts";
+import { useTheme } from "../../../shared/theme/index.ts";
 import { AuthStackParamList } from "../../../shared/types/navigation.ts";
 import { authService } from "../services/authService.ts";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "ForgotPassword">;
 
 export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
+  const { colors, spacing, radii } = useTheme();
   const [email, setEmail] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,140 +46,214 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
 
   if (submitted) {
     return (
-      <ScreenContainer scrollable padded>
-        <Header title="Reset Password" onBack={() => navigation.navigate("Login")} />
-        <Card variant="elevated" style={styles.card}>
-          <Text style={styles.icon}>📬</Text>
-          <Text variant="h2" align="center" style={styles.title}>
-            Reset Link Dispatched
-          </Text>
-          <Text variant="body" color={colors.textSecondary} align="center" style={styles.description}>
-            If an account is registered with:
-          </Text>
-          <Text variant="bodyMedium" color={colors.primary} align="center" style={styles.emailText}>
-            {email.trim().toLowerCase()}
-          </Text>
-          <Text variant="caption" color={colors.textTertiary} align="center" style={styles.helperText}>
-            You will receive an email containing a secure link to reset your password.
-          </Text>
+      <ScreenWrapper scrollable background="surfaceBase">
+        <AppBar
+          title="Reset Password"
+          showBackButton={true}
+          onBackPress={() => navigation.navigate("Login")}
+        />
+        <View style={[styles.container, { paddingHorizontal: spacing.lg, paddingTop: spacing.lg }]}>
+          <VCard elevation={1} style={styles.confirmCard}>
+            <Ionicons
+              name="paper-plane-outline"
+              size={56}
+              color={colors.brandPrimary}
+              style={styles.icon}
+            />
+            <VText variant="headlineLarge" align="center" style={styles.title}>
+              Reset Link Dispatched
+            </VText>
+            <VText
+              variant="bodyMedium"
+              color={colors.textMuted}
+              align="center"
+              style={styles.description}
+            >
+              If an account is registered with:
+            </VText>
+            <VText
+              variant="titleMedium"
+              color={colors.brandPrimary}
+              align="center"
+              style={styles.emailText}
+            >
+              {email.trim().toLowerCase()}
+            </VText>
+            <VText
+              variant="caption"
+              color={colors.textMuted}
+              align="center"
+              style={styles.helperText}
+            >
+              You will receive an email containing a secure link to reset your password.
+            </VText>
 
-          <Button
-            title="Return to Sign In"
-            variant="primary"
-            size="lg"
-            onPress={() => navigation.navigate("Login")}
-            style={styles.actionBtn}
-          />
-        </Card>
-      </ScreenContainer>
+            <VButton
+              title="Return to Sign In"
+              label="Return to Sign In"
+              variant="primary"
+              size="lg"
+              onPress={() => navigation.navigate("Login")}
+              fullWidth
+              style={styles.actionBtn}
+            />
+          </VCard>
+        </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <ScreenContainer scrollable padded>
-      <Header title="Forgot Password" onBack={() => navigation.goBack()} />
+    <ScreenWrapper scrollable keyboardAvoiding background="surfaceBase">
+      <AppBar
+        title="Forgot Password"
+        showBackButton={true}
+        onBackPress={() => navigation.goBack()}
+      />
 
-      <Card variant="elevated" style={styles.card}>
-        <Text variant="h3" style={styles.titleLeft}>
-          Recover Password
-        </Text>
-        <Text variant="body" color={colors.textSecondary} style={styles.descriptionLeft}>
-          Enter your registered email address and we'll send you instructions to reset your password.
-        </Text>
+      <View style={[styles.container, { paddingHorizontal: spacing.lg, paddingTop: spacing.md }]}>
+        <VCard elevation={1} style={styles.card}>
+          <VText variant="headlineMedium" style={styles.titleLeft}>
+            Recover Password
+          </VText>
+          <VText
+            variant="bodyMedium"
+            color={colors.textMuted}
+            style={styles.descriptionLeft}
+          >
+            Enter your registered email address and we'll send you instructions to reset your password.
+          </VText>
 
-        <Input
-          label="Email Address"
-          placeholder="your.email@example.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          value={email}
-          onChangeText={(text) => {
-            setEmail(text);
-            if (error) setError(null);
-          }}
-          editable={!loading}
-        />
+          <VInput
+            label="Email Address"
+            placeholder="your.email@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (error) setError(null);
+            }}
+            isDisabled={loading}
+            leadingIcon={<Ionicons name="mail-outline" size={20} color={colors.textMuted} />}
+            containerStyle={styles.inputSpacing}
+          />
 
-        {error ? (
-          <View style={styles.errorContainer}>
-            <Text variant="caption" color={colors.error} align="center">
-              {error}
-            </Text>
-          </View>
-        ) : null}
+          {error ? (
+            <View
+              style={[
+                styles.errorContainer,
+                {
+                  backgroundColor: colors.errorBg,
+                  borderColor: colors.statusAlert,
+                  borderRadius: radii.sm,
+                  padding: spacing.sm,
+                  marginBottom: spacing.md,
+                },
+              ]}
+              accessibilityRole="alert"
+            >
+              <Ionicons
+                name="alert-circle-outline"
+                size={18}
+                color={colors.statusAlert}
+                style={{ marginRight: spacing.xs }}
+              />
+              <VText variant="caption" color={colors.statusAlert} style={styles.errorText}>
+                {error}
+              </VText>
+            </View>
+          ) : null}
 
-        <Button
-          title={loading ? "Sending Link..." : "Send Reset Link"}
-          onPress={handleSendResetLink}
-          loading={loading}
-          disabled={loading || !email.trim()}
-          variant="primary"
-          size="lg"
-          style={styles.actionBtn}
-        />
-      </Card>
+          <VButton
+            title="Send Reset Link"
+            label={loading ? "Sending Link..." : "Send Reset Link"}
+            onPress={handleSendResetLink}
+            loading={loading}
+            disabled={loading || !email.trim()}
+            variant="primary"
+            size="lg"
+            fullWidth
+            style={styles.actionBtn}
+          />
+        </VCard>
 
-      <View style={styles.footer}>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Login")}
-          disabled={loading}
-          activeOpacity={0.7}
-        >
-          <Text variant="bodyMedium" color={colors.primary}>
-            ← Back to Sign In
-          </Text>
-        </TouchableOpacity>
+        {/* Back to Sign In Link */}
+        <View style={[styles.footer, { marginTop: spacing.xl, marginBottom: spacing.xxl }]}>
+          <Pressable
+            onPress={() => navigation.navigate("Login")}
+            disabled={loading}
+            style={styles.backLink}
+            accessibilityRole="button"
+            accessibilityLabel="Back to Sign In"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <VText variant="labelLarge" color={colors.brandPrimary}>
+              ← Back to Sign In
+            </VText>
+          </Pressable>
+        </View>
       </View>
-    </ScreenContainer>
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   card: {
-    marginTop: spacing.lg,
-    padding: spacing.xl,
-    borderRadius: radius.lg,
+    padding: 20,
+  },
+  confirmCard: {
+    padding: 24,
+    alignItems: "center",
   },
   icon: {
-    fontSize: 48,
     alignSelf: "center",
-    marginBottom: spacing.md,
+    marginBottom: 16,
   },
   title: {
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   titleLeft: {
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
   description: {
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
   descriptionLeft: {
-    marginBottom: spacing.base,
+    marginBottom: 16,
     lineHeight: 20,
   },
   emailText: {
-    fontWeight: "700",
-    marginBottom: spacing.md,
+    marginBottom: 16,
   },
   helperText: {
     lineHeight: 18,
-    paddingHorizontal: spacing.sm,
-    marginBottom: spacing.xl,
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  inputSpacing: {
+    marginBottom: 14,
   },
   errorContainer: {
-    backgroundColor: "#FEE2E2",
-    borderRadius: radius.sm,
-    padding: spacing.sm,
-    marginBottom: spacing.base,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+  },
+  errorText: {
+    flex: 1,
   },
   actionBtn: {
-    marginTop: spacing.xs,
+    marginTop: 6,
   },
   footer: {
     alignItems: "center",
-    marginTop: spacing.xl,
-    marginBottom: spacing.xxl,
+  },
+  backLink: {
+    minHeight: 48,
+    justifyContent: "center",
   },
 });

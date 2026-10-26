@@ -6,6 +6,7 @@ import { ForgotPasswordScreen } from "../src/features/auth/screens/ForgotPasswor
 import { LoginScreen } from "../src/features/auth/screens/LoginScreen.tsx";
 import { RegisterScreen } from "../src/features/auth/screens/RegisterScreen.tsx";
 import { ResetPasswordScreen } from "../src/features/auth/screens/ResetPasswordScreen.tsx";
+import { ProfileScreen } from "../src/features/auth/screens/ProfileScreen.tsx";
 import { authService } from "../src/features/auth/services/authService.ts";
 import { RootNavigator } from "../src/navigation/RootNavigator.tsx";
 import { secureAuthStorage, supabase } from "../src/infrastructure/supabase/client.ts";
@@ -1147,5 +1148,137 @@ describe("M4 Authentication — Email/Password & Google Auth Test Suite", () => 
 
     // Newer profile MUST be preserved
     expect(hookResult.profile?.display_name).toBe("Fresh Profile");
+  });
+
+  // 31. ProfileScreen — Devotee identity, real user values, and role badges
+  test("31. ProfileScreen renders devotee identity with real values and role badges", async () => {
+    jest.spyOn(supabase.auth, "getSession").mockResolvedValueOnce({
+      data: {
+        session: {
+          user: { id: "devotee-profile-user-1", email: "devotee.kashi@vedic.org" },
+        } as any,
+      },
+      error: null,
+    });
+
+    jest.spyOn(supabase, "from").mockImplementation((table: string) => {
+      if (table === "profiles") {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: {
+                    id: "devotee-profile-user-1",
+                    display_name: "Maharaj Devotee",
+                  },
+                  error: null,
+                }),
+            }),
+          }),
+        } as any;
+      }
+      if (table === "user_roles") {
+        return {
+          select: () => ({
+            eq: () => Promise.resolve({ data: [{ role: "customer" }], error: null }),
+          }),
+        } as any;
+      }
+      if (table === "pandit_applications") {
+        return {
+          select: () => ({
+            eq: () => ({
+              order: () => ({
+                limit: () => ({
+                  maybeSingle: () => Promise.resolve({ data: null, error: null }),
+                }),
+              }),
+            }),
+          }),
+        } as any;
+      }
+      return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) } as any;
+    });
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <AuthProvider>
+          <ProfileScreen />
+        </AuthProvider>
+      );
+    });
+
+    const root = renderer!.root;
+    expect(root.findAllByProps({ children: "Maharaj Devotee" }).length).toBeGreaterThan(0);
+    expect(root.findAllByProps({ children: "devotee.kashi@vedic.org" }).length).toBeGreaterThan(0);
+    expect(root.findAllByProps({ title: "Sign Out" }).length).toBeGreaterThan(0);
+  });
+
+  // 32. ProfileScreen — Language & Theme mode switches and mode buttons
+  test("32. ProfileScreen renders language and theme switches with 48dp touch bounds", async () => {
+    jest.spyOn(supabase.auth, "getSession").mockResolvedValueOnce({
+      data: {
+        session: {
+          user: { id: "devotee-switch-user", email: "switch@kashiveda.org" },
+        } as any,
+      },
+      error: null,
+    });
+
+    jest.spyOn(supabase, "from").mockImplementation((table: string) => {
+      if (table === "profiles") {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { id: "devotee-switch-user", display_name: "Acharya" },
+                  error: null,
+                }),
+            }),
+          }),
+        } as any;
+      }
+      if (table === "user_roles") {
+        return {
+          select: () => ({
+            eq: () => Promise.resolve({ data: [{ role: "pandit" }], error: null }),
+          }),
+        } as any;
+      }
+      if (table === "pandit_profiles") {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { id: "pandit-p1", verification_status: "verified", public_status: "available" },
+                  error: null,
+                }),
+            }),
+          }),
+        } as any;
+      }
+      return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) } as any;
+    });
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <AuthProvider>
+          <ProfileScreen />
+        </AuthProvider>
+      );
+    });
+
+    const root = renderer!.root;
+    expect(root.findAllByProps({ accessibilityLabel: "Switch to Hindi language" }).length).toBeGreaterThan(0);
+    expect(root.findAllByProps({ accessibilityLabel: "Switch to English language" }).length).toBeGreaterThan(0);
+    expect(root.findAllByProps({ accessibilityLabel: "Switch to Ivory Light theme" }).length).toBeGreaterThan(0);
+    expect(root.findAllByProps({ accessibilityLabel: "Switch to Obsidian Dark theme" }).length).toBeGreaterThan(0);
+    expect(root.findAllByProps({ title: "Switch to Pandit Mode >" }).length).toBeGreaterThan(0);
+    expect(root.findAllByProps({ title: "Delete Account" }).length).toBeGreaterThan(0);
   });
 });
