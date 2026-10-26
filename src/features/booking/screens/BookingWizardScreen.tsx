@@ -4,15 +4,19 @@ import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity, View } from "re
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
-  Button,
-  Card,
-  ErrorState,
-  Header,
-  LoadingState,
-  ScreenContainer,
-  Text,
-} from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing } from "../../../shared/theme/index.ts";
+  ScreenWrapper,
+  AppBar,
+  StepProgress,
+  StepItem,
+  VCard,
+  VText,
+  VButton,
+  VAvatar,
+  EscrowBadge,
+  EmptyState,
+} from "../../../shared/components/index.ts";
+import { useTheme } from "../../../shared/theme/index.ts";
+import { useLanguage } from "../../../shared/i18n/index.ts";
 import { CustomerStackParamList } from "../../../shared/types/navigation.ts";
 import { formatCurrency, formatDate, formatTime } from "../../../shared/utils/formatters.ts";
 import { discoveryService, FetchPanditsOptions } from "../../discovery/services/discoveryService.ts";
@@ -38,10 +42,15 @@ import { PrasadItem } from "../types/booking.types.ts";
 type BookingWizardRouteProp = RouteProp<CustomerStackParamList, "BookingWizard">;
 type CustomerNavigationProp = NativeStackNavigationProp<CustomerStackParamList>;
 
+type WizardStepKey = "mode" | "location" | "temple" | "pandit" | "slot" | "samagri" | "review";
+
 export const BookingWizardScreen: React.FC = () => {
   const navigation = useNavigation<CustomerNavigationProp>();
   const route = useRoute<BookingWizardRouteProp>();
   const { pujaId, panditId, serviceMode: routeMode } = route.params || {};
+
+  const { colors, spacing, radii } = useTheme();
+  const { language, pick } = useLanguage();
 
   const [puja, setPuja] = useState<PujaService | null>(null);
   const [samagriPackages, setSamagriPackages] = useState<SamagriPackage[]>([]);
@@ -192,8 +201,6 @@ export const BookingWizardScreen: React.FC = () => {
     };
   }, [pujaId, serviceMode, selectedTemple?.id, selectedAddress?.id, panditId, setSelectedPandit, selectedPandit]);
 
-  type WizardStepKey = "mode" | "location" | "temple" | "pandit" | "slot" | "samagri" | "review";
-
   const isRemote = serviceMode === "remote";
   const isTemple = serviceMode === "temple";
   const isHome = serviceMode === "home";
@@ -231,6 +238,27 @@ export const BookingWizardScreen: React.FC = () => {
     const idx = steps.indexOf(key);
     return idx !== -1 ? idx + 1 : 1;
   };
+
+  const stepItems: StepItem[] = useMemo(() => {
+    return steps.map((key) => {
+      switch (key) {
+        case "mode":
+          return { title: "Format", titleHi: "प्रारूप" };
+        case "location":
+          return { title: "Address", titleHi: "स्थान" };
+        case "temple":
+          return { title: "Temple", titleHi: "मंदिर" };
+        case "pandit":
+          return { title: "Acharya", titleHi: "आचार्य" };
+        case "slot":
+          return { title: "Muhurat", titleHi: "मुहूर्त" };
+        case "samagri":
+          return { title: "Offerings", titleHi: "सामग्री" };
+        case "review":
+          return { title: "Review", titleHi: "संकल्प" };
+      }
+    });
+  }, [steps]);
 
   // Step Validation Logic
   const canProceed = useMemo(() => {
@@ -318,42 +346,82 @@ export const BookingWizardScreen: React.FC = () => {
 
   if (loadingInitial) {
     return (
-      <ScreenContainer padded>
-        <Header title="Schedule Ritual" onBack={() => navigation.goBack()} />
-        <LoadingState message="Initializing sacred booking sanctum..." />
-      </ScreenContainer>
+      <ScreenWrapper
+        safeArea="all"
+        scrollable={false}
+        headerComponent={
+          <AppBar
+            title={pick("अनुष्ठान निर्धारण", "Schedule Ritual")}
+            showBackButton={true}
+            onBackPress={() => navigation.goBack()}
+          />
+        }
+      >
+        <View style={styles.loaderWrap}>
+          <ActivityIndicator size="large" color={colors.brandPrimary} />
+          <VText variant="bodyMedium" color="textMuted" style={{ marginTop: spacing.md }}>
+            {pick("वैदिक संकल्प कक्ष तैयार किया जा रहा है...", "Initializing sacred booking sanctum...")}
+          </VText>
+        </View>
+      </ScreenWrapper>
     );
   }
 
   if (initialError || !puja) {
     return (
-      <ScreenContainer padded>
-        <Header title="Schedule Ritual" onBack={() => navigation.goBack()} />
-        <ErrorState
-          title="Unable to Schedule"
-          message={initialError || "Could not load ritual information."}
-          onRetry={() => navigation.goBack()}
+      <ScreenWrapper
+        safeArea="all"
+        scrollable={false}
+        headerComponent={
+          <AppBar
+            title={pick("अनुष्ठान निर्धारण", "Schedule Ritual")}
+            showBackButton={true}
+            onBackPress={() => navigation.goBack()}
+          />
+        }
+      >
+        <EmptyState
+          title={pick("अनुष्ठान लोड नहीं हो सका", "Unable to Schedule")}
+          description={initialError || "Could not load ritual information."}
+          actionTitle={pick("वापस जाएं", "Go Back")}
+          onAction={() => navigation.goBack()}
         />
-      </ScreenContainer>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <ScreenContainer scrollable padded>
-      <Header
-        title={puja.name}
-        subtitle={`Step ${currentStep} of ${totalSteps}`}
-        onBack={handleBack}
-      />
-
-      {/* Progress Bar */}
-      <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBarFill, { width: `${(currentStep / totalSteps) * 100}%` }]} />
+    <ScreenWrapper
+      safeArea="all"
+      scrollable={true}
+      headerComponent={
+        <AppBar
+          title={puja.name}
+          subtitle={`Step ${currentStep} of ${totalSteps}`}
+          showBackButton={true}
+          onBackPress={handleBack}
+        />
+      }
+      contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: spacing.xxl }}
+    >
+      {/* Visual Step Nodes Progress */}
+      <View style={{ marginVertical: spacing.md }}>
+        <StepProgress
+          steps={stepItems}
+          currentStep={currentStep - 1}
+          variant="nodes"
+        />
       </View>
 
       {/* Mode Selection (Only rendered when mode is not pre-selected) */}
       {currentStepKey === "mode" && (
         <View style={styles.stepContent}>
+          <VText variant="headlineMedium" color="textPrimary" style={styles.sectionTitle}>
+            Select Service Format
+          </VText>
+          <VText variant="caption" color="textMuted" style={styles.sectionSubtitle}>
+            {pick("पूजा का स्वरूप एवं स्थान चुनें", "Choose how you would like to participate in this sacred ritual")}
+          </VText>
           <BookingModeSelector
             selectedMode={serviceMode}
             allowedModes={puja.allowed_modes || ["home", "remote"]}
@@ -402,39 +470,48 @@ export const BookingWizardScreen: React.FC = () => {
       {/* Pandit Selection */}
       {currentStepKey === "pandit" && (
         <View style={styles.stepContent}>
-          <Text variant="h3" style={styles.sectionTitle}>
+          <VText variant="headlineMedium" color="textPrimary" style={styles.sectionTitle}>
             Choose Verified Acharya
-          </Text>
-          <Text variant="caption" color={colors.textSecondary} style={styles.sectionSubtitle}>
+          </VText>
+          <VText variant="caption" color="textMuted" style={styles.sectionSubtitle}>
             {isTemple
               ? `Approved priests consecrated for ${puja.name} at ${selectedTemple?.name || "the selected temple"}.`
               : isHome
               ? `Priests serving your area for ${puja.name}.`
               : `Verified priests consecrated for remote ${puja.name} invocation.`}
-          </Text>
+          </VText>
 
           {loadingPandits ? (
             <View style={styles.loaderWrap}>
-              <ActivityIndicator size="small" color={colors.primary} />
-              <Text variant="caption" color={colors.textSecondary} style={{ marginTop: 8 }}>
-                Finding approved Acharyas...
-              </Text>
+              <ActivityIndicator size="small" color={colors.brandPrimary} />
+              <VText variant="caption" color="textMuted" style={{ marginTop: spacing.sm }}>
+                {pick("सत्यापित आचार्यों की खोज जारी...", "Finding approved Acharyas...")}
+              </VText>
             </View>
           ) : panditsList.length === 0 ? (
-            <Card variant="outlined" style={styles.emptyPanditCard}>
-              <Text variant="h3" style={{ textAlign: "center", marginBottom: 4 }}>
-                🏛️ No Acharyas Available
-              </Text>
-              <Text variant="caption" color={colors.textSecondary} style={{ textAlign: "center" }}>
+            <VCard variant="outlined" style={styles.emptyPanditCard}>
+              <VText variant="titleMedium" color="textPrimary" align="center" style={{ marginBottom: spacing.xs }}>
+                🏛️ {pick("कोई आचार्य उपलब्ध नहीं", "No Acharyas Available")}
+              </VText>
+              <VText variant="caption" color="textMuted" align="center">
                 {isTemple
                   ? `There are currently no approved priests offering ${puja.name} at ${selectedTemple?.name || "this temple"}. Please select another temple or try Home/Remote format.`
                   : `No priests currently cover this location for ${puja.name}. Please try another address or format.`}
-              </Text>
-            </Card>
+              </VText>
+            </VCard>
           ) : (
             <View style={styles.panditList}>
               {panditsList.map((p) => {
                 const isSelected = selectedPandit?.id === p.id;
+                const modePrice =
+                  serviceMode === "home"
+                    ? p.home_price
+                    : serviceMode === "temple"
+                    ? p.temple_price
+                    : serviceMode === "remote"
+                    ? p.remote_price
+                    : p.puja_price;
+
                 return (
                   <TouchableOpacity
                     key={p.id}
@@ -443,44 +520,59 @@ export const BookingWizardScreen: React.FC = () => {
                       setSelectedSlot(null); // Reset slot since availability is Pandit-specific
                     }}
                     activeOpacity={0.7}
+                    style={{ minHeight: 48 }}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
                   >
-                    <Card
-                      variant={isSelected ? "elevated" : "outlined"}
-                      style={[styles.panditCard, isSelected && styles.panditCardSelected]}
+                    <VCard
+                      variant={isSelected ? "default" : "outlined"}
+                      elevation={isSelected ? 2 : 0}
+                      style={[
+                        styles.panditCard,
+                        isSelected && {
+                          borderColor: colors.brandPrimary,
+                          borderWidth: 2,
+                          backgroundColor: colors.surfaceSubtle,
+                        },
+                      ]}
                     >
                       <View style={styles.panditRow}>
-                        <View style={styles.avatarCircle}>
-                          <Text variant="h3" color={colors.primary}>
-                            {p.display_name.charAt(0)}
-                          </Text>
-                        </View>
+                        <VAvatar
+                          name={p.display_name}
+                          uri={p.avatar_url || undefined}
+                          size="md"
+                          style={{ marginRight: spacing.md }}
+                        />
                         <View style={styles.panditInfo}>
-                          <Text variant="bodyMedium">{p.display_name}</Text>
-                          <Text variant="caption" color={colors.textSecondary}>
+                          <VText variant="titleMedium" color="textPrimary">
+                            {p.display_name}
+                          </VText>
+                          <VText variant="caption" color="textMuted">
                             {p.years_experience ? `${p.years_experience} yrs exp • ` : ""}
                             {p.languages ? p.languages.join(", ") : "Sanskrit, Hindi"}
-                          </Text>
-                          {(() => {
-                            const modePrice =
-                              serviceMode === "home"
-                                ? p.home_price
-                                : serviceMode === "temple"
-                                ? p.temple_price
-                                : serviceMode === "remote"
-                                ? p.remote_price
-                                : p.puja_price;
-                            return modePrice != null ? (
-                              <Text variant="captionMedium" color={colors.primary} style={styles.priceTag}>
-                                Dakshina: {formatCurrency(modePrice)}
-                              </Text>
-                            ) : null;
-                          })()}
+                          </VText>
+                          {modePrice != null ? (
+                            <VText variant="labelMedium" color="brandPrimary" style={styles.priceTag}>
+                              Dakshina: {formatCurrency(modePrice)}
+                            </VText>
+                          ) : (
+                            <VText variant="caption" color="textMuted" style={styles.priceTag}>
+                              {pick("परामर्शानुसार दक्षिणा", "Dakshina on booking")}
+                            </VText>
+                          )}
                         </View>
-                        <View style={[styles.radioCircle, isSelected && styles.radioSelected]}>
-                          {isSelected && <View style={styles.radioInner} />}
+                        <View
+                          style={[
+                            styles.radioCircle,
+                            { borderColor: isSelected ? colors.brandPrimary : colors.borderDefault },
+                          ]}
+                        >
+                          {isSelected && (
+                            <View style={[styles.radioInner, { backgroundColor: colors.brandPrimary }]} />
+                          )}
                         </View>
                       </View>
-                    </Card>
+                    </VCard>
                   </TouchableOpacity>
                 );
               })}
@@ -537,76 +629,100 @@ export const BookingWizardScreen: React.FC = () => {
       {/* Review & Confirmation */}
       {currentStepKey === "review" && (
         <View style={styles.stepContent}>
-          <Text variant="h3" style={styles.sectionTitle}>
+          <VText variant="headlineMedium" color="textPrimary" style={styles.sectionTitle}>
             Review Your Sacred Sankalp
-          </Text>
-          <Text variant="caption" color={colors.textSecondary} style={styles.sectionSubtitle}>
-            Please review the schedule and items before confirming your booking.
-          </Text>
+          </VText>
+          <VText variant="caption" color="textMuted" style={styles.sectionSubtitle}>
+            {pick(
+              "कृपया अनुष्ठान व दक्षिणा विवरण की पुष्टि करें।",
+              "Please review the schedule and items before confirming your booking."
+            )}
+          </VText>
 
           {/* Booking Summary Card */}
-          <Card variant="outlined" style={styles.reviewCard}>
+          <VCard variant="outlined" style={styles.reviewCard}>
             <View style={styles.reviewRow}>
-              <Text variant="caption" color={colors.textSecondary}>Ritual</Text>
-              <Text variant="bodyMedium">{puja.name}</Text>
+              <VText variant="caption" color="textMuted">Ritual</VText>
+              <VText variant="bodyMedium" weight="600">{puja.name}</VText>
             </View>
             <View style={styles.reviewRow}>
-              <Text variant="caption" color={colors.textSecondary}>Acharya</Text>
-              <Text variant="bodyMedium">{selectedPandit?.display_name || "Assigned Pandit"}</Text>
+              <VText variant="caption" color="textMuted">Acharya</VText>
+              <VText variant="bodyMedium" weight="600">{selectedPandit?.display_name || "Assigned Pandit"}</VText>
             </View>
             <View style={styles.reviewRow}>
-              <Text variant="caption" color={colors.textSecondary}>Format</Text>
-              <Text variant="bodyMedium" style={styles.formatText}>
+              <VText variant="caption" color="textMuted">Format</VText>
+              <VText variant="bodyMedium" style={styles.formatText}>
                 {serviceMode === "remote" ? "Online Puja" : serviceMode === "home" ? "Home Puja" : "Temple Puja"}
-              </Text>
+              </VText>
             </View>
             <View style={styles.reviewRow}>
-              <Text variant="caption" color={colors.textSecondary}>Date & Time</Text>
-              <Text variant="bodyMedium">
+              <VText variant="caption" color="textMuted">Date & Time</VText>
+              <VText variant="bodyMedium">
                 {selectedSlot
                   ? `${formatDate(new Date(selectedSlot))} at ${formatTime(new Date(selectedSlot))}`
                   : "Not selected"}
-              </Text>
+              </VText>
             </View>
             <View style={styles.reviewRow}>
-              <Text variant="caption" color={colors.textSecondary}>Location</Text>
-              <Text variant="bodyMedium">
+              <VText variant="caption" color="textMuted">Location</VText>
+              <VText variant="bodyMedium">
                 {serviceMode === "home"
                   ? `${selectedAddress?.address_line1}, ${selectedAddress?.city}`
                   : serviceMode === "temple"
                   ? selectedTemple?.name || "Temple Sanctum"
                   : "Live Video Sanctum (LiveKit HD)"}
-              </Text>
+              </VText>
             </View>
             {!isRemote && (
               <View style={styles.reviewRow}>
-                <Text variant="caption" color={colors.textSecondary}>Samagri</Text>
-                <Text variant="bodyMedium">
+                <VText variant="caption" color="textMuted">Samagri</VText>
+                <VText variant="bodyMedium">
                   {samagriType === "package"
                     ? selectedPackage?.name || "Standard Package"
                     : samagriType === "custom"
                     ? `${customSamagri.length} custom items`
                     : "Devotee Arranged"}
-                </Text>
+                </VText>
               </View>
             )}
             {!isRemote && prasadSelections.length > 0 ? (
               <View style={styles.reviewRow}>
-                <Text variant="caption" color={colors.textSecondary}>Blessed Prasad</Text>
-                <Text variant="bodyMedium">
+                <VText variant="caption" color="textMuted">Blessed Prasad</VText>
+                <VText variant="bodyMedium">
                   {prasadSelections.map((p) => `${p.item.name} (${p.quantity})`).join(", ")}
-                </Text>
+                </VText>
               </View>
             ) : null}
-          </Card>
+          </VCard>
+
+          {/* 50% RBI Escrow Model Guarantee Badge */}
+          <View style={{ marginVertical: spacing.sm }}>
+            <EscrowBadge
+              status="payment_pending"
+              amountInr={estimatedPricing.advanceAmount}
+              message={pick(
+                "50% एस्क्रो सुरक्षा: पूर्णाहूति सत्यापन के उपरांत ही दक्षिणा आचार्य को अंतरित होगी।",
+                "50% Escrow Protection: Released only after verified Vedic Purnahuti."
+              )}
+            />
+          </View>
 
           {/* 24-Hour Notice */}
           {estimatedPricing.isWithin24Hours && (
-            <Card style={styles.within24hNoticeCard}>
-              <Text variant="captionMedium" color="#92400E" style={styles.within24hNoticeText}>
+            <VCard
+              variant="outlined"
+              style={[
+                styles.within24hNoticeCard,
+                {
+                  backgroundColor: colors.warningBg,
+                  borderColor: colors.warningFg,
+                },
+              ]}
+            >
+              <VText variant="labelMedium" color="warningFg" style={styles.within24hNoticeText}>
                 ⚠️ This ritual is scheduled within 24 hours. Full payment is required when booking.
-              </Text>
-            </Card>
+              </VText>
+            </VCard>
           )}
 
           {/* Pricing Breakdown */}
@@ -622,11 +738,20 @@ export const BookingWizardScreen: React.FC = () => {
           />
 
           {submitError ? (
-            <Card style={styles.errorBox}>
-              <Text variant="caption" color={colors.error}>
+            <VCard
+              variant="outlined"
+              style={[
+                styles.errorBox,
+                {
+                  backgroundColor: colors.errorBg,
+                  borderColor: colors.statusAlert,
+                },
+              ]}
+            >
+              <VText variant="caption" color="error">
                 {submitError}
-              </Text>
-            </Card>
+              </VText>
+            </VCard>
           ) : null}
         </View>
       )}
@@ -634,16 +759,26 @@ export const BookingWizardScreen: React.FC = () => {
       {/* Navigation Buttons */}
       <View style={styles.footerActions}>
         {currentStep < totalSteps ? (
-          <Button
+          <VButton
             title="Continue to Next Step"
+            label="Continue to Next Step"
             variant="primary"
             size="lg"
-            disabled={!canProceed}
+            isDisabled={!canProceed}
             onPress={handleNext}
+            fullWidth
+            style={{ minHeight: 48 }}
           />
         ) : (
-          <Button
+          <VButton
             title={
+              submitting
+                ? "Securing Sacred Slot..."
+                : estimatedPricing.isWithin24Hours
+                ? "Confirm & Pay Full Amount"
+                : `Confirm & Pay Advance (${formatCurrency(estimatedPricing.advanceAmount)})`
+            }
+            label={
               submitting
                 ? "Securing Sacred Slot..."
                 : estimatedPricing.isWithin24Hours
@@ -652,100 +787,73 @@ export const BookingWizardScreen: React.FC = () => {
             }
             variant="primary"
             size="lg"
-            disabled={!canProceed || submitting}
+            isDisabled={!canProceed || submitting}
+            isLoading={submitting}
             onPress={handleFinalSubmit}
+            fullWidth
+            style={{ minHeight: 48 }}
           />
         )}
       </View>
-    </ScreenContainer>
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
-  progressBarContainer: {
-    height: 4,
-    backgroundColor: colors.surfaceSubtle,
-    borderRadius: radius.full,
-    marginVertical: spacing.sm,
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: "100%",
-    backgroundColor: colors.primary,
-  },
   stepContent: {
-    marginBottom: spacing.xl,
+    marginBottom: 24,
   },
   sectionTitle: {
-    marginBottom: spacing.xxs,
+    marginBottom: 4,
   },
   sectionSubtitle: {
-    marginBottom: spacing.md,
+    marginBottom: 16,
   },
   loaderWrap: {
-    padding: spacing.xl,
+    padding: 32,
     alignItems: "center",
     justifyContent: "center",
+    minHeight: 200,
   },
   emptyPanditCard: {
-    padding: spacing.lg,
+    padding: 24,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surface,
   },
   panditList: {
-    gap: spacing.sm,
+    gap: 12,
   },
   panditCard: {
-    padding: spacing.md,
-  },
-  panditCardSelected: {
-    borderColor: colors.primary,
-    borderWidth: 2,
-    backgroundColor: "#FFF8F6",
+    padding: 16,
   },
   panditRow: {
     flexDirection: "row",
     alignItems: "center",
   },
-  avatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: spacing.md,
-  },
   panditInfo: {
     flex: 1,
-    marginRight: spacing.sm,
+    marginRight: 8,
   },
   priceTag: {
-    marginTop: spacing.xxs,
+    marginTop: 4,
   },
   radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  radioSelected: {
-    borderColor: colors.primary,
-  },
   radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.primary,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
   reviewCard: {
-    padding: spacing.md,
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
+    padding: 16,
+    gap: 10,
+    marginBottom: 12,
   },
   reviewRow: {
     flexDirection: "row",
@@ -753,24 +861,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   errorBox: {
-    backgroundColor: "#FEF2F2",
-    borderColor: "#FCA5A5",
-    padding: spacing.md,
-    marginTop: spacing.sm,
+    padding: 16,
+    marginTop: 12,
+    borderWidth: 1,
   },
   within24hNoticeCard: {
-    backgroundColor: "#FEF3C7",
-    borderColor: "#F59E0B",
     borderWidth: 1,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    borderRadius: radius.md,
+    padding: 16,
+    marginBottom: 12,
   },
   within24hNoticeText: {
     lineHeight: 18,
   },
   footerActions: {
-    marginVertical: spacing.xl,
+    marginVertical: 24,
   },
   formatText: {
     textTransform: "capitalize",

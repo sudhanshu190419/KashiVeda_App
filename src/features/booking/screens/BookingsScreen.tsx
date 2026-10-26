@@ -3,11 +3,19 @@ import React, { useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Card, EmptyState, Header, LoadingState, ScreenContainer, Text } from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing } from "../../../shared/theme/index.ts";
+import {
+  ScreenWrapper,
+  AppBar,
+  VCard,
+  VText,
+  VDivider,
+  LiveStatusPill,
+  EmptyState,
+} from "../../../shared/components/index.ts";
+import { useTheme } from "../../../shared/theme/index.ts";
+import { useLanguage } from "../../../shared/i18n/index.ts";
 import { CustomerStackParamList } from "../../../shared/types/navigation.ts";
 import { formatCurrency, formatDate, formatTime } from "../../../shared/utils/formatters.ts";
-import { BookingStatusBadge } from "../components/index.ts";
 import { useBookingHistory } from "../hooks/useBookingHistory.ts";
 import { BookingDetail } from "../types/booking.types.ts";
 
@@ -16,6 +24,9 @@ type CustomerNavigationProp = NativeStackNavigationProp<CustomerStackParamList>;
 export const BookingsScreen: React.FC = () => {
   const navigation = useNavigation<CustomerNavigationProp>();
   const [filter, setFilter] = useState<string>("all");
+
+  const { colors, spacing } = useTheme();
+  const { pick } = useLanguage();
 
   const {
     bookings,
@@ -39,106 +50,132 @@ export const BookingsScreen: React.FC = () => {
       <TouchableOpacity
         onPress={() => navigation.navigate("BookingDetail", { bookingId: item.id })}
         activeOpacity={0.7}
+        style={{ minHeight: 48 }}
+        accessibilityRole="button"
+        accessibilityLabel={`Booking ${item.booking_number}, ${item.puja_service?.name || "Vedic Puja"}`}
       >
-        <Card variant="elevated" style={styles.bookingCard}>
+        <VCard variant="default" elevation={1} style={styles.bookingCard}>
           <View style={styles.cardTopRow}>
-            <View>
-              <Text variant="caption" color={colors.textSecondary}>
+            <View style={{ flex: 1, marginRight: spacing.sm }}>
+              <VText variant="caption" color="textMuted">
                 {item.booking_number}
-              </Text>
-              <Text variant="h3" style={styles.pujaTitle}>
+              </VText>
+              <VText variant="titleMedium" color="textPrimary" weight="600" style={styles.pujaTitle}>
                 {item.puja_service?.name || "Vedic Puja"}
-              </Text>
+              </VText>
             </View>
-            <BookingStatusBadge status={item.status} />
+            <LiveStatusPill status={item.status} />
           </View>
 
           <View style={styles.cardMidRow}>
             <View style={styles.panditRow}>
-              <Text style={styles.panditIcon}>🪔</Text>
-              <Text variant="body" color={colors.textSecondary}>
+              <VText variant="bodyMedium">🪔</VText>
+              <VText variant="bodyMedium" color="textMuted" style={{ marginLeft: spacing.xs }}>
                 {item.pandit?.display_name || "Assigned Acharya"}
-              </Text>
+              </VText>
             </View>
-            <View style={styles.modeBadge}>
-              <Text variant="caption" color={colors.primary} style={styles.modeText}>
+            <View
+              style={[
+                styles.modeBadge,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.borderDefault,
+                },
+              ]}
+            >
+              <VText variant="caption" color="brandPrimary" style={styles.modeText}>
                 {item.service_mode}
-              </Text>
+              </VText>
             </View>
           </View>
 
-          <View style={styles.divider} />
+          <VDivider style={{ marginVertical: spacing.xs }} />
 
           <View style={styles.cardBottomRow}>
             <View>
-              <Text variant="caption" color={colors.textSecondary}>
+              <VText variant="caption" color="textMuted">
                 Scheduled For
-              </Text>
-              <Text variant="bodyMedium">
+              </VText>
+              <VText variant="bodyMedium" weight="600">
                 {formatDate(startDate)} at {formatTime(startDate)}
-              </Text>
+              </VText>
             </View>
 
             <View style={styles.amountBox}>
-              <Text variant="caption" color={colors.textSecondary} align="right">
+              <VText variant="caption" color="textMuted" align="right">
                 Dakshina
-              </Text>
-              <Text variant="bodyMedium" color={colors.primary} align="right">
+              </VText>
+              <VText variant="titleMedium" color="brandPrimary" align="right" weight="700">
                 {formatCurrency(item.total_amount)}
-              </Text>
+              </VText>
             </View>
           </View>
-        </Card>
+        </VCard>
       </TouchableOpacity>
     );
   };
 
   return (
-    <ScreenContainer padded>
-      <Header
-        title="My Rituals"
-        subtitle="Manage your sacred bookings and upcoming ceremonies"
-      />
-
+    <ScreenWrapper
+      safeArea="all"
+      scrollable={false}
+      headerComponent={
+        <AppBar
+          title="My Rituals"
+          subtitle={pick("सत्यापित पूजा एवं आगामी अनुष्ठानों का प्रबंधन", "Manage your sacred bookings and upcoming ceremonies")}
+          showBrandGlyph={true}
+        />
+      }
+      contentContainerStyle={{ flex: 1, paddingHorizontal: spacing.md }}
+    >
       {/* Filter Tabs */}
       <View style={styles.filterRow}>
-        {filters.map((f) => (
-          <TouchableOpacity
-            key={f.key}
-            style={[styles.filterChip, filter === f.key && styles.filterChipActive]}
-            onPress={() => setFilter(f.key)}
-          >
-            <Text
-              variant="captionMedium"
-              color={filter === f.key ? colors.primary : colors.textSecondary}
+        {filters.map((f) => {
+          const isActive = filter === f.key;
+          return (
+            <TouchableOpacity
+              key={f.key}
+              style={[
+                styles.filterChip,
+                {
+                  backgroundColor: isActive ? colors.surfaceSubtle : colors.surfaceCard,
+                  borderColor: isActive ? colors.brandPrimary : colors.borderDefault,
+                },
+              ]}
+              onPress={() => setFilter(f.key)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
             >
-              {f.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <VText
+                variant="labelMedium"
+                color={isActive ? "brandPrimary" : "textMuted"}
+              >
+                {f.label}
+              </VText>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Booking List */}
-      {loading && !refreshing && bookings.length === 0 ? (
-        <LoadingState message="Retrieving your sacred bookings..." />
-      ) : (
-        <FlatList
-          data={bookings}
-          keyExtractor={(item) => item.id}
-          renderItem={renderBookingItem}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={refresh}
-              tintColor={colors.primary}
-            />
-          }
-          ListEmptyComponent={
-            <Card style={styles.emptyCard}>
+      <FlatList
+        data={bookings}
+        keyExtractor={(item) => item.id}
+        renderItem={renderBookingItem}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={refresh}
+            tintColor={colors.brandPrimary}
+          />
+        }
+        ListEmptyComponent={
+          !loading ? (
+            <VCard variant="default" style={styles.emptyCard}>
               <EmptyState
                 title="No Rituals Found"
                 description={
@@ -147,39 +184,37 @@ export const BookingsScreen: React.FC = () => {
                     : `No ${filter} rituals found.`
                 }
                 actionTitle="Explore Rituals"
-                onAction={() => navigation.navigate("PujaList")}
+                onAction={() => navigation.navigate("PujaList" as any)}
               />
-            </Card>
-          }
-        />
-      )}
-    </ScreenContainer>
+            </VCard>
+          ) : undefined
+        }
+      />
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
   filterRow: {
     flexDirection: "row",
-    gap: spacing.xs,
-    marginBottom: spacing.md,
+    gap: 8,
+    marginVertical: 12,
   },
   filterChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.full,
-    backgroundColor: colors.surfaceSubtle,
-  },
-  filterChipActive: {
-    backgroundColor: "#FFF8F6",
-    borderColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 9999,
     borderWidth: 1,
+    minHeight: 48,
+    justifyContent: "center",
+    alignItems: "center",
   },
   listContent: {
-    gap: spacing.md,
-    paddingBottom: spacing.xxl,
+    gap: 12,
+    paddingBottom: 32,
   },
   bookingCard: {
-    padding: spacing.md,
+    padding: 16,
   },
   cardTopRow: {
     flexDirection: "row",
@@ -193,26 +228,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginVertical: spacing.xs,
+    marginVertical: 8,
   },
   panditRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
-  },
-  panditIcon: {
-    fontSize: 16,
   },
   modeBadge: {
-    backgroundColor: colors.primaryLight,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.xs,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.borderLight,
-    marginVertical: spacing.xs,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
   },
   cardBottomRow: {
     flexDirection: "row",
@@ -223,8 +249,8 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   emptyCard: {
-    paddingVertical: spacing.xl,
-    marginTop: spacing.md,
+    paddingVertical: 32,
+    marginTop: 16,
   },
   modeText: {
     textTransform: "capitalize",

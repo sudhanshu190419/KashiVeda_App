@@ -10,11 +10,24 @@ import {
 } from "react-native";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Button, Card, ErrorState, Header, LoadingState, ScreenContainer, Text } from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing } from "../../../shared/theme/index.ts";
+import {
+  ScreenWrapper,
+  AppBar,
+  VCard,
+  VText,
+  VAvatar,
+  LiveStatusPill,
+  StepProgress,
+  StepItem,
+  VDivider,
+  RatingStars,
+} from "../../../shared/components/index.ts";
+import { Button } from "../../../shared/components/ui/Button.tsx";
+import { useTheme } from "../../../shared/theme/index.ts";
+import { useLanguage } from "../../../shared/i18n/index.ts";
 import { CustomerStackParamList } from "../../../shared/types/navigation.ts";
 import { formatCurrency, formatDate, formatTime } from "../../../shared/utils/formatters.ts";
-import { BookingStatusBadge, SubmitReviewModal } from "../components/index.ts";
+import { SubmitReviewModal } from "../components/index.ts";
 import { useBookingDetails, useBookingReview } from "../hooks/index.ts";
 import { bookingPaymentService } from "../services/bookingPaymentService.ts";
 import { bookingService } from "../services/bookingService.ts";
@@ -27,6 +40,9 @@ export const BookingDetailsScreen: React.FC = () => {
   const navigation = useNavigation<CustomerNavigationProp>();
   const route = useRoute<BookingDetailRouteProp>();
   const bookingId = route.params?.bookingId || "";
+
+  const { colors, spacing } = useTheme();
+  const { pick } = useLanguage();
 
   const { booking, loading, error, refresh } = useBookingDetails(bookingId);
 
@@ -42,7 +58,6 @@ export const BookingDetailsScreen: React.FC = () => {
 
   const [loadingToken, setLoadingToken] = useState<boolean>(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
-
 
   // Financial Lifecycle Action States
   const [payingBalance, setPayingBalance] = useState<boolean>(false);
@@ -167,23 +182,54 @@ export const BookingDetailsScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <ScreenContainer padded>
-        <Header title="Booking Details" onBack={() => navigation.goBack()} />
-        <LoadingState message="Loading ritual booking details..." />
-      </ScreenContainer>
+      <ScreenWrapper safeArea="all" scrollable={false} contentContainerStyle={styles.centerContainer}>
+        <AppBar
+          title="Booking Details"
+          showBackButton={true}
+          onBackPress={() => navigation.goBack()}
+        />
+        <View style={styles.loaderWrap}>
+          <ActivityIndicator size="large" color={colors.brandPrimary} />
+          <VText variant="bodyMedium" color="textMuted" style={{ marginTop: spacing.md }}>
+            Loading ritual booking details...
+          </VText>
+        </View>
+      </ScreenWrapper>
     );
   }
 
   if (error || !booking) {
     return (
-      <ScreenContainer padded>
-        <Header title="Booking Details" onBack={() => navigation.goBack()} />
-        <ErrorState
-          title="Booking Not Found"
-          message={error || "Could not retrieve this booking record."}
-          onRetry={refresh}
+      <ScreenWrapper safeArea="all" scrollable={false} contentContainerStyle={styles.centerContainer}>
+        <AppBar
+          title="Booking Details"
+          showBackButton={true}
+          onBackPress={() => navigation.goBack()}
         />
-      </ScreenContainer>
+        <VCard
+          variant="outlined"
+          style={[
+            styles.errorStateCard,
+            {
+              backgroundColor: colors.errorBg,
+              borderColor: colors.statusAlert,
+            },
+          ]}
+        >
+          <VText variant="headlineMedium" color="error" align="center" style={{ marginBottom: spacing.sm }}>
+            Booking Not Found
+          </VText>
+          <VText variant="bodyMedium" color="textMuted" align="center" style={{ marginBottom: spacing.lg }}>
+            {error || "Could not retrieve this booking record."}
+          </VText>
+          <Button
+            title="Try Again"
+            onPress={refresh}
+            variant="outline"
+            style={{ minHeight: 48, minWidth: 160 }}
+          />
+        </VCard>
+      </ScreenWrapper>
     );
   }
 
@@ -207,93 +253,162 @@ export const BookingDetailsScreen: React.FC = () => {
       ? booking.total_amount
       : booking.advance_amount;
 
-  return (
-    <ScreenContainer scrollable padded>
-      <Header
-        title="Ritual Sankalp"
-        subtitle={booking.booking_number}
-        onBack={() => navigation.goBack()}
-      />
+  // Decoupled 5-Node Ritual Fulfillment Tracking
+  const fulfillmentSteps: StepItem[] = [
+    { title: "Scheduled", titleHi: "निर्धारित" },
+    { title: "Samagri Ready", titleHi: "सामग्री" },
+    { title: "In Transit", titleHi: "प्रस्थान" },
+    { title: "In Progress", titleHi: "अनुष्ठान" },
+    { title: "Completed", titleHi: "पूर्णाहूति" },
+  ];
 
-      {/* Main Status & Ritual Header */}
-      <Card variant="elevated" style={styles.mainCard}>
+  const resolveFulfillmentIndex = (): number => {
+    if (booking.status === "completed") return 4;
+    if (booking.status === "in_progress") return 3;
+    const stage = (booking as any)?.fulfillment_stage;
+    if (stage === "en_route" || stage === "arrived") return 2;
+    if (stage === "samagri_dispatched") return 1;
+    if (stage === "started") return 3;
+    if (stage === "completed" || stage === "purnahuti") return 4;
+    return 0;
+  };
+
+  const fulfillmentIndex = resolveFulfillmentIndex();
+
+  return (
+    <ScreenWrapper
+      safeArea="all"
+      scrollable={true}
+      headerComponent={
+        <AppBar
+          title="Ritual Sankalp"
+          subtitle={booking.booking_number}
+          showBackButton={true}
+          onBackPress={() => navigation.goBack()}
+        />
+      }
+      contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: spacing.xxl }}
+    >
+      {/* Macro & Micro Status Banner */}
+      <VCard variant="default" elevation={2} style={styles.mainCard}>
         <View style={styles.statusRow}>
           <View>
-            <Text variant="caption" color={colors.textSecondary}>
+            <VText variant="caption" color="textMuted">
               Reference Number
-            </Text>
-            <Text variant="bodyMedium" color={colors.textPrimary}>
+            </VText>
+            <VText variant="titleMedium" color="textPrimary" weight="700">
               {booking.booking_number}
-            </Text>
+            </VText>
           </View>
-          <BookingStatusBadge status={booking.status} />
+          <LiveStatusPill status={booking.status} />
         </View>
 
-        <View style={styles.divider} />
+        <VDivider style={{ marginVertical: spacing.md }} />
 
-        <Text variant="h2" style={styles.pujaTitle}>
-          {booking.puja_service?.name || "Vedic Puja"}
-        </Text>
+        <VText variant="headlineLarge" color="textPrimary" style={styles.pujaTitle}>
+          {booking.puja_service?.name || "Kashi Rudrabhishek"}
+        </VText>
 
         <View style={styles.infoGrid}>
           <View style={styles.infoCol}>
-            <Text variant="caption" color={colors.textSecondary}>
+            <VText variant="caption" color="textMuted">
               Date & Time
-            </Text>
-            <Text variant="bodyMedium">
+            </VText>
+            <VText variant="bodyMedium" weight="600">
               {formatDate(startDate)}
-            </Text>
-            <Text variant="caption" color={colors.primary}>
+            </VText>
+            <VText variant="labelMedium" color="brandPrimary">
               {formatTime(startDate)}
-            </Text>
+            </VText>
           </View>
 
           <View style={styles.infoCol}>
-            <Text variant="caption" color={colors.textSecondary}>
+            <VText variant="caption" color="textMuted">
               Format
-            </Text>
-            <Text variant="bodyMedium" style={styles.formatText}>
+            </VText>
+            <VText variant="bodyMedium" weight="600" style={styles.formatText}>
               {booking.service_mode} Ritual
-            </Text>
+            </VText>
           </View>
         </View>
-      </Card>
+      </VCard>
+
+      {/* 5-Node Micro Fulfillment Tracker */}
+      <VCard
+        variant="subtle"
+        style={[
+          styles.trackerCard,
+          {
+            backgroundColor: colors.surfaceSubtle,
+            borderColor: colors.borderDefault,
+          },
+        ]}
+      >
+        <VText variant="labelMedium" color="textMuted" style={{ marginBottom: spacing.md }}>
+          🕉️ {pick("अनुष्ठान प्रगति ट्रैकर", "Ritual Fulfillment Tracker")}
+        </VText>
+        <StepProgress
+          steps={fulfillmentSteps}
+          currentStep={fulfillmentIndex}
+          variant="nodes"
+        />
+      </VCard>
 
       {/* Pandit Profile Card */}
-      <Card style={styles.sectionCard}>
-        <Text variant="h3" style={styles.sectionTitle}>
+      <VCard variant="default" style={styles.sectionCard}>
+        <VText variant="headlineSmall" color="textPrimary" style={styles.sectionTitle}>
           Officiating Acharya
-        </Text>
+        </VText>
         <View style={styles.panditRow}>
-          <View style={styles.avatarCircle}>
-            <Text variant="h3" color={colors.primary}>
-              {booking.pandit?.display_name?.charAt(0) || "A"}
-            </Text>
-          </View>
+          <VAvatar
+            name={booking.pandit?.display_name || "Acharya"}
+            uri={booking.pandit?.avatar_url || undefined}
+            size="md"
+            style={{ marginRight: spacing.md }}
+          />
           <View style={styles.panditInfo}>
-            <Text variant="bodyMedium">{booking.pandit?.display_name || "Verified Priest"}</Text>
-            <Text variant="caption" color={colors.textSecondary}>
+            <VText variant="titleMedium" color="textPrimary">
+              {booking.pandit?.display_name || "Verified Priest"}
+            </VText>
+            <VText variant="caption" color="textMuted">
               Authorized by Kashi Veda Vedic Board
-            </Text>
+            </VText>
+            {booking.pandit?.phone ? (
+              <VText variant="caption" color="brandPrimary" style={{ marginTop: 2 }}>
+                📞 {booking.pandit.phone}
+              </VText>
+            ) : null}
           </View>
         </View>
-      </Card>
+      </VCard>
 
       {/* Location / Remote Access Card */}
-      <Card style={styles.sectionCard}>
-        <Text variant="h3" style={styles.sectionTitle}>
+      <VCard variant="default" style={styles.sectionCard}>
+        <VText variant="headlineSmall" color="textPrimary" style={styles.sectionTitle}>
           {isRemote ? "Live Video Sanctum" : "Ritual Location"}
-        </Text>
+        </VText>
 
         {isRemote ? (
           <View>
-            <View style={styles.remoteBox}>
-              <Text style={styles.remoteIcon}>🌐</Text>
+            <View
+              style={[
+                styles.remoteBox,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.borderDefault,
+                },
+              ]}
+            >
+              <VText variant="headlineMedium" style={styles.remoteIcon}>
+                🌐
+              </VText>
               <View style={styles.remoteTextWrap}>
-                <Text variant="bodyMedium">LiveKit Cloud HD Room</Text>
-                <Text variant="caption" color={colors.textSecondary}>
+                <VText variant="titleSmall" color="textPrimary">
+                  LiveKit Cloud HD Room
+                </VText>
+                <VText variant="caption" color="textMuted">
                   Devotees can join the room 15 minutes before the scheduled start time.
-                </Text>
+                </VText>
               </View>
             </View>
 
@@ -304,117 +419,125 @@ export const BookingDetailsScreen: React.FC = () => {
                 size="md"
                 onPress={handleJoinLive}
                 disabled={loadingToken}
-                style={styles.joinBtn}
+                style={{ minHeight: 48, marginTop: spacing.sm }}
               />
             ) : null}
 
             {tokenError ? (
-              <Text variant="caption" color={colors.error} style={styles.errorText}>
+              <VText variant="caption" color="error" style={styles.errorText}>
                 {tokenError}
-              </Text>
+              </VText>
             ) : null}
           </View>
         ) : booking.service_mode === "home" ? (
           <View>
-            <Text variant="bodyMedium">
+            <VText variant="bodyMedium" weight="600">
               {booking.location?.address_snapshot || `${booking.location?.city || "Home Residence"}`}
-            </Text>
-            <Text variant="caption" color={colors.textSecondary} style={styles.subTextSpacing}>
+            </VText>
+            <VText variant="caption" color="textMuted" style={styles.subTextSpacing}>
               The Acharya will reach your address with complete samagri.
-            </Text>
+            </VText>
           </View>
         ) : (
           <View>
-            <Text variant="bodyMedium">
+            <VText variant="bodyMedium" weight="600">
               {booking.location?.temple_name_snapshot || "Temple Sanctum"}
-            </Text>
-            <Text variant="caption" color={colors.textSecondary} style={styles.subTextSpacing}>
+            </VText>
+            <VText variant="caption" color="textMuted" style={styles.subTextSpacing}>
               {booking.location?.city || "Varanasi"}
-            </Text>
+            </VText>
           </View>
         )}
-      </Card>
+      </VCard>
 
       {/* Itemized Line Items Table */}
       {booking.line_items && booking.line_items.length > 0 ? (
-        <Card style={styles.sectionCard}>
-          <Text variant="h3" style={styles.sectionTitle}>
+        <VCard variant="default" style={styles.sectionCard}>
+          <VText variant="headlineSmall" color="textPrimary" style={styles.sectionTitle}>
             Itemized Inclusions
-          </Text>
+          </VText>
 
           <View style={styles.lineItemsList}>
             {booking.line_items.map((item) => (
               <View key={item.id} style={styles.lineItemRow}>
                 <View style={styles.lineItemInfo}>
-                  <Text variant="bodyMedium">{item.name_snapshot}</Text>
-                  <Text variant="caption" color={colors.textSecondary}>
+                  <VText variant="bodyMedium" weight="600">{item.name_snapshot}</VText>
+                  <VText variant="caption" color="textMuted">
                     Qty: {item.quantity} {item.unit || ""}
-                  </Text>
+                  </VText>
                 </View>
-                <Text variant="bodyMedium" color={colors.textPrimary}>
+                <VText variant="bodyMedium" weight="600" color="textPrimary">
                   {formatCurrency(item.total_price)}
-                </Text>
+                </VText>
               </View>
             ))}
           </View>
-        </Card>
+        </VCard>
       ) : null}
 
       {/* Financial Summary */}
-      <Card variant="elevated" style={styles.financialCard}>
-        <Text variant="h3" style={styles.sectionTitle}>
+      <VCard variant="default" elevation={2} style={styles.financialCard}>
+        <VText variant="headlineSmall" color="textPrimary" style={styles.sectionTitle}>
           Payment Summary
-        </Text>
+        </VText>
 
         <View style={styles.financialRow}>
-          <Text variant="body" color={colors.textSecondary}>Total Ritual Amount</Text>
-          <Text variant="bodyMedium">{formatCurrency(booking.total_amount)}</Text>
+          <VText variant="bodyMedium" color="textMuted">Total Ritual Amount</VText>
+          <VText variant="bodyMedium" weight="600">{formatCurrency(booking.total_amount)}</VText>
         </View>
 
         {currentOutstandingBalance > 0 ? (
           <View style={styles.financialRow}>
-            <Text variant="body" color={colors.textSecondary}>Advance Paid (Confirmed)</Text>
-            <Text variant="bodyMedium" color="#15803D">
+            <VText variant="bodyMedium" color="textMuted">Advance Paid (Confirmed)</VText>
+            <VText variant="bodyMedium" weight="600" color="success">
               {formatCurrency(booking.advance_amount)}
-            </Text>
+            </VText>
           </View>
         ) : (
           <View style={styles.financialRow}>
-            <Text variant="body" color={colors.textSecondary}>Total Dakshina Paid (Confirmed)</Text>
-            <Text variant="bodyMedium" color="#15803D">
+            <VText variant="bodyMedium" color="textMuted">Total Dakshina Paid (Confirmed)</VText>
+            <VText variant="bodyMedium" weight="600" color="success">
               {formatCurrency(totalPaidAmount)}
-            </Text>
+            </VText>
           </View>
         )}
 
         {currentOutstandingBalance > 0 && totalPaidAmount > booking.advance_amount && (
           <View style={styles.financialRow}>
-            <Text variant="body" color={colors.textSecondary}>Total Paid to Date</Text>
-            <Text variant="bodyMedium" color="#15803D">
+            <VText variant="bodyMedium" color="textMuted">Total Paid to Date</VText>
+            <VText variant="bodyMedium" weight="600" color="success">
               {formatCurrency(totalPaidAmount)}
-            </Text>
+            </VText>
           </View>
         )}
 
-        <View style={styles.divider} />
+        <VDivider style={{ marginVertical: spacing.sm }} />
 
         <View style={styles.financialRow}>
-          <Text variant="bodyMedium">Outstanding Balance</Text>
-          <Text variant="h3" color={isBalancePayable ? colors.primary : "#15803D"}>
+          <VText variant="bodyLarge" weight="600">Outstanding Balance</VText>
+          <VText variant="headlineMedium" color={isBalancePayable ? "brandPrimary" : "success"}>
             {formatCurrency(currentOutstandingBalance)}
-          </Text>
+          </VText>
         </View>
 
         {isBalancePayable && (
           <View style={styles.balanceActionWrap}>
-            <View style={styles.balanceNoticeBox}>
-              <Text variant="caption" color={colors.textSecondary}>
+            <View
+              style={[
+                styles.balanceNoticeBox,
+                {
+                  backgroundColor: colors.warningBg,
+                  borderColor: colors.warningFg,
+                },
+              ]}
+            >
+              <VText variant="caption" color="warningFg">
                 {startDate.getTime() <= Date.now()
                   ? "⚠️ Ritual is underway or scheduled time has arrived. You may settle your remaining balance until the pandit completes the ceremony."
                   : startDate.getTime() - 24 * 60 * 60 * 1000 <= Date.now()
                   ? "⚠️ Balance settlement deadline (24 hours prior) has passed. Please settle remaining balance promptly before ritual completion."
                   : "⚠️ Balance must be settled prior to ritual completion."}
-              </Text>
+              </VText>
             </View>
             <Button
               title={
@@ -430,85 +553,99 @@ export const BookingDetailsScreen: React.FC = () => {
               size="md"
               onPress={handlePayBalance}
               disabled={payingBalance}
-              style={styles.payBalanceBtn}
+              style={{ minHeight: 48, marginTop: spacing.sm }}
             />
             {balanceError ? (
-              <Text variant="caption" color={colors.error} style={styles.errorText}>
+              <VText variant="caption" color="error" style={styles.errorText}>
                 {balanceError}
-              </Text>
+              </VText>
             ) : null}
           </View>
         )}
 
         {currentOutstandingBalance === 0 && booking.status !== "cancelled" && (
-          <View style={styles.paidBadgeBox}>
-            <Text variant="captionMedium" color="#15803D">
+          <View
+            style={[
+              styles.paidBadgeBox,
+              {
+                backgroundColor: colors.successBg,
+                borderColor: colors.statusActive,
+              },
+            ]}
+          >
+            <VText variant="labelMedium" color="success">
               ✓ Full Ritual Dakshina Paid & Cleared — No Outstanding Balance
-            </Text>
+            </VText>
           </View>
         )}
-      </Card>
+      </VCard>
 
       {/* Customer Review Section (Completed Rituals Only) */}
       {isCompleted && (
-        <Card style={styles.reviewSectionCard}>
+        <VCard variant="default" style={styles.reviewSectionCard}>
           {!hasReviewed ? (
             <View>
-              <Text variant="h3" style={styles.sectionTitle}>
+              <VText variant="headlineSmall" color="textPrimary" style={styles.sectionTitle}>
                 Rate & Review Your Pandit
-              </Text>
-              <Text variant="body" color={colors.textSecondary} style={styles.reviewPromptText}>
+              </VText>
+              <VText variant="bodyMedium" color="textMuted" style={styles.reviewPromptText}>
                 Your sacred ritual has been completed. Share your feedback to help other devotees in the Sanatan community.
-              </Text>
+              </VText>
               <Button
                 title="Write Review & Rate Acharya ★"
                 variant="primary"
                 size="md"
                 onPress={() => setReviewModalVisible(true)}
-                style={styles.reviewBtn}
+                style={{ minHeight: 48, marginTop: spacing.sm }}
                 testID="write-review-cta"
               />
             </View>
           ) : review ? (
             <View>
               <View style={styles.reviewHeaderRow}>
-                <Text variant="h3" style={styles.sectionTitle}>
+                <VText variant="headlineSmall" color="textPrimary" style={styles.sectionTitle}>
                   Your Sacred Review
-                </Text>
-                <View style={styles.verifiedReviewBadge}>
-                  <Text variant="overline" color={colors.success}>
+                </VText>
+                <View
+                  style={[
+                    styles.verifiedReviewBadge,
+                    {
+                      backgroundColor: colors.successBg,
+                      borderColor: colors.statusActive,
+                    },
+                  ]}
+                >
+                  <VText variant="caption" color="success">
                     ✓ Verified Feedback
-                  </Text>
+                  </VText>
                 </View>
               </View>
               <View style={styles.reviewStarsRow}>
-                <Text variant="h3" color={colors.secondary} style={styles.reviewStarsText}>
-                  {"★".repeat(Math.max(1, Math.min(5, review.rating))) + "☆".repeat(Math.max(0, 5 - review.rating))}
-                </Text>
-                <Text variant="caption" color={colors.textTertiary}>
+                <RatingStars rating={review.rating} size={18} />
+                <VText variant="caption" color="textMuted" style={{ marginLeft: spacing.sm }}>
                   {formatDate(review.created_at)}
-                </Text>
+                </VText>
               </View>
               {review.comment ? (
-                <Text variant="body" color={colors.textSecondary} style={styles.submittedComment}>
+                <VText variant="bodyMedium" color="textMuted" style={styles.submittedComment}>
                   "{review.comment}"
-                </Text>
+                </VText>
               ) : (
-                <Text variant="caption" color={colors.textTertiary} style={styles.submittedComment}>
+                <VText variant="caption" color="textMuted" style={styles.submittedComment}>
                   Rating submitted without written comment.
-                </Text>
+                </VText>
               )}
             </View>
           ) : null}
-        </Card>
+        </VCard>
       )}
 
       {/* Customer Action CTAs (Reschedule & Cancel) */}
       {(isReschedulable || isCancellable) && (
-        <Card style={styles.actionCard}>
-          <Text variant="h3" style={styles.sectionTitle}>
+        <VCard variant="default" style={styles.actionCard}>
+          <VText variant="headlineSmall" color="textPrimary" style={styles.sectionTitle}>
             Booking Actions
-          </Text>
+          </VText>
           <View style={styles.actionButtonsCol}>
             {isReschedulable && (
               <Button
@@ -516,6 +653,7 @@ export const BookingDetailsScreen: React.FC = () => {
                 variant="secondary"
                 size="md"
                 onPress={() => setRescheduleModalVisible(true)}
+                style={{ minHeight: 48 }}
               />
             )}
             {isCancellable && (
@@ -524,10 +662,11 @@ export const BookingDetailsScreen: React.FC = () => {
                 variant="outline"
                 size="md"
                 onPress={handleOpenCancelModal}
+                style={{ minHeight: 48 }}
               />
             )}
           </View>
-        </Card>
+        </VCard>
       )}
 
       {/* Submit Review Modal */}
@@ -547,66 +686,78 @@ export const BookingDetailsScreen: React.FC = () => {
 
       {/* Cancellation Modal with Server-Side Preview */}
       <Modal visible={cancelModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <Card variant="elevated" style={styles.modalCard}>
-            <Text variant="h2" align="center" style={styles.modalTitle}>
+        <View style={[styles.modalOverlay, { backgroundColor: colors.overlayScrim }]}>
+          <VCard variant="default" elevation={4} style={[styles.modalCard, { backgroundColor: colors.surfaceCard }]}>
+            <VText variant="headlineLarge" align="center" style={styles.modalTitle}>
               Cancel Ritual
-            </Text>
-            <Text variant="caption" color={colors.textSecondary} align="center">
+            </VText>
+            <VText variant="caption" color="textMuted" align="center">
               Server-Calculated Refund Policy Preview
-            </Text>
+            </VText>
 
             {loadingPreview ? (
               <View style={styles.modalLoading}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text variant="body" color={colors.textSecondary}>
+                <ActivityIndicator size="small" color={colors.brandPrimary} />
+                <VText variant="bodyMedium" color="textMuted" style={{ marginTop: spacing.sm }}>
                   Calculating authoritative refund...
-                </Text>
+                </VText>
               </View>
             ) : refundPreview ? (
               <View style={styles.previewBox}>
                 <View style={styles.previewRow}>
-                  <Text variant="body" color={colors.textSecondary}>Net Captured Amount</Text>
-                  <Text variant="bodyMedium">{formatCurrency(refundPreview.net_captured)}</Text>
+                  <VText variant="bodyMedium" color="textMuted">Net Captured Amount</VText>
+                  <VText variant="bodyMedium" weight="600">{formatCurrency(refundPreview.net_captured)}</VText>
                 </View>
                 {refundPreview.refundable_base < refundPreview.net_captured && (
                   <>
                     <View style={styles.previewRow}>
-                      <Text variant="body" color={colors.textSecondary}>Non-Refundable Samagri</Text>
-                      <Text variant="bodyMedium" color={colors.error}>
+                      <VText variant="bodyMedium" color="textMuted">Non-Refundable Samagri</VText>
+                      <VText variant="bodyMedium" weight="600" color="error">
                         {formatCurrency(refundPreview.net_captured - refundPreview.refundable_base)}
-                      </Text>
+                      </VText>
                     </View>
                     <View style={styles.previewRow}>
-                      <Text variant="body" color={colors.textSecondary}>Refundable Dakshina</Text>
-                      <Text variant="bodyMedium">{formatCurrency(refundPreview.refundable_base)}</Text>
+                      <VText variant="bodyMedium" color="textMuted">Refundable Dakshina</VText>
+                      <VText variant="bodyMedium" weight="600">{formatCurrency(refundPreview.refundable_base)}</VText>
                     </View>
                   </>
                 )}
                 <View style={styles.previewRow}>
-                  <Text variant="body" color={colors.textSecondary}>Applied Policy Tier</Text>
-                  <Text variant="captionMedium" color={colors.primary}>{refundPreview.policy_name}</Text>
+                  <VText variant="bodyMedium" color="textMuted">Applied Policy Tier</VText>
+                  <VText variant="labelMedium" color="brandPrimary">{refundPreview.policy_name}</VText>
                 </View>
                 <View style={styles.previewRow}>
-                  <Text variant="body" color={colors.textSecondary}>Refund Percentage</Text>
-                  <Text variant="bodyMedium">
+                  <VText variant="bodyMedium" color="textMuted">Refund Percentage</VText>
+                  <VText variant="bodyMedium" weight="600">
                     {refundPreview.refund_percent}%
                     {refundPreview.refundable_base < refundPreview.net_captured ? " (Dakshina)" : ""}
-                  </Text>
+                  </VText>
                 </View>
                 <View style={styles.previewRow}>
-                  <Text variant="body" color={colors.textSecondary}>Cancellation Deduction</Text>
-                  <Text variant="bodyMedium" color={colors.error}>{formatCurrency(refundPreview.deduction_amount)}</Text>
+                  <VText variant="bodyMedium" color="textMuted">Cancellation Deduction</VText>
+                  <VText variant="bodyMedium" weight="600" color="error">
+                    {formatCurrency(refundPreview.deduction_amount)}
+                  </VText>
                 </View>
-                <View style={styles.divider} />
+                <VDivider style={{ marginVertical: spacing.sm }} />
                 <View style={styles.previewRow}>
-                  <Text variant="h3">Total Refund Due</Text>
-                  <Text variant="h3" color="#15803D">{formatCurrency(refundPreview.refund_amount)}</Text>
+                  <VText variant="headlineSmall">Total Refund Due</VText>
+                  <VText variant="headlineSmall" color="success">
+                    {formatCurrency(refundPreview.refund_amount)}
+                  </VText>
                 </View>
 
                 <TextInput
-                  style={styles.reasonInput}
+                  style={[
+                    styles.reasonInput,
+                    {
+                      backgroundColor: colors.surfaceSubtle,
+                      borderColor: colors.borderDefault,
+                      color: colors.textPrimary,
+                    },
+                  ]}
                   placeholder="Reason for cancellation (optional)"
+                  placeholderTextColor={colors.textMuted}
                   value={cancellationReason}
                   onChangeText={setCancellationReason}
                 />
@@ -617,7 +768,7 @@ export const BookingDetailsScreen: React.FC = () => {
                     variant="secondary"
                     size="md"
                     onPress={() => setCancelModalVisible(false)}
-                    style={styles.actionButton}
+                    style={{ minHeight: 48, flex: 1 }}
                   />
                   <Button
                     title={cancelling ? "Processing..." : "Confirm Cancel"}
@@ -625,39 +776,47 @@ export const BookingDetailsScreen: React.FC = () => {
                     size="md"
                     onPress={handleConfirmCancel}
                     disabled={cancelling}
-                    style={styles.actionButton}
+                    style={{ minHeight: 48, flex: 1 }}
                   />
                 </View>
               </View>
             ) : null}
-          </Card>
+          </VCard>
         </View>
       </Modal>
 
       {/* Reschedule Modal */}
       <Modal visible={rescheduleModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <Card variant="elevated" style={styles.modalCard}>
-            <Text variant="h2" align="center" style={styles.modalTitle}>
+        <View style={[styles.modalOverlay, { backgroundColor: colors.overlayScrim }]}>
+          <VCard variant="default" elevation={4} style={[styles.modalCard, { backgroundColor: colors.surfaceCard }]}>
+            <VText variant="headlineLarge" align="center" style={styles.modalTitle}>
               Reschedule Ritual
-            </Text>
-            <Text variant="caption" color={colors.textSecondary} align="center">
+            </VText>
+            <VText variant="caption" color="textMuted" align="center">
               1-Time Free Reschedule • Original Price Preserved
-            </Text>
+            </VText>
 
             <View style={styles.rescheduleContent}>
-              <Text variant="body" color={colors.textSecondary}>
+              <VText variant="bodyMedium" color="textMuted" style={{ marginBottom: 4 }}>
                 Enter new Muhurat start timestamp (ISO format):
-              </Text>
+              </VText>
               <TextInput
-                style={styles.reasonInput}
+                style={[
+                  styles.reasonInput,
+                  {
+                    backgroundColor: colors.surfaceSubtle,
+                    borderColor: colors.borderDefault,
+                    color: colors.textPrimary,
+                  },
+                ]}
                 placeholder="2026-10-15T10:00:00+05:30"
+                placeholderTextColor={colors.textMuted}
                 value={rescheduleDateStr}
                 onChangeText={setRescheduleDateStr}
               />
-              <Text variant="caption" color={colors.textTertiary}>
+              <VText variant="caption" color="textMuted">
                 Note: The Acharya must be available during the new time slot.
-              </Text>
+              </VText>
 
               <View style={styles.modalActions}>
                 <Button
@@ -665,7 +824,7 @@ export const BookingDetailsScreen: React.FC = () => {
                   variant="secondary"
                   size="md"
                   onPress={() => setRescheduleModalVisible(false)}
-                  style={styles.actionButton}
+                  style={{ minHeight: 48, flex: 1 }}
                 />
                 <Button
                   title={rescheduling ? "Updating..." : "Confirm New Slot"}
@@ -673,99 +832,75 @@ export const BookingDetailsScreen: React.FC = () => {
                   size="md"
                   onPress={handleConfirmReschedule}
                   disabled={rescheduling}
-                  style={styles.actionButton}
+                  style={{ minHeight: 48, flex: 1 }}
                 />
               </View>
             </View>
-          </Card>
+          </VCard>
         </View>
       </Modal>
-    </ScreenContainer>
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  loaderWrap: {
+    padding: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  errorStateCard: {
+    padding: 24,
+    alignItems: "center",
+    width: "100%",
+    borderRadius: 12,
+    borderWidth: 1,
+  },
   mainCard: {
-    marginVertical: spacing.sm,
-    padding: spacing.md,
+    marginVertical: 12,
+    padding: 16,
   },
   statusRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  divider: {
-    height: 1,
-    backgroundColor: colors.borderLight,
-    marginVertical: spacing.sm,
-  },
   pujaTitle: {
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   infoGrid: {
     flexDirection: "row",
-    gap: spacing.md,
+    justifyContent: "space-between",
+    marginTop: 8,
   },
   infoCol: {
     flex: 1,
   },
+  formatText: {
+    textTransform: "capitalize",
+  },
+  trackerCard: {
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderRadius: 12,
+  },
   sectionCard: {
-    marginBottom: spacing.sm,
-    padding: spacing.md,
+    padding: 16,
+    marginBottom: 16,
   },
   sectionTitle: {
-    marginBottom: spacing.sm,
-  },
-  reviewSectionCard: {
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-    backgroundColor: "#FFFAF5",
-    borderColor: "#FDBA74",
-    borderWidth: 1,
-  },
-  reviewPromptText: {
-    marginBottom: spacing.md,
-    lineHeight: 20,
-  },
-  reviewBtn: {
-    marginTop: spacing.xxs,
-  },
-  reviewHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  verifiedReviewBadge: {
-    backgroundColor: "#DCFCE7",
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 2,
-    borderRadius: radius.xs,
-  },
-  reviewStarsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: spacing.xs,
-  },
-  reviewStarsText: {
-    letterSpacing: 2,
-  },
-  submittedComment: {
-    fontStyle: "italic",
-    lineHeight: 20,
+    marginBottom: 12,
   },
   panditRow: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  avatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: spacing.md,
   },
   panditInfo: {
     flex: 1,
@@ -773,130 +908,134 @@ const styles = StyleSheet.create({
   remoteBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.surfaceSubtle,
-    padding: spacing.sm,
-    borderRadius: radius.sm,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 12,
   },
   remoteIcon: {
-    fontSize: 28,
-    marginRight: spacing.sm,
+    marginRight: 12,
   },
   remoteTextWrap: {
     flex: 1,
   },
+  subTextSpacing: {
+    marginTop: 4,
+  },
   lineItemsList: {
-    gap: spacing.xs,
+    gap: 8,
   },
   lineItemRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: spacing.xxs,
   },
   lineItemInfo: {
     flex: 1,
   },
   financialCard: {
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-    gap: spacing.xs,
+    padding: 16,
+    marginBottom: 16,
   },
   financialRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 2,
+    marginVertical: 4,
   },
   balanceActionWrap: {
-    marginTop: spacing.xs,
+    marginTop: 12,
   },
   balanceNoticeBox: {
-    backgroundColor: "#FFFBEB",
-    borderColor: "#FDE68A",
+    padding: 12,
+    borderRadius: 8,
     borderWidth: 1,
-    padding: spacing.sm,
-    borderRadius: radius.sm,
-    marginBottom: spacing.xs,
+    marginBottom: 8,
   },
   paidBadgeBox: {
-    backgroundColor: "#F0FDF4",
-    borderColor: "#BBF7D0",
+    padding: 12,
+    borderRadius: 8,
     borderWidth: 1,
-    padding: spacing.sm,
-    borderRadius: radius.sm,
-    marginTop: spacing.xs,
+    marginTop: 12,
     alignItems: "center",
   },
-  payBalanceBtn: {
-    marginTop: spacing.xxs,
+  reviewSectionCard: {
+    padding: 16,
+    marginBottom: 16,
+  },
+  reviewPromptText: {
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  reviewHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  verifiedReviewBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  reviewStarsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 8,
+  },
+  submittedComment: {
+    fontStyle: "italic",
+    marginTop: 4,
   },
   actionCard: {
-    marginBottom: spacing.xl,
-    padding: spacing.md,
+    padding: 16,
+    marginBottom: 16,
   },
   actionButtonsCol: {
-    gap: spacing.sm,
-  },
-  formatText: {
-    textTransform: "capitalize",
-  },
-  subTextSpacing: {
-    marginTop: 2,
-  },
-  joinBtn: {
-    marginTop: spacing.sm,
-  },
-  errorText: {
-    marginTop: spacing.xs,
-    textAlign: "center",
+    gap: 12,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
-    padding: spacing.md,
+    alignItems: "center",
+    padding: 20,
   },
   modalCard: {
-    padding: spacing.lg,
+    width: "100%",
+    padding: 20,
+    borderRadius: 16,
   },
   modalTitle: {
-    marginBottom: spacing.xxs,
+    marginBottom: 4,
   },
   modalLoading: {
-    padding: spacing.xl,
+    padding: 32,
     alignItems: "center",
-    gap: spacing.sm,
   },
   previewBox: {
-    marginTop: spacing.md,
-    gap: spacing.xs,
+    marginTop: 16,
   },
   previewRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 2,
+    marginVertical: 4,
   },
   reasonInput: {
-    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: radius.sm,
-    padding: spacing.sm,
-    marginTop: spacing.sm,
-    marginBottom: spacing.sm,
+    borderRadius: 8,
+    padding: 12,
+    marginVertical: 16,
     fontSize: 14,
   },
   modalActions: {
     flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: spacing.xs,
+    gap: 12,
   },
   rescheduleContent: {
-    marginTop: spacing.md,
-    gap: spacing.xs,
+    marginTop: 16,
   },
-  actionButton: {
-    flex: 1,
+  errorText: {
+    marginTop: 4,
   },
 });
-
