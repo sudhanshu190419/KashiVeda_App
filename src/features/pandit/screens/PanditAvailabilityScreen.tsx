@@ -4,46 +4,72 @@ import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-nat
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Card, Header, ScreenContainer, Text } from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing } from "../../../shared/theme/index.ts";
+import { colors, radius, spacing, useTheme, getDevanagariLineHeight } from "../../../shared/theme/index.ts";
+import { useLanguage } from "../../../shared/i18n/index.ts";
 import { AvailabilityRuleCard } from "../components/AvailabilityRuleCard.tsx";
 import { usePanditAvailability } from "../hooks/usePanditAvailability.ts";
 
 export const PanditAvailabilityScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const { isDark, colors: themeColors } = useTheme();
+  const { language } = useLanguage();
+  const isHi = language === "hi";
   const { rules, loading, error, saveRule } = usePanditAvailability();
 
   // Days 0 (Sunday) through 6 (Saturday)
   const days = [0, 1, 2, 3, 4, 5, 6];
 
   return (
-    <ScreenContainer scrollable padded>
+    <ScreenContainer scrollable padded style={{ backgroundColor: themeColors.surfaceBase }}>
       <Header
         title="Weekly Schedule"
         subtitle="Manage your recurring working hours across days of the week"
+        onBack={() => navigation.goBack()}
       />
 
-      {/* Info Card */}
-      <Card variant="outlined" style={styles.infoCard}>
-        <Text variant="captionMedium" color={colors.primary}>
+      {/* Info Card with Sacred Devanagari Caption */}
+      <Card
+        variant="outlined"
+        style={[
+          styles.infoCard,
+          {
+            backgroundColor: isDark ? "rgba(224, 86, 36, 0.08)" : "#FFFDFB",
+            borderColor: isDark ? "rgba(224, 86, 36, 0.3)" : themeColors.borderDefault,
+          },
+        ]}
+      >
+        <Text
+          variant="captionMedium"
+          color={colors.primary}
+          style={{ lineHeight: getDevanagariLineHeight(13) }}
+        >
           ॥ कालनिर्णय • Working Windows ॥
         </Text>
-        <Text variant="caption" color={colors.textSecondary} style={styles.infoText}>
+        <Text variant="caption" color={themeColors.textMuted} style={styles.infoText}>
           Devotees can only book rituals during active working hours. Existing confirmed bookings are never affected by schedule adjustments.
         </Text>
       </Card>
 
       {/* Quick Navigation to Blocks */}
       <TouchableOpacity
-        style={styles.blockLinkCard}
+        style={[
+          styles.blockLinkCard,
+          {
+            backgroundColor: themeColors.surfaceCard,
+            borderColor: themeColors.borderDefault,
+          },
+        ]}
         onPress={() => navigation.navigate("PanditUnavailableBlocks")}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Block Specific Dates or Travel Range"
       >
         <Text style={styles.blockIcon}>🚫</Text>
         <View style={styles.blockTextWrap}>
-          <Text variant="bodyMedium">
+          <Text variant="bodyMedium" color={themeColors.textPrimary}>
             Block Specific Dates or Travel Range &gt;
           </Text>
-          <Text variant="caption" color={colors.textSecondary}>
+          <Text variant="caption" color={themeColors.textMuted}>
             Mark ad-hoc personal or travel time off
           </Text>
         </View>
@@ -53,7 +79,7 @@ export const PanditAvailabilityScreen: React.FC = () => {
       {loading ? (
         <View style={styles.loadingBox}>
           <ActivityIndicator size="small" color={colors.primary} />
-          <Text variant="caption" color={colors.textSecondary} style={styles.loadingText}>
+          <Text variant="caption" color={themeColors.textMuted} style={styles.loadingText}>
             Loading weekly schedule...
           </Text>
         </View>
@@ -74,7 +100,7 @@ export const PanditAvailabilityScreen: React.FC = () => {
       )}
 
       {error ? (
-        <Text variant="caption" color={colors.error} style={styles.errorText}>
+        <Text variant="caption" color={colors.error || "#EF4444"} style={styles.errorText}>
           {error}
         </Text>
       ) : null}
@@ -84,24 +110,23 @@ export const PanditAvailabilityScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   infoCard: {
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-    backgroundColor: "#FFFDFB",
+    marginBottom: 10,
+    padding: 14,
+    borderRadius: radius.md,
   },
   infoText: {
-    marginTop: spacing.xxs,
+    marginTop: 4,
     lineHeight: 18,
   },
   blockLinkCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.surface,
-    borderColor: colors.borderLight,
     borderWidth: 1,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    gap: spacing.sm,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 16,
+    gap: 12,
+    minHeight: 52,
   },
   blockIcon: {
     fontSize: 22,
@@ -110,18 +135,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   loadingBox: {
-    paddingVertical: spacing.xl,
+    paddingVertical: 32,
     alignItems: "center",
   },
   loadingText: {
-    marginTop: spacing.xs,
+    marginTop: 8,
   },
   rulesList: {
-    gap: spacing.xxs,
-    marginBottom: spacing.xl,
+    gap: 4,
+    marginBottom: 32,
   },
   errorText: {
-    marginTop: spacing.sm,
+    marginTop: 10,
     textAlign: "center",
   },
 });

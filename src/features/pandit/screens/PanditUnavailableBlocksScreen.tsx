@@ -9,12 +9,16 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Button, Card, Header, Input, ScreenContainer, Text } from "../../../shared/components/ui/index.ts";
-import { colors, spacing } from "../../../shared/theme/index.ts";
+import { colors, radius, spacing, useTheme, getDevanagariLineHeight } from "../../../shared/theme/index.ts";
+import { useLanguage } from "../../../shared/i18n/index.ts";
 import { UnavailabilityBlockCard } from "../components/UnavailabilityBlockCard.tsx";
 import { usePanditBlocks } from "../hooks/usePanditBlocks.ts";
 
 export const PanditUnavailableBlocksScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { isDark, colors: themeColors } = useTheme();
+  const { language } = useLanguage();
+  const isHi = language === "hi";
   const { blocks, loading, saving, error, addBlock, deleteBlock } = usePanditBlocks();
 
   const [showAddForm, setShowAddForm] = useState<boolean>(false);
@@ -76,7 +80,7 @@ export const PanditUnavailableBlocksScreen: React.FC = () => {
   };
 
   return (
-    <ScreenContainer scrollable padded>
+    <ScreenContainer scrollable padded style={{ backgroundColor: themeColors.surfaceBase }}>
       <Header
         title="Unavailable Blocks"
         subtitle="Block specific dates or hours for personal commitments"
@@ -84,8 +88,17 @@ export const PanditUnavailableBlocksScreen: React.FC = () => {
       />
 
       {/* Info notice */}
-      <Card variant="outlined" style={styles.infoCard}>
-        <Text variant="caption" color={colors.textSecondary}>
+      <Card
+        variant="outlined"
+        style={[
+          styles.infoCard,
+          {
+            backgroundColor: isDark ? "rgba(224, 86, 36, 0.08)" : "#FFFDFB",
+            borderColor: isDark ? "rgba(224, 86, 36, 0.3)" : themeColors.borderDefault,
+          },
+        ]}
+      >
+        <Text variant="caption" color={themeColors.textMuted}>
           ℹ️ Unavailable blocks protect your time for festivals, personal rituals, or travel. Blocks cannot be created over an already confirmed customer booking.
         </Text>
       </Card>
@@ -100,12 +113,21 @@ export const PanditUnavailableBlocksScreen: React.FC = () => {
           style={styles.addBtn}
         />
       ) : (
-        <Card variant="elevated" style={styles.formCard}>
-          <Text variant="h3" style={styles.formTitle}>
+        <Card
+          variant="elevated"
+          style={[
+            styles.formCard,
+            {
+              backgroundColor: themeColors.surfaceCard,
+              borderColor: colors.primary,
+            },
+          ]}
+        >
+          <Text variant="h3" color={themeColors.textPrimary} style={styles.formTitle}>
             New Unavailable Block
           </Text>
 
-          <Text variant="caption" color={colors.textSecondary} style={styles.inputLabel}>
+          <Text variant="caption" color={themeColors.textMuted} style={styles.inputLabel}>
             Date (YYYY-MM-DD)
           </Text>
           <Input
@@ -117,7 +139,7 @@ export const PanditUnavailableBlocksScreen: React.FC = () => {
 
           <View style={styles.timeRow}>
             <View style={styles.timeCol}>
-              <Text variant="caption" color={colors.textSecondary} style={styles.inputLabel}>
+              <Text variant="caption" color={themeColors.textMuted} style={styles.inputLabel}>
                 From (HH:MM)
               </Text>
               <Input
@@ -129,7 +151,7 @@ export const PanditUnavailableBlocksScreen: React.FC = () => {
             </View>
 
             <View style={styles.timeCol}>
-              <Text variant="caption" color={colors.textSecondary} style={styles.inputLabel}>
+              <Text variant="caption" color={themeColors.textMuted} style={styles.inputLabel}>
                 To (HH:MM)
               </Text>
               <Input
@@ -141,7 +163,7 @@ export const PanditUnavailableBlocksScreen: React.FC = () => {
             </View>
           </View>
 
-          <Text variant="caption" color={colors.textSecondary} style={styles.inputLabel}>
+          <Text variant="caption" color={themeColors.textMuted} style={styles.inputLabel}>
             Reason / Note (Optional)
           </Text>
           <Input
@@ -151,7 +173,7 @@ export const PanditUnavailableBlocksScreen: React.FC = () => {
           />
 
           {formError ? (
-            <Text variant="caption" color={colors.error} style={styles.errorText}>
+            <Text variant="caption" color={colors.error || "#EF4444"} style={styles.errorText}>
               {formError}
             </Text>
           ) : null}
@@ -163,8 +185,10 @@ export const PanditUnavailableBlocksScreen: React.FC = () => {
                 setFormError(null);
               }}
               style={styles.cancelBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel Adding Block"
             >
-              <Text variant="bodyMedium" color={colors.textSecondary}>
+              <Text variant="bodyMedium" color={themeColors.textMuted}>
                 Cancel
               </Text>
             </TouchableOpacity>
@@ -175,20 +199,21 @@ export const PanditUnavailableBlocksScreen: React.FC = () => {
               size="sm"
               onPress={handleCreateBlock}
               disabled={saving}
+              style={{ minHeight: 48, minWidth: 100 }}
             />
           </View>
         </Card>
       )}
 
       {/* List of current blocks */}
-      <Text variant="h3" style={styles.listHeader}>
+      <Text variant="h3" color={themeColors.textPrimary} style={styles.listHeader}>
         Your Active Blocks ({blocks.length})
       </Text>
 
       {loading ? (
         <View style={styles.loadingBox}>
           <ActivityIndicator size="small" color={colors.primary} />
-          <Text variant="caption" color={colors.textSecondary} style={styles.loadingText}>
+          <Text variant="caption" color={themeColors.textMuted} style={styles.loadingText}>
             Loading blocks...
           </Text>
         </View>
@@ -197,15 +222,15 @@ export const PanditUnavailableBlocksScreen: React.FC = () => {
           <UnavailabilityBlockCard key={b.id} block={b} onDelete={handleDelete} />
         ))
       ) : (
-        <Card style={styles.emptyCard}>
-          <Text variant="body" color={colors.textSecondary} align="center">
+        <Card style={[styles.emptyCard, { backgroundColor: themeColors.surfaceCard, borderColor: themeColors.borderDefault }]}>
+          <Text variant="body" color={themeColors.textMuted} align="center">
             You currently have no ad-hoc unavailable blocks configured.
           </Text>
         </Card>
       )}
 
       {error ? (
-        <Text variant="caption" color={colors.error} style={styles.errorText}>
+        <Text variant="caption" color={colors.error || "#EF4444"} style={styles.errorText}>
           {error}
         </Text>
       ) : null}
@@ -215,59 +240,67 @@ export const PanditUnavailableBlocksScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   infoCard: {
-    marginBottom: spacing.sm,
-    padding: spacing.md,
+    marginBottom: 10,
+    padding: 14,
+    borderRadius: radius.md,
   },
   addBtn: {
-    marginBottom: spacing.md,
+    marginBottom: 16,
+    minHeight: 48,
   },
   formCard: {
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderColor: colors.primary,
+    padding: 16,
+    marginBottom: 16,
     borderWidth: 1,
+    borderRadius: radius.md,
   },
   formTitle: {
-    marginBottom: spacing.xs,
+    marginBottom: 8,
   },
   inputLabel: {
-    marginTop: spacing.xs,
-    marginBottom: spacing.xxs,
+    marginTop: 8,
+    marginBottom: 4,
   },
   timeRow: {
     flexDirection: "row",
-    gap: spacing.sm,
+    gap: 10,
   },
   timeCol: {
     flex: 1,
   },
   errorText: {
-    marginTop: spacing.xs,
+    marginTop: 8,
   },
   formActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
-    gap: spacing.md,
-    marginTop: spacing.md,
+    gap: 16,
+    marginTop: 16,
   },
   cancelBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: spacing.sm,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minHeight: 48,
+    minWidth: 48,
+    justifyContent: "center",
+    alignItems: "center",
   },
   listHeader: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
+    marginTop: 10,
+    marginBottom: 8,
   },
   loadingBox: {
-    paddingVertical: spacing.xl,
+    paddingVertical: 32,
     alignItems: "center",
   },
   loadingText: {
-    marginTop: spacing.xs,
+    marginTop: 8,
   },
   emptyCard: {
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.md,
+    paddingVertical: 32,
+    paddingHorizontal: 16,
+    borderRadius: radius.md,
+    borderWidth: 1,
   },
 });

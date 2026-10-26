@@ -13,7 +13,9 @@ import {
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Button, Card, ErrorState, Header, LoadingState, ScreenContainer, Text } from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing } from "../../../shared/theme/index.ts";
+import { EscrowBadge } from "../../../shared/components/spiritual/EscrowBadge.tsx";
+import { colors, radius, spacing, useTheme, getDevanagariLineHeight } from "../../../shared/theme/index.ts";
+import { useLanguage } from "../../../shared/i18n/index.ts";
 import { formatCurrency, formatDate, formatTime } from "../../../shared/utils/formatters.ts";
 import { BookingStatusBadge } from "../../booking/components/BookingStatusBadge.tsx";
 import { usePanditBookingDetail } from "../hooks/usePanditBookingDetail.ts";
@@ -24,6 +26,9 @@ export const PanditBookingDetailsScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const route = useRoute<RouteProp<{ params: { bookingId: string } }, "params">>();
   const bookingId = route.params?.bookingId || "";
+  const { isDark, colors: themeColors } = useTheme();
+  const { language } = useLanguage();
+  const isHi = language === "hi";
 
   const {
     booking,
@@ -94,7 +99,7 @@ export const PanditBookingDetailsScreen: React.FC = () => {
 
   if (loading && !booking) {
     return (
-      <ScreenContainer padded>
+      <ScreenContainer padded style={{ backgroundColor: themeColors.surfaceBase }}>
         <Header title="Ritual Details" onBack={() => navigation.goBack()} />
         <LoadingState message="Loading ritual booking details..." />
       </ScreenContainer>
@@ -103,7 +108,7 @@ export const PanditBookingDetailsScreen: React.FC = () => {
 
   if (error || !booking) {
     return (
-      <ScreenContainer padded>
+      <ScreenContainer padded style={{ backgroundColor: themeColors.surfaceBase }}>
         <Header title="Ritual Details" onBack={() => navigation.goBack()} />
         <ErrorState
           title="Booking Not Found"
@@ -175,53 +180,70 @@ export const PanditBookingDetailsScreen: React.FC = () => {
   };
 
   return (
-    <ScreenContainer scrollable padded>
+    <ScreenContainer scrollable padded style={{ backgroundColor: themeColors.surfaceBase }}>
       <Header
         title="Ritual Details"
         subtitle={booking.booking_number}
         onBack={() => navigation.goBack()}
       />
 
+      {/* Spiritual Escrow Badge */}
+      <EscrowBadge
+        status={booking.status}
+        amountInr={booking.total_amount}
+        compact={false}
+        style={{ marginBottom: 12 }}
+      />
+
       {/* Main Status & Ceremony Card */}
-      <Card variant="elevated" style={styles.mainCard}>
+      <Card
+        variant="elevated"
+        style={[
+          styles.mainCard,
+          {
+            backgroundColor: themeColors.surfaceCard,
+            borderColor: themeColors.borderDefault,
+          },
+        ]}
+      >
         <View style={styles.statusRow}>
           <View style={styles.ceremonyWrap}>
-            <Text variant="caption" color={colors.textSecondary}>
+            <Text variant="caption" color={themeColors.textMuted}>
               Sacred Ceremony
             </Text>
-            <Text variant="h2" style={styles.ceremonyName}>
+            <Text variant="h2" color={themeColors.textPrimary} style={styles.ceremonyName}>
               {booking.puja_service?.name || "Vedic Ritual"}
             </Text>
           </View>
           <BookingStatusBadge status={booking.status} />
         </View>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: themeColors.borderDefault }]} />
 
         <View style={styles.infoGrid}>
           <View style={styles.infoCol}>
-            <Text variant="caption" color={colors.textSecondary}>
+            <Text variant="caption" color={themeColors.textMuted}>
               Scheduled Date
             </Text>
-            <Text variant="bodyMedium">
+            <Text variant="bodyMedium" color={themeColors.textPrimary}>
               {formatDate(startDate)}
             </Text>
           </View>
 
           <View style={styles.infoCol}>
-            <Text variant="caption" color={colors.textSecondary}>
+            <Text variant="caption" color={themeColors.textMuted}>
               Muhurat Time
             </Text>
-            <Text variant="bodyMedium">
+            <Text variant="bodyMedium" color={themeColors.textPrimary}>
               {formatTime(startDate)}
             </Text>
           </View>
 
           <View style={styles.infoCol}>
-            <Text variant="caption" color={colors.textSecondary}>
+            <Text variant="caption" color={themeColors.textMuted}>
               Format
             </Text>
-            <Text variant="bodyMedium" style={styles.formatText}>
+            <Text variant="bodyMedium" color={themeColors.textPrimary} style={styles.formatText}>
               {booking.service_mode} Ritual
             </Text>
           </View>
@@ -229,20 +251,29 @@ export const PanditBookingDetailsScreen: React.FC = () => {
       </Card>
 
       {/* Devotee Information Card */}
-      <Card style={styles.sectionCard}>
-        <Text variant="h3" style={styles.sectionTitle}>
+      <Card style={[styles.sectionCard, { backgroundColor: themeColors.surfaceCard, borderColor: themeColors.borderDefault }]}>
+        <Text variant="h3" color={themeColors.textPrimary} style={styles.sectionTitle}>
           Devotee Information
         </Text>
         <View style={styles.devoteeRow}>
-          <View style={styles.avatarCircle}>
+          <View
+            style={[
+              styles.avatarCircle,
+              {
+                backgroundColor: isDark ? "rgba(224, 86, 36, 0.2)" : colors.primaryLight || "#FEF3EB",
+              },
+            ]}
+          >
             <Text variant="h3" color={colors.primary}>
               {booking.customer?.display_name?.charAt(0) || "D"}
             </Text>
           </View>
           <View style={styles.devoteeInfo}>
-            <Text variant="bodyMedium">{booking.customer?.display_name || "Blessed Devotee"}</Text>
+            <Text variant="bodyMedium" color={themeColors.textPrimary}>
+              {booking.customer?.display_name ? `Devotee: ${booking.customer.display_name}` : "Devotee: Devotee Sharma"}
+            </Text>
             {booking.customer?.phone ? (
-              <Text variant="caption" color={colors.textSecondary}>
+              <Text variant="caption" color={themeColors.textMuted}>
                 Contact: {booking.customer.phone}
               </Text>
             ) : null}
@@ -251,18 +282,25 @@ export const PanditBookingDetailsScreen: React.FC = () => {
       </Card>
 
       {/* Location / Remote Access Card */}
-      <Card style={styles.sectionCard}>
-        <Text variant="h3" style={styles.sectionTitle}>
+      <Card style={[styles.sectionCard, { backgroundColor: themeColors.surfaceCard, borderColor: themeColors.borderDefault }]}>
+        <Text variant="h3" color={themeColors.textPrimary} style={styles.sectionTitle}>
           {isRemote ? "Live Video Sanctum" : "Ritual Location"}
         </Text>
 
         {isRemote ? (
           <View>
-            <View style={styles.remoteBox}>
+            <View
+              style={[
+                styles.remoteBox,
+                {
+                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : colors.surfaceSubtle || "#F8FAFC",
+                },
+              ]}
+            >
               <Text style={styles.remoteIcon}>🌐</Text>
               <View style={styles.remoteTextWrap}>
-                <Text variant="bodyMedium">LiveKit Cloud HD Room</Text>
-                <Text variant="caption" color={colors.textSecondary}>
+                <Text variant="bodyMedium" color={themeColors.textPrimary}>LiveKit Cloud HD Room</Text>
+                <Text variant="caption" color={themeColors.textMuted}>
                   Acharyas can join the room 30 minutes before the scheduled start time.
                 </Text>
               </View>
@@ -280,26 +318,26 @@ export const PanditBookingDetailsScreen: React.FC = () => {
             ) : null}
 
             {tokenError ? (
-              <Text variant="caption" color={colors.error} style={styles.errorText}>
+              <Text variant="caption" color={colors.error || "#EF4444"} style={styles.errorText}>
                 {tokenError}
               </Text>
             ) : null}
           </View>
         ) : booking.service_mode === "home" ? (
           <View>
-            <Text variant="bodyMedium">
+            <Text variant="bodyMedium" color={themeColors.textPrimary}>
               {booking.location?.address_snapshot || `${booking.location?.city || "Home Residence"}`}
             </Text>
-            <Text variant="caption" color={colors.textSecondary} style={styles.locationSub}>
+            <Text variant="caption" color={themeColors.textMuted} style={styles.locationSub}>
               Please reach the address 15 minutes before the auspicious muhurat.
             </Text>
           </View>
         ) : (
           <View>
-            <Text variant="bodyMedium">
+            <Text variant="bodyMedium" color={themeColors.textPrimary}>
               {booking.location?.temple_name_snapshot || "Temple Sanctum"}
             </Text>
-            <Text variant="caption" color={colors.textSecondary} style={styles.locationSub}>
+            <Text variant="caption" color={themeColors.textMuted} style={styles.locationSub}>
               {booking.location?.city || "Varanasi"}
             </Text>
           </View>
@@ -308,17 +346,17 @@ export const PanditBookingDetailsScreen: React.FC = () => {
 
       {/* Inclusions (Samagri & Prasad) */}
       {booking.line_items && booking.line_items.length > 0 ? (
-        <Card style={styles.sectionCard}>
-          <Text variant="h3" style={styles.sectionTitle}>
-            Samagri & Prasad Inclusions
+        <Card style={[styles.sectionCard, { backgroundColor: themeColors.surfaceCard, borderColor: themeColors.borderDefault }]}>
+          <Text variant="h3" color={themeColors.textPrimary} style={styles.sectionTitle}>
+            Samagri &amp; Prasad Inclusions
           </Text>
           <View style={styles.lineItemsList}>
             {booking.line_items.map((item) => (
               <View key={item.id} style={styles.lineItemRow}>
-                <Text variant="body" style={styles.lineItemName}>
+                <Text variant="body" color={themeColors.textPrimary} style={styles.lineItemName}>
                   • {item.name_snapshot} ({item.quantity}x)
                 </Text>
-                <Text variant="caption" color={colors.textSecondary}>
+                <Text variant="caption" color={themeColors.textMuted}>
                   {item.item_type}
                 </Text>
               </View>
@@ -329,13 +367,24 @@ export const PanditBookingDetailsScreen: React.FC = () => {
 
       {/* Dedicated Dakshina & Settlement Status Card (for completed bookings) */}
       {isCompleted ? (
-        <Card variant="elevated" style={styles.settlementCard}>
+        <Card
+          variant="elevated"
+          style={[
+            styles.settlementCard,
+            {
+              backgroundColor: isDark ? "rgba(224, 86, 36, 0.08)" : "#FFFDFB",
+              borderColor: isDark ? "rgba(224, 86, 36, 0.3)" : colors.primaryLight,
+            },
+          ]}
+        >
           <View style={styles.settlementHeaderRow}>
             <View style={styles.settlementTitleWrap}>
               <Text variant="overline" color={colors.primary}>
                 PANDIT SETTLEMENT LEDGER
               </Text>
-              <Text variant="h3">Dakshina &amp; Settlement Status</Text>
+              <Text variant="h3" color={themeColors.textPrimary}>
+                Dakshina &amp; Settlement Status
+              </Text>
             </View>
             {booking.payout ? (
               <View
@@ -344,14 +393,14 @@ export const PanditBookingDetailsScreen: React.FC = () => {
                   {
                     backgroundColor:
                       booking.payout.status === "paid"
-                        ? "#dcfce7"
+                        ? isDark ? "rgba(16, 185, 129, 0.2)" : "#dcfce7"
                         : booking.payout.status === "failed"
-                        ? "#fee2e2"
+                        ? isDark ? "rgba(239, 68, 68, 0.2)" : "#fee2e2"
                         : booking.payout.status === "processing"
-                        ? "#f3e8ff"
+                        ? isDark ? "rgba(168, 85, 247, 0.2)" : "#f3e8ff"
                         : booking.payout.status === "approved"
-                        ? "#e0f2fe"
-                        : "#fef3c7",
+                        ? isDark ? "rgba(14, 165, 233, 0.2)" : "#e0f2fe"
+                        : isDark ? "rgba(245, 158, 11, 0.2)" : "#fef3c7",
                   },
                 ]}
               >
@@ -393,14 +442,21 @@ export const PanditBookingDetailsScreen: React.FC = () => {
             )}
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: themeColors.borderDefault }]} />
 
           {booking.payout ? (
             <View>
               {/* Net Earnings Highlight Box */}
-              <View style={styles.netEarningsBox}>
+              <View
+                style={[
+                  styles.netEarningsBox,
+                  {
+                    backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "#faf5ee",
+                  },
+                ]}
+              >
                 <View style={styles.netEarningsCol}>
-                  <Text variant="caption" color={colors.textSecondary}>
+                  <Text variant="caption" color={themeColors.textMuted}>
                     Your Net Dakshina (Disbursement)
                   </Text>
                   <Text variant="h1" color={colors.primary} style={styles.netEarningsAmount}>
@@ -408,10 +464,10 @@ export const PanditBookingDetailsScreen: React.FC = () => {
                   </Text>
                 </View>
                 <View style={styles.grossPlatformCol}>
-                  <Text variant="caption" color={colors.textSecondary}>
+                  <Text variant="caption" color={themeColors.textMuted}>
                     Gross: {formatCurrency(booking.payout.gross_amount)}
                   </Text>
-                  <Text variant="caption" color={colors.textSecondary}>
+                  <Text variant="caption" color={themeColors.textMuted}>
                     Platform Fee: -{formatCurrency(booking.payout.platform_fee)}
                   </Text>
                 </View>
@@ -419,22 +475,22 @@ export const PanditBookingDetailsScreen: React.FC = () => {
 
               {/* Settlement Transfer Details (Only shown when paid) */}
               {booking.payout.status === "paid" ? (
-                <View style={styles.paidDetailsSection}>
+                <View style={[styles.paidDetailsSection, { borderTopColor: themeColors.borderDefault }]}>
                   <View style={styles.financeRow}>
-                    <Text variant="caption" color={colors.textSecondary}>
+                    <Text variant="caption" color={themeColors.textMuted}>
                       Disbursement Status
                     </Text>
-                    <Text variant="bodyMedium" color={colors.success}>
+                    <Text variant="bodyMedium" color={colors.success || "#10B981"}>
                       ✓ Transferred to Bank Account
                     </Text>
                   </View>
 
                   {booking.payout.payment_method ? (
                     <View style={styles.financeRow}>
-                      <Text variant="caption" color={colors.textSecondary}>
+                      <Text variant="caption" color={themeColors.textMuted}>
                         Payment Mode
                       </Text>
-                      <Text variant="bodyMedium" style={{ textTransform: "uppercase" }}>
+                      <Text variant="bodyMedium" color={themeColors.textPrimary} style={{ textTransform: "uppercase" }}>
                         {booking.payout.payment_method.replace("_", " ").toUpperCase()}
                       </Text>
                     </View>
@@ -442,19 +498,19 @@ export const PanditBookingDetailsScreen: React.FC = () => {
 
                   {booking.payout.transaction_reference ? (
                     <View style={styles.financeRow}>
-                      <Text variant="caption" color={colors.textSecondary}>
+                      <Text variant="caption" color={themeColors.textMuted}>
                         UTR / Transaction Reference
                       </Text>
-                      <Text variant="bodyMedium" style={styles.utrText}>
+                      <Text variant="bodyMedium" style={[styles.utrText, { color: colors.primary }]}>
                         {booking.payout.transaction_reference}
                       </Text>
                     </View>
                   ) : booking.payout.provider_payout_id ? (
                     <View style={styles.financeRow}>
-                      <Text variant="caption" color={colors.textSecondary}>
+                      <Text variant="caption" color={themeColors.textMuted}>
                         Gateway Reference ID
                       </Text>
-                      <Text variant="bodyMedium">
+                      <Text variant="bodyMedium" color={themeColors.textPrimary}>
                         {booking.payout.provider_payout_id}
                       </Text>
                     </View>
@@ -462,10 +518,10 @@ export const PanditBookingDetailsScreen: React.FC = () => {
 
                   {booking.payout.confirmed_at || booking.payout.released_at ? (
                     <View style={styles.financeRow}>
-                      <Text variant="caption" color={colors.textSecondary}>
+                      <Text variant="caption" color={themeColors.textMuted}>
                         Settlement Date
                       </Text>
-                      <Text variant="bodyMedium">
+                      <Text variant="bodyMedium" color={themeColors.textPrimary}>
                         {formatDate(new Date(booking.payout.confirmed_at || booking.payout.released_at!))}
                       </Text>
                     </View>
@@ -473,10 +529,10 @@ export const PanditBookingDetailsScreen: React.FC = () => {
 
                   {booking.payout.bank_account ? (
                     <View style={styles.financeRow}>
-                      <Text variant="caption" color={colors.textSecondary}>
+                      <Text variant="caption" color={themeColors.textMuted}>
                         Target Account
                       </Text>
-                      <Text variant="bodyMedium">
+                      <Text variant="bodyMedium" color={themeColors.textPrimary}>
                         {booking.payout.bank_account.bank_name || "Bank Account"} (IFSC: {booking.payout.bank_account.ifsc_code})
                       </Text>
                     </View>
@@ -484,14 +540,16 @@ export const PanditBookingDetailsScreen: React.FC = () => {
 
                   {booking.payout.proof_document_path ? (
                     <View style={styles.financeRow}>
-                      <Text variant="caption" color={colors.textSecondary}>
+                      <Text variant="caption" color={themeColors.textMuted}>
                         Payment Proof
                       </Text>
                       <TouchableOpacity
                         onPress={handleViewPayoutProof}
                         disabled={loadingProof}
-                        style={styles.proofBtn}
+                        style={[styles.proofBtn, { backgroundColor: isDark ? "rgba(14, 165, 233, 0.2)" : "#e0f2fe" }]}
                         activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel="View Payment Proof Receipt"
                       >
                         {loadingProof ? (
                           <ActivityIndicator size="small" color={colors.primary} />
@@ -506,7 +564,15 @@ export const PanditBookingDetailsScreen: React.FC = () => {
                 </View>
               ) : (
                 /* Unpaid / Pending Settlement Information */
-                <View style={styles.unsettledBanner}>
+                <View
+                  style={[
+                    styles.unsettledBanner,
+                    {
+                      backgroundColor: isDark ? "rgba(180, 83, 9, 0.15)" : "#fffbeb",
+                      borderColor: isDark ? "rgba(245, 158, 11, 0.3)" : "#fde68a",
+                    },
+                  ]}
+                >
                   <Text style={styles.unsettledIcon}>
                     {booking.payout.status === "failed" ? "⚠️" : "⏳"}
                   </Text>
@@ -536,7 +602,15 @@ export const PanditBookingDetailsScreen: React.FC = () => {
               )}
             </View>
           ) : (
-            <View style={styles.unsettledBanner}>
+            <View
+              style={[
+                styles.unsettledBanner,
+                {
+                  backgroundColor: isDark ? "rgba(180, 83, 9, 0.15)" : "#fffbeb",
+                  borderColor: isDark ? "rgba(245, 158, 11, 0.3)" : "#fde68a",
+                },
+              ]}
+            >
               <Text style={styles.unsettledIcon}>⏳</Text>
               <View style={styles.unsettledTextWrap}>
                 <Text variant="captionMedium" color="#92400e">
@@ -552,20 +626,20 @@ export const PanditBookingDetailsScreen: React.FC = () => {
       ) : null}
 
       {/* Devotee Payment Overview Card */}
-      <Card style={styles.sectionCard}>
-        <Text variant="h3" style={styles.sectionTitle}>
+      <Card style={[styles.sectionCard, { backgroundColor: themeColors.surfaceCard, borderColor: themeColors.borderDefault }]}>
+        <Text variant="h3" color={themeColors.textPrimary} style={styles.sectionTitle}>
           Devotee Booking &amp; Payment Overview
         </Text>
         <View style={styles.financeRow}>
-          <Text variant="body" color={colors.textSecondary}>
+          <Text variant="body" color={themeColors.textMuted}>
             Total Ritual Value
           </Text>
-          <Text variant="bodyMedium">
+          <Text variant="bodyMedium" color={themeColors.textPrimary}>
             {formatCurrency(booking.total_amount)}
           </Text>
         </View>
         <View style={styles.financeRow}>
-          <Text variant="body" color={colors.textSecondary}>
+          <Text variant="body" color={themeColors.textMuted}>
             Amount Paid to Date
           </Text>
           <Text variant="bodyMedium" color={colors.primary}>
@@ -573,25 +647,33 @@ export const PanditBookingDetailsScreen: React.FC = () => {
           </Text>
         </View>
         <View style={styles.financeRow}>
-          <Text variant="body" color={colors.textSecondary}>
+          <Text variant="body" color={themeColors.textMuted}>
             Outstanding Balance
           </Text>
           <Text
             variant="bodyMedium"
-            color={hasOutstandingBalance ? colors.secondary : colors.success}
+            color={hasOutstandingBalance ? colors.secondary || "#D97706" : colors.success || "#10B981"}
           >
             {formatCurrency(currentOutstandingBalance)}
           </Text>
         </View>
 
         {hasOutstandingBalance ? (
-          <View style={styles.unsettledDevoteeBanner}>
+          <View
+            style={[
+              styles.unsettledDevoteeBanner,
+              {
+                backgroundColor: isDark ? "rgba(180, 83, 9, 0.15)" : "#fffbeb",
+                borderColor: isDark ? "rgba(245, 158, 11, 0.3)" : "#fde68a",
+              },
+            ]}
+          >
             <Text style={styles.unsettledIcon}>⚠️</Text>
             <View style={styles.unsettledTextWrap}>
-              <Text variant="captionMedium" color="#92400e">
+              <Text variant="captionMedium" color={isDark ? "#FDE68A" : "#92400e"}>
                 Devotee Balance Settlement Pending ({formatCurrency(currentOutstandingBalance)})
               </Text>
-              <Text variant="caption" color="#b45309">
+              <Text variant="caption" color={isDark ? "#FCD34D" : "#b45309"}>
                 Devotee has an unsettled balance of {formatCurrency(currentOutstandingBalance)}. Please ask the devotee to settle the balance from their app before marking the ritual completed.
               </Text>
               <TouchableOpacity
@@ -599,6 +681,8 @@ export const PanditBookingDetailsScreen: React.FC = () => {
                 disabled={loading}
                 style={styles.refreshStatusBtn}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Refresh Payment Status"
               >
                 <Text variant="captionMedium" color={colors.primary}>
                   🔄 Refresh Payment Status
@@ -607,8 +691,16 @@ export const PanditBookingDetailsScreen: React.FC = () => {
             </View>
           </View>
         ) : (
-          <View style={styles.paidBadgeBox}>
-            <Text variant="captionMedium" color="#15803d">
+          <View
+            style={[
+              styles.paidBadgeBox,
+              {
+                backgroundColor: isDark ? "rgba(16, 185, 129, 0.15)" : "#f0fdf4",
+                borderColor: isDark ? "rgba(16, 185, 129, 0.3)" : "#bbf7d0",
+              },
+            ]}
+          >
+            <Text variant="captionMedium" color={colors.success || "#15803d"}>
               ✓ Full Ritual Dakshina Paid &amp; Cleared — Eligible for Completion
             </Text>
           </View>
@@ -628,14 +720,15 @@ export const PanditBookingDetailsScreen: React.FC = () => {
             size="lg"
             onPress={handlePressComplete}
             disabled={completing || cancelling}
+            style={{ minHeight: 48 }}
           />
           {hasOutstandingBalance ? (
-            <Text variant="caption" color={colors.textSecondary} align="center" style={{ marginTop: spacing.xs }}>
+            <Text variant="caption" color={themeColors.textMuted} align="center" style={{ marginTop: 8 }}>
               Devotee must settle remaining balance before ritual completion can be submitted.
             </Text>
           ) : null}
           {completeError ? (
-            <Text variant="caption" color={colors.error} align="center" style={styles.errorText}>
+            <Text variant="caption" color={colors.error || "#EF4444"} align="center" style={styles.errorText}>
               {completeError}
             </Text>
           ) : null}
@@ -647,16 +740,25 @@ export const PanditBookingDetailsScreen: React.FC = () => {
               size="md"
               onPress={() => setCancelModalVisible(true)}
               disabled={completing || cancelling}
-              style={{ marginTop: spacing.sm }}
+              style={{ marginTop: 12, minHeight: 48 }}
             />
           )}
         </View>
       ) : isCompleted ? (
-        <Card variant="outlined" style={styles.completedBanner}>
-          <Text variant="h3" color={colors.success} align="center">
+        <Card
+          variant="outlined"
+          style={[
+            styles.completedBanner,
+            {
+              backgroundColor: isDark ? "rgba(16, 185, 129, 0.12)" : "#F0FDF4",
+              borderColor: isDark ? "rgba(16, 185, 129, 0.3)" : "#BBF7D0",
+            },
+          ]}
+        >
+          <Text variant="h3" color={colors.success || "#10B981"} align="center">
             ✓ Ritual Completed
           </Text>
-          <Text variant="caption" color={colors.textSecondary} align="center" style={styles.completedSub}>
+          <Text variant="caption" color={themeColors.textMuted} align="center" style={styles.completedSub}>
             Completed on {booking.completed_at ? formatDate(new Date(booking.completed_at)) : "record"}.
           </Text>
         </Card>
@@ -664,19 +766,30 @@ export const PanditBookingDetailsScreen: React.FC = () => {
 
       {/* Confirmation Dialog Area */}
       {confirmModalVisible ? (
-        <Card variant="elevated" style={styles.confirmCard}>
-          <Text variant="h3" style={styles.confirmTitle}>
+        <Card
+          variant="elevated"
+          style={[
+            styles.confirmCard,
+            {
+              backgroundColor: isDark ? themeColors.surfaceCard : "#FFFDFB",
+              borderColor: colors.primary,
+            },
+          ]}
+        >
+          <Text variant="h3" color={themeColors.textPrimary} style={styles.confirmTitle}>
             Confirm Ritual Completion?
           </Text>
-          <Text variant="body" color={colors.textSecondary} style={styles.confirmDesc}>
+          <Text variant="body" color={themeColors.textMuted} style={styles.confirmDesc}>
             Are you sure you want to mark this Vedic ritual as completed? This will trigger payout disbursement records.
           </Text>
           <View style={styles.confirmActions}>
             <TouchableOpacity
               onPress={() => setConfirmModalVisible(false)}
               style={styles.cancelConfirmBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel Completion"
             >
-              <Text variant="bodyMedium" color={colors.textSecondary}>
+              <Text variant="bodyMedium" color={themeColors.textMuted}>
                 Cancel
               </Text>
             </TouchableOpacity>
@@ -684,12 +797,14 @@ export const PanditBookingDetailsScreen: React.FC = () => {
             <TouchableOpacity
               onPress={handleConfirmCompletion}
               disabled={completing}
-              style={styles.yesConfirmBtn}
+              style={[styles.yesConfirmBtn, { backgroundColor: colors.primary }]}
+              accessibilityRole="button"
+              accessibilityLabel="Yes, Complete Ritual"
             >
               {completing ? (
-                <ActivityIndicator size="small" color={colors.surface} />
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text variant="bodyMedium" color={colors.surface}>
+                <Text variant="bodyMedium" color="#FFFFFF">
                   Yes, Complete Ritual
                 </Text>
               )}
@@ -700,19 +815,30 @@ export const PanditBookingDetailsScreen: React.FC = () => {
 
       {/* Pandit Cancellation Dialog */}
       {cancelModalVisible ? (
-        <Card variant="elevated" style={styles.confirmCard}>
-          <Text variant="h3" style={styles.confirmTitle}>
+        <Card
+          variant="elevated"
+          style={[
+            styles.confirmCard,
+            {
+              backgroundColor: isDark ? themeColors.surfaceCard : "#FFFDFB",
+              borderColor: colors.primary,
+            },
+          ]}
+        >
+          <Text variant="h3" color={themeColors.textPrimary} style={styles.confirmTitle}>
             Cancel Ritual Assignment?
           </Text>
-          <Text variant="body" color={colors.textSecondary} style={styles.confirmDesc}>
+          <Text variant="body" color={themeColors.textMuted} style={styles.confirmDesc}>
             Cancelling this ritual will immediately notify the devotee and grant a 100% full refund of all captured funds.
           </Text>
           <View style={styles.confirmActions}>
             <TouchableOpacity
               onPress={() => setCancelModalVisible(false)}
               style={styles.cancelConfirmBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Keep Ritual"
             >
-              <Text variant="bodyMedium" color={colors.textSecondary}>
+              <Text variant="bodyMedium" color={themeColors.textMuted}>
                 Keep Ritual
               </Text>
             </TouchableOpacity>
@@ -720,12 +846,14 @@ export const PanditBookingDetailsScreen: React.FC = () => {
             <TouchableOpacity
               onPress={handlePanditCancel}
               disabled={cancelling}
-              style={[styles.yesConfirmBtn, { backgroundColor: colors.error }]}
+              style={[styles.yesConfirmBtn, { backgroundColor: colors.error || "#EF4444" }]}
+              accessibilityRole="button"
+              accessibilityLabel="Yes, Cancel and Refund Devotee"
             >
               {cancelling ? (
-                <ActivityIndicator size="small" color={colors.surface} />
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text variant="bodyMedium" color={colors.surface}>
+                <Text variant="bodyMedium" color="#FFFFFF">
                   Yes, Cancel & Refund Devotee
                 </Text>
               )}
@@ -742,11 +870,11 @@ export const PanditBookingDetailsScreen: React.FC = () => {
         onRequestClose={() => setProofModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
+          <View style={[styles.modalCard, { backgroundColor: themeColors.surfaceCard }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: themeColors.borderDefault }]}>
               <View style={styles.modalHeaderLeft}>
-                <Text variant="h3">Payment Transfer Receipt</Text>
-                <Text variant="caption" color={colors.textSecondary}>
+                <Text variant="h3" color={themeColors.textPrimary}>Payment Transfer Receipt</Text>
+                <Text variant="caption" color={themeColors.textMuted}>
                   {booking?.payout?.transaction_reference
                     ? `UTR: ${booking.payout.transaction_reference}`
                     : `Booking #${booking?.booking_number}`}
@@ -754,8 +882,10 @@ export const PanditBookingDetailsScreen: React.FC = () => {
               </View>
               <TouchableOpacity
                 onPress={() => setProofModalVisible(false)}
-                style={styles.closeBtn}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={[styles.closeBtn, { backgroundColor: themeColors.borderDefault }]}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close Receipt Modal"
               >
                 <Text style={styles.closeBtnText}>✕</Text>
               </TouchableOpacity>
@@ -773,7 +903,7 @@ export const PanditBookingDetailsScreen: React.FC = () => {
               )}
             </View>
 
-            <View style={styles.modalFooter}>
+            <View style={[styles.modalFooter, { borderTopColor: themeColors.borderDefault }]}>
               {signedProofUrl ? (
                 <Button
                   variant="outline"
@@ -809,8 +939,10 @@ export const PanditBookingDetailsScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   mainCard: {
-    marginBottom: spacing.sm,
-    padding: spacing.md,
+    marginBottom: 10,
+    padding: 16,
+    borderRadius: radius.md,
+    borderWidth: 1,
   },
   statusRow: {
     flexDirection: "row",
@@ -819,15 +951,14 @@ const styles = StyleSheet.create({
   },
   ceremonyWrap: {
     flex: 1,
-    marginRight: spacing.sm,
+    marginRight: 10,
   },
   ceremonyName: {
-    marginTop: spacing.xxs,
+    marginTop: 4,
   },
   divider: {
     height: 1,
-    backgroundColor: colors.borderLight,
-    marginVertical: spacing.md,
+    marginVertical: 14,
   },
   infoGrid: {
     flexDirection: "row",
@@ -840,24 +971,25 @@ const styles = StyleSheet.create({
     textTransform: "capitalize",
   },
   sectionCard: {
-    marginBottom: spacing.sm,
-    padding: spacing.md,
+    marginBottom: 10,
+    padding: 16,
+    borderRadius: radius.md,
+    borderWidth: 1,
   },
   sectionTitle: {
-    marginBottom: spacing.sm,
+    marginBottom: 12,
   },
   devoteeRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   avatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primaryLight,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: spacing.md,
+    marginRight: 14,
   },
   devoteeInfo: {
     flex: 1,
@@ -865,25 +997,25 @@ const styles = StyleSheet.create({
   remoteBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.surfaceSubtle,
-    padding: spacing.sm,
-    borderRadius: radius.sm,
+    padding: 12,
+    borderRadius: 8,
   },
   remoteIcon: {
     fontSize: 24,
-    marginRight: spacing.sm,
+    marginRight: 10,
   },
   remoteTextWrap: {
     flex: 1,
   },
   joinBtn: {
-    marginTop: spacing.sm,
+    marginTop: 12,
+    minHeight: 48,
   },
   locationSub: {
-    marginTop: 2,
+    marginTop: 4,
   },
   lineItemsList: {
-    gap: spacing.xs,
+    gap: 8,
   },
   lineItemRow: {
     flexDirection: "row",
@@ -897,59 +1029,64 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 2,
+    paddingVertical: 4,
   },
   completionSection: {
-    marginVertical: spacing.lg,
+    marginVertical: 20,
   },
   errorText: {
-    marginTop: spacing.xs,
+    marginTop: 8,
   },
   completedBanner: {
-    marginVertical: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: "#F0FDF4",
-    borderColor: "#BBF7D0",
+    marginVertical: 20,
+    paddingVertical: 16,
+    borderRadius: radius.md,
+    borderWidth: 1,
   },
   completedSub: {
-    marginTop: 2,
+    marginTop: 4,
   },
   confirmCard: {
-    backgroundColor: "#FFFDFB",
-    borderColor: colors.primary,
     borderWidth: 1.5,
-    padding: spacing.md,
-    marginBottom: spacing.xl,
+    padding: 16,
+    marginBottom: 24,
+    borderRadius: radius.md,
   },
   confirmTitle: {
-    marginBottom: spacing.xs,
+    marginBottom: 6,
   },
   confirmDesc: {
-    marginBottom: spacing.md,
+    marginBottom: 14,
     lineHeight: 20,
   },
   confirmActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: spacing.md,
+    gap: 12,
     alignItems: "center",
   },
   cancelConfirmBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    minHeight: 48,
+    minWidth: 48,
+    justifyContent: "center",
+    alignItems: "center",
   },
   yesConfirmBtn: {
-    backgroundColor: colors.primary,
-    paddingVertical: 8,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.xs,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 6,
+    minHeight: 48,
+    minWidth: 100,
+    justifyContent: "center",
+    alignItems: "center",
   },
   settlementCard: {
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-    backgroundColor: "#FFFDFB",
-    borderColor: colors.primaryLight,
+    marginBottom: 10,
+    padding: 16,
     borderWidth: 1.5,
+    borderRadius: radius.md,
   },
   settlementHeaderRow: {
     flexDirection: "row",
@@ -958,12 +1095,12 @@ const styles = StyleSheet.create({
   },
   settlementTitleWrap: {
     flex: 1,
-    marginRight: spacing.sm,
+    marginRight: 10,
   },
   settlementBadge: {
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: radius.xs,
+    borderRadius: 6,
   },
   settlementBadgeText: {
     fontWeight: "700",
@@ -979,16 +1116,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    backgroundColor: "#faf5ee",
-    padding: spacing.md,
-    borderRadius: radius.sm,
-    marginBottom: spacing.sm,
+    padding: 14,
+    borderRadius: 8,
+    marginBottom: 10,
   },
   netEarningsCol: {
     flex: 1,
   },
   netEarningsAmount: {
-    marginTop: spacing.xxs,
+    marginTop: 4,
     fontWeight: "800",
   },
   grossPlatformCol: {
@@ -996,27 +1132,23 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   paidDetailsSection: {
-    marginTop: spacing.xs,
-    paddingTop: spacing.xs,
+    marginTop: 8,
+    paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
-    gap: 4,
+    gap: 6,
   },
   utrText: {
     fontFamily: "monospace",
     fontWeight: "700",
-    color: colors.primary,
   },
   unsettledBanner: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: "#fffbeb",
-    borderColor: "#fde68a",
     borderWidth: 1,
-    borderRadius: radius.sm,
-    padding: spacing.sm,
-    marginTop: spacing.xs,
-    gap: spacing.xs,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+    gap: 8,
   },
   unsettledIcon: {
     fontSize: 18,
@@ -1026,10 +1158,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   proofBtn: {
-    paddingVertical: 2,
-    paddingHorizontal: spacing.xs,
-    borderRadius: radius.xs || 4,
-    backgroundColor: "#e0f2fe",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    minHeight: 48,
+    minWidth: 48,
+    justifyContent: "center",
+    alignItems: "center",
   },
   proofBtnText: {
     fontWeight: "600",
@@ -1039,14 +1174,13 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.65)",
     justifyContent: "center",
     alignItems: "center",
-    padding: spacing.md,
+    padding: 16,
   },
   modalCard: {
     width: "100%",
     maxHeight: "85%",
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
+    borderRadius: 12,
+    padding: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -1058,35 +1192,33 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-    paddingBottom: spacing.sm,
-    marginBottom: spacing.sm,
+    paddingBottom: 10,
+    marginBottom: 10,
   },
   modalHeaderLeft: {
     flex: 1,
-    marginRight: spacing.sm,
+    marginRight: 10,
   },
   closeBtn: {
-    padding: spacing.xs,
-    borderRadius: radius.full || 99,
-    backgroundColor: colors.borderLight,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
   },
   closeBtnText: {
     fontSize: 16,
     fontWeight: "700",
-    color: colors.textSecondary,
-    lineHeight: 18,
     textAlign: "center",
-    width: 18,
   },
   proofImageContainer: {
-    height: 320,
-    backgroundColor: "#f8fafc",
-    borderRadius: radius.sm,
+    height: 300,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
-    marginVertical: spacing.xs,
+    marginVertical: 8,
   },
   proofImage: {
     width: "100%",
@@ -1095,40 +1227,39 @@ const styles = StyleSheet.create({
   modalFooter: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
+    gap: 10,
+    marginTop: 10,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
   },
   modalFullBtn: {
     flex: 1,
+    minHeight: 48,
   },
   modalCloseBtn: {
     flex: 1,
+    minHeight: 48,
   },
   unsettledDevoteeBanner: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: "#fffbeb",
     borderWidth: 1,
-    borderColor: "#fde68a",
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    marginTop: spacing.md,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 14,
   },
   refreshStatusBtn: {
     alignSelf: "flex-start",
-    marginTop: spacing.xs,
-    paddingVertical: spacing.xxs,
+    marginTop: 8,
+    minHeight: 48,
+    minWidth: 48,
+    justifyContent: "center",
   },
   paidBadgeBox: {
-    backgroundColor: "#f0fdf4",
     borderWidth: 1,
-    borderColor: "#bbf7d0",
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    marginTop: spacing.md,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 14,
     alignItems: "center",
   },
 });

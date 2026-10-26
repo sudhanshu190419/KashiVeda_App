@@ -18,7 +18,8 @@ import {
   ScreenContainer,
   Text,
 } from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing } from "../../../shared/theme/index.ts";
+import { colors, radius, spacing, useTheme, getDevanagariLineHeight } from "../../../shared/theme/index.ts";
+import { useLanguage } from "../../../shared/i18n/index.ts";
 import { formatCurrency } from "../../../shared/utils/formatters.ts";
 import { PanditPayoutCard } from "../components/PanditPayoutCard.tsx";
 import { PanditPayoutFilter, usePanditEarnings } from "../hooks/usePanditEarnings.ts";
@@ -26,6 +27,10 @@ import { PanditPayoutItem } from "../types/pandit.types.ts";
 
 export const PanditEarningsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { isDark, colors: themeColors } = useTheme();
+  const { language } = useLanguage();
+  const isHi = language === "hi";
+
   const {
     summary,
     payouts,
@@ -48,7 +53,7 @@ export const PanditEarningsScreen: React.FC = () => {
 
   if (loading && !summary) {
     return (
-      <ScreenContainer padded>
+      <ScreenContainer padded style={{ backgroundColor: themeColors.surfaceBase }}>
         <LoadingState message="Retrieving earnings from settlement ledger..." />
       </ScreenContainer>
     );
@@ -56,7 +61,7 @@ export const PanditEarningsScreen: React.FC = () => {
 
   if (error && !summary) {
     return (
-      <ScreenContainer padded>
+      <ScreenContainer padded style={{ backgroundColor: themeColors.surfaceBase }}>
         <ErrorState
           title="Unable to load earnings"
           message={error}
@@ -81,6 +86,8 @@ export const PanditEarningsScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Go Back"
         >
           <Text variant="bodyMedium" color={colors.primary}>
             &larr; Back
@@ -91,6 +98,8 @@ export const PanditEarningsScreen: React.FC = () => {
           onPress={() => navigation.navigate("PanditPayoutSetup")}
           style={styles.payoutSetupBtn}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Payout Account Setup"
         >
           <Text variant="captionMedium" color={colors.primary}>
             Payout Account &rarr;
@@ -104,12 +113,20 @@ export const PanditEarningsScreen: React.FC = () => {
       />
 
       {/* Hero Earnings Summary Card */}
-      <Card variant="elevated" style={styles.heroCard}>
+      <Card
+        variant="elevated"
+        style={[
+          styles.heroCard,
+          {
+            backgroundColor: isDark ? "rgba(224, 86, 36, 0.9)" : colors.primary,
+          },
+        ]}
+      >
         <View style={styles.heroHeader}>
-          <Text variant="overline" color={colors.surface} style={styles.heroOverline}>
+          <Text variant="overline" color="#FFFFFF" style={styles.heroOverline}>
             TOTAL NET EARNINGS
           </Text>
-          <Text variant="display" color={colors.surface} style={styles.heroAmount}>
+          <Text variant="display" color="#FFFFFF" style={styles.heroAmount}>
             {formatCurrency(summary?.net_earnings || 0)}
           </Text>
         </View>
@@ -118,28 +135,28 @@ export const PanditEarningsScreen: React.FC = () => {
 
         <View style={styles.heroStatsRow}>
           <View style={styles.heroStatItem}>
-            <Text variant="caption" color="rgba(255,255,255,0.8)">
+            <Text variant="caption" color="rgba(255,255,255,0.85)">
               Total Gross
             </Text>
-            <Text variant="bodyBold" color={colors.surface}>
+            <Text variant="bodyBold" color="#FFFFFF">
               {formatCurrency(summary?.total_gross || 0)}
             </Text>
           </View>
 
           <View style={styles.heroStatItem}>
-            <Text variant="caption" color="rgba(255,255,255,0.8)">
+            <Text variant="caption" color="rgba(255,255,255,0.85)">
               Platform Fee
             </Text>
-            <Text variant="bodyBold" color="rgba(255,255,255,0.85)">
+            <Text variant="bodyBold" color="rgba(255,255,255,0.9)">
               -{formatCurrency(summary?.total_platform_fee || 0)}
             </Text>
           </View>
 
           <View style={styles.heroStatItem}>
-            <Text variant="caption" color="rgba(255,255,255,0.8)">
+            <Text variant="caption" color="rgba(255,255,255,0.85)">
               Ritual / Kundli
             </Text>
-            <Text variant="captionMedium" color={colors.surface}>
+            <Text variant="captionMedium" color="#FFFFFF">
               {formatCurrency(summary?.completed_service_gross || 0)} / {formatCurrency(summary?.completed_kundli_gross || 0)}
             </Text>
           </View>
@@ -148,8 +165,8 @@ export const PanditEarningsScreen: React.FC = () => {
 
       {/* Metrics Row: Paid, Pending, Failed */}
       <View style={styles.metricsRow}>
-        <Card style={styles.metricCard}>
-          <Text variant="caption" color={colors.textSecondary}>
+        <Card style={[styles.metricCard, { backgroundColor: themeColors.surfaceCard, borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.borderLight }]}>
+          <Text variant="caption" color={themeColors.textMuted}>
             Disbursed
           </Text>
           <Text variant="h2" color={colors.success || "#10b981"}>
@@ -160,8 +177,8 @@ export const PanditEarningsScreen: React.FC = () => {
           </Text>
         </Card>
 
-        <Card style={styles.metricCard}>
-          <Text variant="caption" color={colors.textSecondary}>
+        <Card style={[styles.metricCard, { backgroundColor: themeColors.surfaceCard, borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.borderLight }]}>
+          <Text variant="caption" color={themeColors.textMuted}>
             Pending
           </Text>
           <Text variant="h2" color="#b45309">
@@ -173,7 +190,16 @@ export const PanditEarningsScreen: React.FC = () => {
         </Card>
 
         {summary && summary.failed_payouts > 0 ? (
-          <Card style={[styles.metricCard, styles.failedMetricCard]}>
+          <Card
+            style={[
+              styles.metricCard,
+              {
+                borderColor: isDark ? "rgba(239, 68, 68, 0.4)" : "#fecaca",
+                backgroundColor: isDark ? "rgba(239, 68, 68, 0.15)" : "#fef2f2",
+                borderWidth: 1,
+              },
+            ]}
+          >
             <Text variant="caption" color="#b91c1c">
               Failed
             </Text>
@@ -189,7 +215,7 @@ export const PanditEarningsScreen: React.FC = () => {
 
       {/* Payout History Section Title & Filter Tabs */}
       <View style={styles.historyHeaderRow}>
-        <Text variant="h3">Payout History</Text>
+        <Text variant="h3" color={themeColors.textPrimary}>Payout History</Text>
       </View>
 
       <View style={styles.tabsRow}>
@@ -198,13 +224,21 @@ export const PanditEarningsScreen: React.FC = () => {
           return (
             <TouchableOpacity
               key={tab.key}
-              style={[styles.tabButton, isActive && styles.tabButtonActive]}
+              style={[
+                styles.tabButton,
+                {
+                  backgroundColor: isActive ? colors.primary : themeColors.surfaceCard,
+                  borderColor: isActive ? colors.primary : (isDark ? "rgba(255, 255, 255, 0.12)" : colors.borderLight),
+                },
+              ]}
               onPress={() => setFilter(tab.key)}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`${tab.label} payout filter`}
             >
               <Text
                 variant="captionMedium"
-                color={isActive ? colors.surface : colors.textSecondary}
+                color={isActive ? "#FFFFFF" : themeColors.textMuted}
               >
                 {tab.label}
               </Text>
@@ -224,7 +258,7 @@ export const PanditEarningsScreen: React.FC = () => {
       return (
         <View style={styles.emptyLoadingBox}>
           <ActivityIndicator size="small" color={colors.primary} />
-          <Text variant="caption" color={colors.textSecondary} style={styles.emptyLoadingText}>
+          <Text variant="caption" color={themeColors.textMuted} style={styles.emptyLoadingText}>
             Loading payout records...
           </Text>
         </View>
@@ -252,7 +286,7 @@ export const PanditEarningsScreen: React.FC = () => {
   };
 
   return (
-    <ScreenContainer padded>
+    <ScreenContainer padded style={{ backgroundColor: themeColors.surfaceBase }}>
       <FlatList
         data={payouts}
         keyExtractor={(item) => item.id}
@@ -278,30 +312,33 @@ export const PanditEarningsScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   listContent: {
-    paddingBottom: spacing.xxl,
+    paddingBottom: 32,
   },
   headerContainer: {
-    marginBottom: spacing.sm,
+    marginBottom: 10,
   },
   topNavRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: spacing.xs,
+    marginBottom: 6,
   },
   backButton: {
-    paddingVertical: spacing.xs,
-    paddingRight: spacing.md,
+    minHeight: 48,
+    minWidth: 48,
+    justifyContent: "center",
+    paddingRight: 16,
   },
   payoutSetupBtn: {
-    paddingVertical: spacing.xs,
-    paddingLeft: spacing.md,
+    minHeight: 48,
+    minWidth: 48,
+    justifyContent: "center",
+    paddingLeft: 16,
   },
   heroCard: {
-    backgroundColor: colors.primary,
-    padding: spacing.lg,
-    borderRadius: radius.lg,
-    marginBottom: spacing.md,
+    padding: 20,
+    borderRadius: 14,
+    marginBottom: 16,
   },
   heroHeader: {
     alignItems: "flex-start",
@@ -309,7 +346,7 @@ const styles = StyleSheet.create({
   heroOverline: {
     letterSpacing: 1.5,
     opacity: 0.9,
-    marginBottom: spacing.xxs,
+    marginBottom: 4,
   },
   heroAmount: {
     fontSize: 32,
@@ -317,8 +354,8 @@ const styles = StyleSheet.create({
   },
   heroDivider: {
     height: 1,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    marginVertical: spacing.md,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    marginVertical: 14,
   },
   heroStatsRow: {
     flexDirection: "row",
@@ -329,49 +366,40 @@ const styles = StyleSheet.create({
   },
   metricsRow: {
     flexDirection: "row",
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
+    gap: 10,
+    marginBottom: 16,
   },
   metricCard: {
     flex: 1,
-    padding: spacing.md,
-    borderRadius: radius.md,
-  },
-  failedMetricCard: {
-    borderColor: "#fecaca",
-    backgroundColor: "#fef2f2",
-    borderWidth: 1,
+    padding: 14,
+    borderRadius: 10,
   },
   historyHeaderRow: {
-    marginBottom: spacing.xs,
+    marginBottom: 8,
   },
   tabsRow: {
     flexDirection: "row",
-    gap: spacing.xs,
-    marginBottom: spacing.md,
+    gap: 8,
+    marginBottom: 14,
   },
   tabButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.full || 99,
-    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    minHeight: 48,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  tabButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
   },
   emptyLoadingBox: {
-    padding: spacing.xl,
+    padding: 32,
     alignItems: "center",
     justifyContent: "center",
   },
   emptyLoadingText: {
-    marginTop: spacing.sm,
+    marginTop: 8,
   },
   footerLoader: {
-    paddingVertical: spacing.md,
+    paddingVertical: 16,
     alignItems: "center",
   },
 });

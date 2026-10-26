@@ -17,7 +17,8 @@ import {
   ScreenContainer,
   Text,
 } from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing } from "../../../shared/theme/index.ts";
+import { colors, radius, spacing, useTheme, getDevanagariLineHeight } from "../../../shared/theme/index.ts";
+import { useLanguage } from "../../../shared/i18n/index.ts";
 import { useAuth } from "../../auth/AuthContext.tsx";
 import { Temple } from "../../booking/types/booking.types.ts";
 import { panditApplicationService } from "../services/panditApplicationService.ts";
@@ -74,6 +75,9 @@ const SACRED_HUBS = [
 export const PanditApplicationWizardScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user, profile } = useAuth();
+  const { isDark, colors: themeColors } = useTheme();
+  const { language } = useLanguage();
+  const isHi = language === "hi";
 
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -575,11 +579,15 @@ export const PanditApplicationWizardScreen: React.FC = () => {
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading application..." />;
+    return (
+      <ScreenContainer padded style={{ backgroundColor: themeColors.surfaceBase }}>
+        <LoadingState message="Loading application..." />
+      </ScreenContainer>
+    );
   }
 
   return (
-    <ScreenContainer scrollable padded>
+    <ScreenContainer scrollable padded style={{ backgroundColor: themeColors.surfaceBase }}>
       <Header
         title="Become a Pandit"
         subtitle="Consecrate your Vedic rituals & offer sacred services to devotees"
@@ -631,7 +639,7 @@ export const PanditApplicationWizardScreen: React.FC = () => {
 
       {/* Step 1: Personal Details */}
       {currentStep === 1 && (
-        <Card style={styles.formCard}>
+        <Card style={[styles.formCard, { backgroundColor: themeColors.surfaceCard, borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.borderLight }]}>
           <Text variant="h3" style={styles.stepHeading}>
             Step 1: Personal & Consecrated Identity
           </Text>
@@ -681,7 +689,7 @@ export const PanditApplicationWizardScreen: React.FC = () => {
 
       {/* Step 2: Professional Background */}
       {currentStep === 2 && (
-        <Card style={styles.formCard}>
+        <Card style={[styles.formCard, { backgroundColor: themeColors.surfaceCard, borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.borderLight }]}>
           <Text variant="h3" style={styles.stepHeading}>
             Step 2: Vedic Background &amp; Lineage
           </Text>
@@ -762,7 +770,7 @@ export const PanditApplicationWizardScreen: React.FC = () => {
 
       {/* Step 3: Coverage & Services */}
       {currentStep === 3 && (
-        <Card style={styles.formCard}>
+        <Card style={[styles.formCard, { backgroundColor: themeColors.surfaceCard, borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.borderLight }]}>
           <Text variant="h3" style={styles.stepHeading}>
             Step 3: Service Radius &amp; Catalog
           </Text>
@@ -1134,7 +1142,7 @@ export const PanditApplicationWizardScreen: React.FC = () => {
 
       {/* Step 4: Verification Documents */}
       {currentStep === 4 && (
-        <Card style={styles.formCard}>
+        <Card style={[styles.formCard, { backgroundColor: themeColors.surfaceCard, borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.borderLight }]}>
           <Text variant="h3" style={styles.stepHeading}>
             Step 4: Verification Documents
           </Text>
@@ -1210,7 +1218,7 @@ export const PanditApplicationWizardScreen: React.FC = () => {
 
       {/* Step 5: Final Review & Affirmation */}
       {currentStep === 5 && (
-        <Card style={styles.formCard}>
+        <Card style={[styles.formCard, { backgroundColor: themeColors.surfaceCard, borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.borderLight }]}>
           <Text variant="h3" style={styles.stepHeading}>
             Step 5: Review &amp; Solemn Submission
           </Text>
@@ -1424,6 +1432,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   chip: {
+    minHeight: 48,
+    justifyContent: "center",
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
     borderRadius: radius.sm,
@@ -1603,12 +1613,16 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   btnFull: {
+    minHeight: 48,
     flex: 1,
   },
   btnHalf: {
+    minHeight: 48,
     flex: 1,
   },
   saveDraftBtn: {
+    minHeight: 48,
+    justifyContent: "center",
     alignItems: "center",
     paddingVertical: spacing.sm,
     marginBottom: spacing.xxl,
@@ -1625,6 +1639,8 @@ const styles = StyleSheet.create({
     marginVertical: spacing.xs,
   },
   hubChip: {
+    minHeight: 48,
+    justifyContent: "center",
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: 999,

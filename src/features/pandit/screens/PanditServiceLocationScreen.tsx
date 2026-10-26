@@ -3,7 +3,8 @@ import React, { useEffect, useState } from "react";
 import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Button, Card, Header, Input, LoadingState, ScreenContainer, Text } from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing } from "../../../shared/theme/index.ts";
+import { colors, radius, spacing, useTheme, getDevanagariLineHeight } from "../../../shared/theme/index.ts";
+import { useLanguage } from "../../../shared/i18n/index.ts";
 import { panditService } from "../services/panditService.ts";
 
 export const SACRED_HUBS = [
@@ -18,6 +19,9 @@ export const SACRED_HUBS = [
 
 export const PanditServiceLocationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { isDark, colors: themeColors } = useTheme();
+  const { language } = useLanguage();
+  const isHi = language === "hi";
 
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
@@ -122,7 +126,7 @@ export const PanditServiceLocationScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <ScreenContainer padded>
+      <ScreenContainer padded style={{ backgroundColor: themeColors.surfaceBase }}>
         <LoadingState message="Connecting to service area registry..." />
       </ScreenContainer>
     );
@@ -133,7 +137,7 @@ export const PanditServiceLocationScreen: React.FC = () => {
   const isFormCoordsValid = !isNaN(parsedLat) && parsedLat >= -90 && parsedLat <= 90 && !isNaN(parsedLng) && parsedLng >= -180 && parsedLng <= 180;
 
   return (
-    <ScreenContainer scrollable padded>
+    <ScreenContainer scrollable padded style={{ backgroundColor: themeColors.surfaceBase }}>
       <Header
         title="Service Location"
         subtitle="Operational base and PostGIS coverage radius"
@@ -141,18 +145,48 @@ export const PanditServiceLocationScreen: React.FC = () => {
       />
 
       {/* Main Status Hero Card */}
-      <Card variant="elevated" style={styles.statusCard}>
+      <Card
+        variant="elevated"
+        style={[
+          styles.statusCard,
+          {
+            backgroundColor: themeColors.surfaceCard,
+            borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.borderLight,
+          },
+        ]}
+      >
         <View style={styles.statusRow}>
           <View>
             <Text variant="overline" color={isConfigured ? colors.primary : "#b45309"}>
               HOME PUJA COVERAGE STATUS
             </Text>
-            <Text variant="h3">
+            <Text variant="h3" color={themeColors.textPrimary}>
               {isConfigured ? "Home Service Configured ✓" : "Home service location not configured"}
             </Text>
           </View>
-          <View style={[styles.badge, isConfigured ? styles.badgeActive : styles.badgeInactive]}>
-            <Text variant="caption" style={[styles.badgeText, isConfigured ? styles.badgeTextActive : styles.badgeTextInactive]}>
+          <View
+            style={[
+              styles.badge,
+              isConfigured
+                ? {
+                    backgroundColor: isDark ? "rgba(16, 185, 129, 0.2)" : "#ecfdf5",
+                    borderColor: isDark ? "rgba(16, 185, 129, 0.4)" : "#a7f3d0",
+                  }
+                : {
+                    backgroundColor: isDark ? "rgba(245, 158, 11, 0.2)" : "#fffbeb",
+                    borderColor: isDark ? "rgba(245, 158, 11, 0.4)" : "#fde68a",
+                  },
+            ]}
+          >
+            <Text
+              variant="caption"
+              style={[
+                styles.badgeText,
+                {
+                  color: isConfigured ? (colors.success || "#059669") : "#b45309",
+                },
+              ]}
+            >
               {isConfigured ? "CONFIGURED" : "NOT CONFIGURED"}
             </Text>
           </View>
@@ -160,27 +194,27 @@ export const PanditServiceLocationScreen: React.FC = () => {
 
         {isConfigured ? (
           <View style={styles.configuredInfo}>
-            <Text variant="bodyMedium" color="#15803d" style={styles.activeBannerText}>
+            <Text variant="bodyMedium" color={colors.success || "#15803d"} style={styles.activeBannerText}>
               Home service is active within {currentRadius} km of this location.
             </Text>
-            <Text variant="caption" color={colors.textSecondary} style={styles.policyNote}>
+            <Text variant="caption" color={themeColors.textMuted} style={styles.policyNote}>
               Your Home Puja service area is calculated from this location and your service radius using PostGIS spatial boundaries.
             </Text>
 
-            <View style={styles.detailsTable}>
+            <View style={[styles.detailsTable, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : themeColors.surfaceBase }]}>
               <View style={styles.detailRow}>
-                <Text variant="caption" color={colors.textSecondary}>Primary City:</Text>
-                <Text variant="bodyMedium">{currentCity}</Text>
+                <Text variant="caption" color={themeColors.textMuted}>Primary City:</Text>
+                <Text variant="bodyMedium" color={themeColors.textPrimary}>{currentCity}</Text>
               </View>
               <View style={styles.detailRow}>
-                <Text variant="caption" color={colors.textSecondary}>Coordinates:</Text>
-                <Text variant="bodyMedium" style={styles.monoText}>
+                <Text variant="caption" color={themeColors.textMuted}>Coordinates:</Text>
+                <Text variant="bodyMedium" color={themeColors.textPrimary} style={styles.monoText}>
                   {currentLat != null ? currentLat.toFixed(6) : "—"}°N, {currentLng != null ? currentLng.toFixed(6) : "—"}°E
                 </Text>
               </View>
               <View style={styles.detailRow}>
-                <Text variant="caption" color={colors.textSecondary}>Coverage Radius:</Text>
-                <Text variant="bodyMedium">{currentRadius} km</Text>
+                <Text variant="caption" color={themeColors.textMuted}>Coverage Radius:</Text>
+                <Text variant="bodyMedium" color={themeColors.textPrimary}>{currentRadius} km</Text>
               </View>
             </View>
 
@@ -200,7 +234,7 @@ export const PanditServiceLocationScreen: React.FC = () => {
           </View>
         ) : (
           <View style={styles.unconfiguredBox}>
-            <Text variant="body" color={colors.textSecondary} style={styles.unconfiguredText}>
+            <Text variant="body" color={themeColors.textMuted} style={styles.unconfiguredText}>
               Devotees cannot book in-person Home Pujas with you until your operational service coordinates are set. Temple and Remote Pujas remain fully available.
             </Text>
             {!isEditing && (
@@ -218,33 +252,57 @@ export const PanditServiceLocationScreen: React.FC = () => {
 
       {/* Success / Error Messages */}
       {successMsg ? (
-        <Card style={styles.successCard}>
-          <Text variant="captionMedium" color="#15803d">
+        <Card
+          style={[
+            styles.successCard,
+            {
+              backgroundColor: isDark ? "rgba(16, 185, 129, 0.15)" : "#f0fdf4",
+              borderColor: isDark ? "rgba(16, 185, 129, 0.3)" : "#86efac",
+            },
+          ]}
+        >
+          <Text variant="captionMedium" color={colors.success || "#15803d"}>
             ✓ {successMsg}
           </Text>
         </Card>
       ) : null}
 
       {errorMsg ? (
-        <Card style={styles.errorCard}>
-          <Text variant="captionMedium" color={colors.error}>
+        <Card
+          style={[
+            styles.errorCard,
+            {
+              backgroundColor: isDark ? "rgba(239, 68, 68, 0.15)" : "#fef2f2",
+              borderColor: isDark ? "rgba(239, 68, 68, 0.3)" : "#fecaca",
+            },
+          ]}
+        >
+          <Text variant="captionMedium" color={colors.error || "#EF4444"}>
             ⚠️ {errorMsg}
           </Text>
         </Card>
       ) : null}
 
-      {/* Editing Form */}
       {isEditing && (
-        <Card variant="elevated" style={styles.formCard}>
-          <Text variant="h3" style={styles.formTitle}>
+        <Card
+          variant="elevated"
+          style={[
+            styles.formCard,
+            {
+              backgroundColor: themeColors.surfaceCard,
+              borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.borderLight,
+            },
+          ]}
+        >
+          <Text variant="h3" color={themeColors.textPrimary} style={styles.formTitle}>
             {isConfigured ? "Update Operational Location" : "Configure Operational Location"}
           </Text>
-          <Text variant="caption" color={colors.textSecondary} style={styles.formSubtitle}>
+          <Text variant="caption" color={themeColors.textMuted} style={styles.formSubtitle}>
             Select a sacred landmark preset or enter exact coordinates to anchor your PostGIS delivery radius.
           </Text>
 
           {/* Primary City */}
-          <Text variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
+          <Text variant="caption" color={themeColors.textMuted} style={styles.fieldLabel}>
             Primary Service City *
           </Text>
           <Input
@@ -254,7 +312,7 @@ export const PanditServiceLocationScreen: React.FC = () => {
           />
 
           {/* Base Address */}
-          <Text variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
+          <Text variant="caption" color={themeColors.textMuted} style={styles.fieldLabel}>
             Service Base Location / Locality Address
           </Text>
           <Input
@@ -264,7 +322,7 @@ export const PanditServiceLocationScreen: React.FC = () => {
           />
 
           {/* Sacred Hub Quick Presets */}
-          <Text variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
+          <Text variant="caption" color={themeColors.textMuted} style={styles.fieldLabel}>
             Quick Select Sacred Location Hub
           </Text>
           <View style={styles.hubsContainer}>
@@ -275,13 +333,25 @@ export const PanditServiceLocationScreen: React.FC = () => {
               return (
                 <TouchableOpacity
                   key={hub.name}
-                  style={[styles.hubChip, isSelected && styles.hubChipActive]}
+                  style={[
+                    styles.hubChip,
+                    {
+                      backgroundColor: isSelected
+                        ? colors.primary
+                        : isDark
+                        ? "rgba(255, 255, 255, 0.08)"
+                        : "#f1f5f9",
+                      borderColor: isSelected ? colors.primary : (isDark ? "rgba(255, 255, 255, 0.1)" : colors.borderLight),
+                    },
+                  ]}
                   onPress={() => handleSelectHub(hub)}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select hub ${hub.name}`}
                 >
                   <Text
                     variant="caption"
-                    color={isSelected ? colors.surface : colors.textPrimary}
+                    color={isSelected ? "#FFFFFF" : themeColors.textPrimary}
                     style={styles.hubChipText}
                   >
                     📍 {hub.name}
@@ -294,7 +364,7 @@ export const PanditServiceLocationScreen: React.FC = () => {
           {/* Coordinate Inputs */}
           <View style={styles.coordsRow}>
             <View style={styles.coordCol}>
-              <Text variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
+              <Text variant="caption" color={themeColors.textMuted} style={styles.fieldLabel}>
                 Base Latitude (°N) *
               </Text>
               <Input
@@ -305,7 +375,7 @@ export const PanditServiceLocationScreen: React.FC = () => {
               />
             </View>
             <View style={styles.coordCol}>
-              <Text variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
+              <Text variant="caption" color={themeColors.textMuted} style={styles.fieldLabel}>
                 Base Longitude (°E) *
               </Text>
               <Input
@@ -319,13 +389,29 @@ export const PanditServiceLocationScreen: React.FC = () => {
 
           {/* Live Spatial Verification Card */}
           {isFormCoordsValid ? (
-            <View style={styles.geoValidCard}>
-              <Text variant="captionMedium" color="#15803d">
+            <View
+              style={[
+                styles.geoValidCard,
+                {
+                  backgroundColor: isDark ? "rgba(16, 185, 129, 0.15)" : "#f0fdf4",
+                  borderColor: isDark ? "rgba(16, 185, 129, 0.3)" : "#86efac",
+                },
+              ]}
+            >
+              <Text variant="captionMedium" color={colors.success || "#15803d"}>
                 ✓ Spatial Anchor Active: Devotees within {editRadius || 25} km of ({parsedLat.toFixed(4)}°, {parsedLng.toFixed(4)}°) can book Home Pujas.
               </Text>
             </View>
           ) : (
-            <View style={styles.geoWarningCard}>
+            <View
+              style={[
+                styles.geoWarningCard,
+                {
+                  backgroundColor: isDark ? "rgba(180, 83, 9, 0.15)" : "#fffbeb",
+                  borderColor: isDark ? "rgba(245, 158, 11, 0.3)" : "#fde68a",
+                },
+              ]}
+            >
               <Text variant="captionMedium" color="#b45309">
                 ⚠️ Valid geographic coordinates are required to enable PostGIS radius matching.
               </Text>
@@ -333,7 +419,7 @@ export const PanditServiceLocationScreen: React.FC = () => {
           )}
 
           {/* Service Radius */}
-          <Text variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
+          <Text variant="caption" color={themeColors.textMuted} style={styles.fieldLabel}>
             Operating Radius (Kilometers) *
           </Text>
           <Input
@@ -352,8 +438,10 @@ export const PanditServiceLocationScreen: React.FC = () => {
                   setErrorMsg(null);
                 }}
                 style={styles.cancelBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel editing location"
               >
-                <Text variant="bodyMedium" color={colors.textSecondary}>
+                <Text variant="bodyMedium" color={themeColors.textMuted}>
                   Cancel
                 </Text>
               </TouchableOpacity>
@@ -372,17 +460,25 @@ export const PanditServiceLocationScreen: React.FC = () => {
       )}
 
       {/* Informational Guidance Card */}
-      <Card style={styles.infoCard}>
-        <Text variant="captionMedium" color={colors.textPrimary} style={styles.infoTitle}>
+      <Card
+        style={[
+          styles.infoCard,
+          {
+            backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "#f8fafc",
+            borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.borderLight,
+          },
+        ]}
+      >
+        <Text variant="captionMedium" color={themeColors.textPrimary} style={styles.infoTitle}>
           Sanctum Spatial Radius Policy
         </Text>
-        <Text variant="caption" color={colors.textSecondary} style={styles.infoText}>
+        <Text variant="caption" color={themeColors.textMuted} style={styles.infoText}>
           • Home Puja bookings strictly require geodesic distance validation between customer residence coordinates and your service base coordinates.
         </Text>
-        <Text variant="caption" color={colors.textSecondary} style={styles.infoText}>
+        <Text variant="caption" color={themeColors.textMuted} style={styles.infoText}>
           • Temple Pujas (conducted at sanctified Varanasi shrines) and Remote Live Pujas are not restricted by geographic distance.
         </Text>
-        <Text variant="caption" color={colors.textSecondary} style={styles.infoText}>
+        <Text variant="caption" color={themeColors.textMuted} style={styles.infoText}>
           • You may update your service location or radius anytime without affecting existing or historical bookings.
         </Text>
       </Card>
@@ -392,8 +488,10 @@ export const PanditServiceLocationScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   statusCard: {
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderRadius: 10,
   },
   statusRow: {
     flexDirection: "row",
@@ -401,46 +499,30 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   badge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.xs,
-  },
-  badgeActive: {
-    backgroundColor: "#ecfdf5",
-    borderColor: "#a7f3d0",
-    borderWidth: 1,
-  },
-  badgeInactive: {
-    backgroundColor: "#fffbeb",
-    borderColor: "#fde68a",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
     borderWidth: 1,
   },
   badgeText: {
     fontWeight: "700",
   },
-  badgeTextActive: {
-    color: "#059669",
-  },
-  badgeTextInactive: {
-    color: "#b45309",
-  },
   configuredInfo: {
-    marginTop: spacing.sm,
+    marginTop: 12,
   },
   activeBannerText: {
     fontWeight: "600",
-    marginBottom: 2,
+    marginBottom: 4,
   },
   policyNote: {
     lineHeight: 18,
-    marginBottom: spacing.sm,
+    marginBottom: 12,
   },
   detailsTable: {
-    backgroundColor: colors.background,
-    borderRadius: radius.xs,
-    padding: spacing.sm,
-    marginBottom: spacing.sm,
-    gap: spacing.xs,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    gap: 8,
   },
   detailRow: {
     flexDirection: "row",
@@ -451,113 +533,113 @@ const styles = StyleSheet.create({
   },
   editBtn: {
     alignSelf: "flex-start",
-    marginTop: spacing.xs,
+    marginTop: 8,
+    minHeight: 48,
   },
   unconfiguredBox: {
-    marginTop: spacing.sm,
+    marginTop: 12,
   },
   unconfiguredText: {
     lineHeight: 20,
-    marginBottom: spacing.sm,
+    marginBottom: 14,
   },
   setBtn: {
     alignSelf: "flex-start",
+    minHeight: 48,
   },
   successCard: {
-    backgroundColor: "#f0fdf4",
-    borderColor: "#86efac",
     borderWidth: 1,
-    padding: spacing.sm,
-    marginBottom: spacing.md,
+    padding: 12,
+    marginBottom: 16,
+    borderRadius: 8,
   },
   errorCard: {
-    backgroundColor: "#fef2f2",
-    borderColor: "#fecaca",
     borderWidth: 1,
-    padding: spacing.sm,
-    marginBottom: spacing.md,
+    padding: 12,
+    marginBottom: 16,
+    borderRadius: 8,
   },
   formCard: {
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderRadius: 10,
   },
   formTitle: {
-    marginBottom: 2,
+    marginBottom: 4,
   },
   formSubtitle: {
-    marginBottom: spacing.sm,
+    marginBottom: 12,
   },
   fieldLabel: {
-    marginTop: spacing.xs,
-    marginBottom: 2,
+    marginTop: 10,
+    marginBottom: 4,
   },
   hubsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacing.xs,
-    marginVertical: spacing.xs,
+    gap: 8,
+    marginVertical: 10,
   },
   hubChip: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 999,
-    backgroundColor: "#f1f5f9",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 48,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  hubChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    justifyContent: "center",
   },
   hubChipText: {
     fontWeight: "500",
   },
   coordsRow: {
     flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: spacing.xs,
+    gap: 10,
+    marginTop: 8,
   },
   coordCol: {
     flex: 1,
   },
   geoValidCard: {
-    backgroundColor: "#f0fdf4",
-    borderColor: "#86efac",
     borderWidth: 1,
-    borderRadius: radius.xs,
-    padding: spacing.sm,
-    marginVertical: spacing.xs,
+    borderRadius: 8,
+    padding: 12,
+    marginVertical: 10,
   },
   geoWarningCard: {
-    backgroundColor: "#fffbeb",
-    borderColor: "#fde68a",
     borderWidth: 1,
-    borderRadius: radius.xs,
-    padding: spacing.sm,
-    marginVertical: spacing.xs,
+    borderRadius: 8,
+    padding: 12,
+    marginVertical: 10,
   },
   formActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
-    gap: spacing.md,
-    marginTop: spacing.md,
+    gap: 14,
+    marginTop: 16,
   },
   cancelBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: spacing.sm,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minHeight: 48,
+    minWidth: 48,
+    justifyContent: "center",
+    alignItems: "center",
   },
   saveBtn: {
     minWidth: 160,
+    minHeight: 48,
   },
   infoCard: {
-    backgroundColor: "#f8fafc",
-    padding: spacing.md,
-    marginBottom: spacing.xxl,
-    gap: 4,
+    padding: 16,
+    marginBottom: 32,
+    borderRadius: 10,
+    gap: 6,
+    borderWidth: 1,
   },
   infoTitle: {
-    marginBottom: 2,
+    marginBottom: 4,
   },
   infoText: {
     lineHeight: 18,

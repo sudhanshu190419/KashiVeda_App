@@ -4,18 +4,22 @@ import { RefreshControl, StyleSheet, TouchableOpacity, View } from "react-native
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Button, Card, ErrorState, LoadingState, ScreenContainer, Text } from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing } from "../../../shared/theme/index.ts";
+import { colors, radius, spacing, useTheme, getDevanagariLineHeight } from "../../../shared/theme/index.ts";
+import { useLanguage } from "../../../shared/i18n/index.ts";
 import { formatDate, formatTime } from "../../../shared/utils/formatters.ts";
 import { PanditBookingCard } from "../components/PanditBookingCard.tsx";
 import { usePanditDashboard } from "../hooks/usePanditDashboard.ts";
 
 export const PanditDashboardScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const { isDark, colors: themeColors } = useTheme();
+  const { language } = useLanguage();
+  const isHi = language === "hi";
   const { summary, loading, refreshing, error, refresh } = usePanditDashboard();
 
   if (loading && !summary) {
     return (
-      <ScreenContainer padded>
+      <ScreenContainer padded style={{ backgroundColor: themeColors.surfaceBase }}>
         <LoadingState message="Connecting to Pandit Sanctum..." />
       </ScreenContainer>
     );
@@ -23,7 +27,7 @@ export const PanditDashboardScreen: React.FC = () => {
 
   if (error && !summary) {
     return (
-      <ScreenContainer padded>
+      <ScreenContainer padded style={{ backgroundColor: themeColors.surfaceBase }}>
         <ErrorState
           title="Unable to load Dashboard"
           message={error}
@@ -41,36 +45,59 @@ export const PanditDashboardScreen: React.FC = () => {
     <ScreenContainer
       scrollable
       padded
+      style={{ backgroundColor: themeColors.surfaceBase }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[colors.primary]} />}
     >
-      {/* Header Blessing */}
+      {/* Sacred Sanctum Banner & Acharya Blessing */}
       <View style={styles.header}>
-        <Text variant="captionMedium" color={colors.primary}>
-          ॥ पण्डित सेवा कक्ष • काशी ॥
-        </Text>
-        <Text variant="h1">
+        <View style={[styles.sacredTopPill, { backgroundColor: isDark ? "rgba(224, 86, 36, 0.15)" : "#FEF3EB" }]}>
+          <Text
+            variant="captionMedium"
+            color={colors.primary}
+            style={{ lineHeight: getDevanagariLineHeight(13) }}
+          >
+            ॥ पण्डित सेवा कक्ष • काशी ॥
+          </Text>
+        </View>
+        <Text variant="h1" color={themeColors.textPrimary} style={styles.greetingTitle}>
           {`Pranam, ${summary?.pandit?.display_name || "Acharya"}`}
         </Text>
-        <Text variant="caption" color={colors.textSecondary}>
+        <Text variant="caption" color={themeColors.textMuted}>
           {formatDate(today)} • Authorized Vedic Priest
         </Text>
       </View>
 
-      {/* Profile & Status Card */}
-      <Card variant="elevated" style={styles.statusCard}>
+      {/* Profile & Operational Status Card */}
+      <Card
+        variant="elevated"
+        style={[
+          styles.statusCard,
+          {
+            backgroundColor: themeColors.surfaceCard,
+            borderColor: themeColors.borderDefault,
+          },
+        ]}
+      >
         <View style={styles.statusHeaderRow}>
           <View>
-            <Text variant="overline" color={colors.secondaryDark}>
+            <Text variant="overline" color={colors.secondaryDark || colors.primary}>
               Operational Status
             </Text>
-            <Text variant="h3">
+            <Text variant="h3" color={themeColors.textPrimary}>
               {summary?.pandit?.verification_status === "approved"
                 ? "Verified Acharya ✓"
                 : "Verification Pending"}
             </Text>
           </View>
-          <View style={[styles.statusBadge, summary?.pandit?.public_status === "available" ? styles.statusAvailable : styles.statusUnavailable]}>
-            <Text variant="caption" color={colors.surface} style={styles.statusBadgeText}>
+          <View
+            style={[
+              styles.statusBadge,
+              summary?.pandit?.public_status === "available"
+                ? { backgroundColor: colors.success || "#10B981" }
+                : { backgroundColor: colors.textTertiary || "#9CA3AF" },
+            ]}
+          >
+            <Text variant="caption" color="#FFFFFF" style={styles.statusBadgeText}>
               {summary?.pandit?.public_status || "available"}
             </Text>
           </View>
@@ -78,16 +105,24 @@ export const PanditDashboardScreen: React.FC = () => {
 
         {!summary?.verifiedBankAccount ? (
           <TouchableOpacity
-            style={styles.locationWarning}
+            style={[
+              styles.locationWarning,
+              {
+                backgroundColor: isDark ? "rgba(180, 83, 9, 0.2)" : "#FEF3C7",
+                borderColor: isDark ? "rgba(245, 158, 11, 0.4)" : "#FCD34D",
+              },
+            ]}
             onPress={() => navigation.navigate("PanditPayoutSetup")}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Payout Bank Account Setup"
           >
             <Text style={styles.warningIcon}>💳</Text>
             <View style={styles.locationWarningTextWrap}>
-              <Text variant="captionMedium" color="#b45309">
+              <Text variant="captionMedium" color={isDark ? "#FDE68A" : "#B45309"}>
                 Payout Bank Account Setup
               </Text>
-              <Text variant="caption" color="#92400e">
+              <Text variant="caption" color={isDark ? "#FCD34D" : "#92400E"}>
                 Bank account verification required by admin for ritual payout disbursements.
               </Text>
             </View>
@@ -96,16 +131,24 @@ export const PanditDashboardScreen: React.FC = () => {
 
         {summary?.pandit?.base_latitude == null || summary?.pandit?.base_longitude == null ? (
           <TouchableOpacity
-            style={styles.locationWarning}
+            style={[
+              styles.locationWarning,
+              {
+                backgroundColor: isDark ? "rgba(180, 83, 9, 0.2)" : "#FEF3C7",
+                borderColor: isDark ? "rgba(245, 158, 11, 0.4)" : "#FCD34D",
+              },
+            ]}
             onPress={() => navigation.navigate("PanditServiceLocation")}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Configure Service Location"
           >
             <Text style={styles.warningIcon}>📍</Text>
             <View style={styles.locationWarningTextWrap}>
-              <Text variant="captionMedium" color="#b45309">
+              <Text variant="captionMedium" color={isDark ? "#FDE68A" : "#B45309"}>
                 Home Service Location Not Configured
               </Text>
-              <Text variant="caption" color="#92400e">
+              <Text variant="caption" color={isDark ? "#FCD34D" : "#92400E"}>
                 Tap here to set your operational base and enable Home Puja bookings.
               </Text>
             </View>
@@ -115,29 +158,29 @@ export const PanditDashboardScreen: React.FC = () => {
 
       {/* Metrics Row */}
       <View style={styles.metricsRow}>
-        <Card style={styles.metricCard}>
+        <Card style={[styles.metricCard, { backgroundColor: themeColors.surfaceCard, borderColor: themeColors.borderDefault }]}>
           <Text variant="h1" color={colors.primary}>
             {summary?.todayBookingsCount || 0}
           </Text>
-          <Text variant="captionMedium" color={colors.textSecondary}>
+          <Text variant="captionMedium" color={themeColors.textMuted}>
             Today&apos;s Rituals
           </Text>
         </Card>
 
-        <Card style={styles.metricCard}>
-          <Text variant="h1" color={colors.secondary}>
+        <Card style={[styles.metricCard, { backgroundColor: themeColors.surfaceCard, borderColor: themeColors.borderDefault }]}>
+          <Text variant="h1" color={colors.secondary || "#D97706"}>
             {summary?.upcomingBookingsCount || 0}
           </Text>
-          <Text variant="captionMedium" color={colors.textSecondary}>
+          <Text variant="captionMedium" color={themeColors.textMuted}>
             Upcoming
           </Text>
         </Card>
 
-        <Card style={styles.metricCard}>
-          <Text variant="h1" color={colors.success}>
+        <Card style={[styles.metricCard, { backgroundColor: themeColors.surfaceCard, borderColor: themeColors.borderDefault }]}>
+          <Text variant="h1" color={colors.success || "#10B981"}>
             {summary?.completedBookingsCount || 0}
           </Text>
-          <Text variant="captionMedium" color={colors.textSecondary}>
+          <Text variant="captionMedium" color={themeColors.textMuted}>
             Completed
           </Text>
         </Card>
@@ -146,26 +189,42 @@ export const PanditDashboardScreen: React.FC = () => {
       {/* Next Ritual Spotlight */}
       {nextBooking && nextStart ? (
         <View style={styles.section}>
-          <Text variant="h3" style={styles.sectionTitle}>
+          <Text variant="h3" color={themeColors.textPrimary} style={styles.sectionTitle}>
             Next Scheduled Ritual
           </Text>
-          <Card variant="elevated" style={styles.nextCard}>
+          <Card
+            variant="elevated"
+            style={[
+              styles.nextCard,
+              {
+                borderColor: colors.primary,
+                backgroundColor: isDark ? "rgba(224, 86, 36, 0.08)" : "#FFFDFB",
+              },
+            ]}
+          >
             <View style={styles.nextHeader}>
-              <View style={styles.nextTimePill}>
+              <View
+                style={[
+                  styles.nextTimePill,
+                  {
+                    backgroundColor: isDark ? "rgba(224, 86, 36, 0.2)" : colors.primaryLight || "#FEF3EB",
+                  },
+                ]}
+              >
                 <Text variant="captionMedium" color={colors.primary}>
                   Today at {formatTime(nextStart)}
                 </Text>
               </View>
-              <Text variant="caption" color={colors.textSecondary}>
+              <Text variant="caption" color={themeColors.textMuted}>
                 Ref: {nextBooking.booking_number}
               </Text>
             </View>
 
-            <Text variant="h2" style={styles.nextPujaName}>
+            <Text variant="h2" color={themeColors.textPrimary} style={styles.nextPujaName}>
               {nextBooking.puja_service?.name || "Vedic Ritual"}
             </Text>
 
-            <Text variant="body" color={colors.textSecondary}>
+            <Text variant="body" color={themeColors.textMuted}>
               Devotee: {nextBooking.customer?.display_name || "Devotee"} ({nextBooking.service_mode} mode)
             </Text>
 
@@ -183,8 +242,14 @@ export const PanditDashboardScreen: React.FC = () => {
       {/* Today's Rituals List */}
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
-          <Text variant="h3">Today&apos;s Schedule</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("PanditBookings")}>
+          <Text variant="h3" color={themeColors.textPrimary}>Today&apos;s Schedule</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("PanditBookings")}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            style={styles.viewAllBtn}
+            accessibilityRole="button"
+            accessibilityLabel="View All Bookings"
+          >
             <Text variant="captionMedium" color={colors.primary}>
               View All &gt;
             </Text>
@@ -200,8 +265,8 @@ export const PanditDashboardScreen: React.FC = () => {
             />
           ))
         ) : (
-          <Card style={styles.emptyCard}>
-            <Text variant="body" color={colors.textSecondary} align="center">
+          <Card style={[styles.emptyCard, { backgroundColor: themeColors.surfaceCard, borderColor: themeColors.borderDefault }]}>
+            <Text variant="body" color={themeColors.textMuted} align="center">
               No rituals scheduled for today. May Lord Shiva bless your day.
             </Text>
           </Card>
@@ -210,62 +275,94 @@ export const PanditDashboardScreen: React.FC = () => {
 
       {/* Quick Access Actions */}
       <View style={styles.section}>
-        <Text variant="h3" style={styles.sectionTitle}>
+        <Text variant="h3" color={themeColors.textPrimary} style={styles.sectionTitle}>
           Schedule & Operational Actions
         </Text>
         <View style={styles.actionGrid}>
           <TouchableOpacity
-            style={styles.actionCard}
+            style={[
+              styles.actionCard,
+              {
+                backgroundColor: themeColors.surfaceCard,
+                borderColor: themeColors.borderDefault,
+              },
+            ]}
             onPress={() => navigation.navigate("PanditAvailability")}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Weekly Schedule"
           >
             <Text style={styles.actionIcon}>📅</Text>
-            <Text variant="bodyMedium" style={styles.actionTitle}>
+            <Text variant="bodyMedium" color={themeColors.textPrimary} style={styles.actionTitle}>
               Weekly Schedule
             </Text>
-            <Text variant="caption" color={colors.textSecondary}>
+            <Text variant="caption" color={themeColors.textMuted}>
               Adjust your recurring daily working hours
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.actionCard}
+            style={[
+              styles.actionCard,
+              {
+                backgroundColor: themeColors.surfaceCard,
+                borderColor: themeColors.borderDefault,
+              },
+            ]}
             onPress={() => navigation.navigate("PanditUnavailableBlocks")}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Block Dates"
           >
             <Text style={styles.actionIcon}>🚫</Text>
-            <Text variant="bodyMedium" style={styles.actionTitle}>
+            <Text variant="bodyMedium" color={themeColors.textPrimary} style={styles.actionTitle}>
               Block Dates
             </Text>
-            <Text variant="caption" color={colors.textSecondary}>
+            <Text variant="caption" color={themeColors.textMuted}>
               Mark ad-hoc personal or travel unavailability
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.actionCard}
+            style={[
+              styles.actionCard,
+              {
+                backgroundColor: themeColors.surfaceCard,
+                borderColor: themeColors.borderDefault,
+              },
+            ]}
             onPress={() => navigation.navigate("PanditEarnings")}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Earnings and Payouts"
           >
             <Text style={styles.actionIcon}>💰</Text>
-            <Text variant="bodyMedium" style={styles.actionTitle}>
+            <Text variant="bodyMedium" color={themeColors.textPrimary} style={styles.actionTitle}>
               Earnings &amp; Payouts
             </Text>
-            <Text variant="caption" color={colors.textSecondary}>
+            <Text variant="caption" color={themeColors.textMuted}>
               View ritual Dakshina and bank settlement ledger
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.actionCard}
+            style={[
+              styles.actionCard,
+              {
+                backgroundColor: themeColors.surfaceCard,
+                borderColor: themeColors.borderDefault,
+              },
+            ]}
             onPress={() => navigation.navigate("PanditServiceLocation")}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Service Location"
           >
             <Text style={styles.actionIcon}>📍</Text>
-            <Text variant="bodyMedium" style={styles.actionTitle}>
+            <Text variant="bodyMedium" color={themeColors.textPrimary} style={styles.actionTitle}>
               Service Location
             </Text>
-            <Text variant="caption" color={colors.textSecondary}>
+            <Text variant="caption" color={themeColors.textMuted}>
               Configure Home Puja coverage radius and operational base
             </Text>
           </TouchableOpacity>
@@ -277,12 +374,23 @@ export const PanditDashboardScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   header: {
-    marginVertical: spacing.md,
+    marginVertical: 12,
+  },
+  sacredTopPill: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 6,
+  },
+  greetingTitle: {
+    marginBottom: 2,
   },
   statusCard: {
-    backgroundColor: colors.surface,
-    marginBottom: spacing.md,
-    padding: spacing.md,
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: radius.md,
+    borderWidth: 1,
   },
   statusHeaderRow: {
     flexDirection: "row",
@@ -290,118 +398,106 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statusBadge: {
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: radius.xs,
-  },
-  statusAvailable: {
-    backgroundColor: colors.success,
-  },
-  statusUnavailable: {
-    backgroundColor: colors.textTertiary,
+    borderRadius: 6,
   },
   statusBadgeText: {
     textTransform: "capitalize",
     fontWeight: "600",
   },
-  bankWarning: {
+  locationWarning: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFBEB",
-    borderColor: "#FDE68A",
     borderWidth: 1,
-    borderRadius: radius.xs,
-    padding: spacing.sm,
-    marginTop: spacing.sm,
-    gap: spacing.xs,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    gap: 8,
+    minHeight: 48,
   },
   warningIcon: {
-    fontSize: 16,
+    fontSize: 18,
   },
-  bankWarningText: {
+  locationWarningTextWrap: {
     flex: 1,
   },
   metricsRow: {
     flexDirection: "row",
-    gap: spacing.sm,
-    marginBottom: spacing.md,
+    gap: 10,
+    marginBottom: 16,
   },
   metricCard: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: spacing.md,
+    paddingVertical: 14,
+    borderRadius: radius.md,
+    borderWidth: 1,
   },
   section: {
-    marginBottom: spacing.lg,
+    marginBottom: 20,
   },
   sectionTitle: {
-    marginBottom: spacing.xs,
+    marginBottom: 8,
   },
   sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: spacing.xs,
+    marginBottom: 8,
+  },
+  viewAllBtn: {
+    minHeight: 48,
+    minWidth: 48,
+    justifyContent: "center",
+    alignItems: "center",
   },
   nextCard: {
-    padding: spacing.md,
-    borderColor: colors.primary,
+    padding: 16,
     borderWidth: 1.5,
-    backgroundColor: "#FFFDFB",
+    borderRadius: radius.md,
   },
   nextHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: spacing.xs,
+    marginBottom: 6,
   },
   nextTimePill: {
-    backgroundColor: colors.primaryLight,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: radius.xs,
+    borderRadius: 4,
   },
   nextPujaName: {
     fontSize: 18,
-    marginBottom: spacing.xxs,
+    marginBottom: 4,
   },
   nextButton: {
-    marginTop: spacing.sm,
+    marginTop: 12,
+    minHeight: 48,
   },
   emptyCard: {
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.md,
-  },
-  locationWarning: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FEF3C7",
-    borderColor: "#FCD34D",
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderRadius: radius.xs,
-    padding: spacing.sm,
-    marginTop: spacing.sm,
-    gap: spacing.xs,
-  },
-  locationWarningTextWrap: {
-    flex: 1,
   },
   actionGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacing.sm,
+    gap: 10,
   },
   actionCard: {
     width: "48%",
-    backgroundColor: colors.surface,
-    borderColor: colors.borderLight,
     borderWidth: 1,
-    borderRadius: radius.md,
-    padding: spacing.md,
+    borderRadius: 12,
+    padding: 14,
+    minHeight: 110,
+    justifyContent: "center",
   },
   actionIcon: {
     fontSize: 24,
-    marginBottom: spacing.xs,
+    marginBottom: 6,
   },
   actionTitle: {
     marginBottom: 2,

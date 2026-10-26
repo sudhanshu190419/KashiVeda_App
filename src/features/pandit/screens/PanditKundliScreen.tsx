@@ -26,11 +26,15 @@ import {
   ScreenContainer,
   Text,
 } from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing, typography } from "../../../shared/theme/index.ts";
+import { colors, radius, spacing, useTheme, getDevanagariLineHeight } from "../../../shared/theme/index.ts";
+import { useLanguage } from "../../../shared/i18n/index.ts";
 import { formatCurrency, formatDate } from "../../../shared/utils/formatters.ts";
 
 export const PanditKundliScreen: React.FC = () => {
   const { user } = useAuth();
+  const { isDark, colors: themeColors } = useTheme();
+  const { language } = useLanguage();
+  const isHi = language === "hi";
 
   const [activeTab, setActiveTab] = useState<string>("all");
   const statusFilter: KundliOrderStatus | undefined =
@@ -65,11 +69,6 @@ export const PanditKundliScreen: React.FC = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleOpenUploadModal = (order: KundliOrder) => {
-    console.log("[KUNDLI_UPLOAD_DEBUG] Upload modal opened for order:", {
-      orderId: order.id,
-      orderNumber: order.order_number,
-      status: order.status,
-    });
     setSelectedOrderForUpload(order);
     const sanitizedOrderNum = (order.order_number || order.id.slice(0, 8)).replace(/[^a-zA-Z0-9]/g, "");
     setFileNameInput(`Kundli_${sanitizedOrderNum}.pdf`);
@@ -78,7 +77,6 @@ export const PanditKundliScreen: React.FC = () => {
   };
 
   const handleCloseUploadModal = () => {
-    console.log("[KUNDLI_UPLOAD_DEBUG] Upload modal closed");
     setSelectedOrderForUpload(null);
     setPickedFile(null);
     setFileNameInput("");
@@ -86,62 +84,35 @@ export const PanditKundliScreen: React.FC = () => {
   };
 
   const handlePickDocument = async () => {
-    console.log("[KUNDLI_UPLOAD_DEBUG] Choose PDF pressed");
     try {
       setUploadError(null);
       const pdfType = types?.pdf || "application/pdf";
-      console.log("[KUNDLI_UPLOAD_DEBUG] Calling document picker pick() with type:", [pdfType]);
       const res = await pick({
         type: [pdfType],
         allowMultiSelection: false,
       });
-      console.log("[KUNDLI_UPLOAD_DEBUG] Picker returned raw result:", res);
 
       if (!res || res.length === 0) {
-        console.log("[KUNDLI_UPLOAD_DEBUG] Picker returned empty selection or cancelled");
         return;
       }
       const file = res[0];
-      console.log("[KUNDLI_UPLOAD_DEBUG] Selected file metadata:", {
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        uri: file.uri,
-      });
-
-      console.log("[KUNDLI_UPLOAD_DEBUG] Validating PDF file...", {
-        name: file.name,
-        type: file.type,
-        size: file.size,
-      });
 
       if (!file?.uri) {
-        console.log("[KUNDLI_UPLOAD_DEBUG] PDF validation failed: No file URI returned");
         setUploadError("Could not retrieve file path from document picker.");
         return;
       }
 
       const fileName = file.name || "document.pdf";
       if (!fileName.toLowerCase().endsWith(".pdf") && file.type !== "application/pdf") {
-        console.log("[KUNDLI_UPLOAD_DEBUG] PDF validation failed: Invalid extension or MIME", {
-          fileName,
-          type: file.type,
-        });
         setUploadError("Selected file is not a valid PDF document.");
         return;
       }
 
       const maxSizeBytes = 25 * 1024 * 1024; // 25MB max
       if (file.size && file.size > maxSizeBytes) {
-        console.log("[KUNDLI_UPLOAD_DEBUG] PDF validation failed: Size exceeds 25MB limit", {
-          size: file.size,
-          maxSizeBytes,
-        });
         setUploadError("File is too large. Maximum allowed size is 25MB.");
         return;
       }
-
-      console.log("[KUNDLI_UPLOAD_DEBUG] PDF validation passed successfully");
 
       const pickedData = {
         uri: file.uri,
@@ -149,23 +120,15 @@ export const PanditKundliScreen: React.FC = () => {
         type: file.type || "application/pdf",
         size: file.size || 0,
       };
-      console.log("[KUNDLI_UPLOAD_DEBUG] Selected file state set in UI:", pickedData);
       setPickedFile(pickedData);
       setFileNameInput(fileName);
     } catch (err: any) {
-      console.log("[KUNDLI_UPLOAD_DEBUG] STEP 1 (Pick Document) FAILED:", {
-        name: err?.name,
-        message: err?.message,
-        stack: err?.stack,
-        code: err?.code,
-      });
       if (
         (isErrorWithCode(err) && err.code === errorCodes.OPERATION_CANCELED) ||
         err?.code === "OPERATION_CANCELED" ||
         err?.code === "DOCUMENT_PICKER_CANCELED" ||
         err?.message?.toLowerCase().includes("cancel")
       ) {
-        console.log("[KUNDLI_UPLOAD_DEBUG] Document picker operation canceled by user");
         return;
       }
       setUploadError(
@@ -178,40 +141,23 @@ export const PanditKundliScreen: React.FC = () => {
   };
 
   const handleConfirmUpload = async () => {
-    console.log("[KUNDLI_UPLOAD_DEBUG] Upload Document button pressed for order:", {
-      orderId: selectedOrderForUpload?.id,
-      fileNameInput,
-      pickedFile,
-    });
-
     if (!selectedOrderForUpload || !user?.id) {
-      console.log("[KUNDLI_UPLOAD_DEBUG] Missing selectedOrderForUpload or user ID", {
-        hasOrder: Boolean(selectedOrderForUpload),
-        userId: user?.id,
-      });
       return;
     }
 
     if (!pickedFile) {
-      console.log("[KUNDLI_UPLOAD_DEBUG] No file picked yet");
       setUploadError("Please select a PDF document from your device first.");
       return;
     }
 
     const trimmedName = (fileNameInput.trim() || pickedFile.name).trim();
     if (!trimmedName.toLowerCase().endsWith(".pdf")) {
-      console.log("[KUNDLI_UPLOAD_DEBUG] Filename does not end with .pdf:", trimmedName);
       setUploadError("Document must be a PDF file (e.g. Kundli_123.pdf).");
       return;
     }
 
     try {
       setUploadError(null);
-      console.log("[KUNDLI_UPLOAD_DEBUG] Calling uploadDocument hook...", {
-        orderId: selectedOrderForUpload.id,
-        trimmedName,
-        uploaderUserId: user.id,
-      });
       const doc = await uploadDocument(
         selectedOrderForUpload.id,
         {
@@ -222,40 +168,38 @@ export const PanditKundliScreen: React.FC = () => {
         user.id
       );
 
-      console.log("[KUNDLI_UPLOAD_DEBUG] uploadDocument hook returned successfully:", {
-        orderId: selectedOrderForUpload.id,
-        docId: doc?.id,
-      });
-
       Alert.alert(
         "Upload Successful",
         `Handwritten Kundli PDF (${trimmedName}) has been uploaded and made available to the devotee.`
       );
       handleCloseUploadModal();
     } catch (err: any) {
-      console.log("[KUNDLI_UPLOAD_DEBUG] STEP 2 (Confirm Upload) FAILED:", {
-        name: err?.name,
-        message: err?.message,
-        stack: err?.stack,
-      });
       setUploadError(err?.message || "Failed to upload document.");
     }
   };
 
   return (
-    <ScreenContainer scrollable={false} padded={false}>
+    <ScreenContainer scrollable={false} padded={false} style={{ backgroundColor: themeColors.surfaceBase }}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text variant="h2" style={styles.headerTitle}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: themeColors.surfaceCard,
+            borderBottomColor: isDark ? "rgba(255, 255, 255, 0.08)" : colors.borderLight,
+          },
+        ]}
+      >
+        <Text variant="h2" color={colors.primary} style={styles.headerTitle}>
           Kundli Queue
         </Text>
-        <Text variant="caption" color={colors.textSecondary}>
+        <Text variant="caption" color={themeColors.textMuted}>
           Prepare birth charts and upload scanned handwritten PDFs
         </Text>
       </View>
 
       {/* Filter Tabs */}
-      <View style={styles.tabsRow}>
+      <View style={[styles.tabsRow, { backgroundColor: themeColors.surfaceCard }]}>
         {[
           { key: "all", label: "All" },
           { key: "pending", label: "Pending" },
@@ -267,11 +211,27 @@ export const PanditKundliScreen: React.FC = () => {
             <TouchableOpacity
               key={tab.key}
               onPress={() => setActiveTab(tab.key)}
-              style={[styles.tabChip, isActive && styles.tabChipActive]}
+              style={[
+                styles.tabChip,
+                {
+                  backgroundColor: isActive
+                    ? colors.primary
+                    : isDark
+                    ? "rgba(255, 255, 255, 0.08)"
+                    : themeColors.surfaceSubtle || "#F5EFE6",
+                },
+              ]}
               accessibilityRole="button"
               accessibilityLabel={`Filter ${tab.label}`}
             >
-              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+              <Text
+                style={[
+                  styles.tabLabel,
+                  {
+                    color: isActive ? "#FFFFFF" : themeColors.textMuted,
+                  },
+                ]}
+              >
                 {tab.label}
               </Text>
             </TouchableOpacity>
@@ -299,14 +259,22 @@ export const PanditKundliScreen: React.FC = () => {
           const hasDoc = Boolean(item.current_document);
 
           return (
-            <Card style={styles.orderCard}>
+            <Card
+              style={[
+                styles.orderCard,
+                {
+                  backgroundColor: themeColors.surfaceCard,
+                  borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.borderLight,
+                },
+              ]}
+            >
               {/* Order Header */}
-              <View style={styles.orderCardHeader}>
+              <View style={[styles.orderCardHeader, { borderBottomColor: isDark ? "rgba(255, 255, 255, 0.08)" : colors.borderLight }]}>
                 <View>
-                  <Text style={styles.orderNumber}>
+                  <Text style={[styles.orderNumber, { color: themeColors.textPrimary }]}>
                     #{item.order_number || item.id.slice(0, 8).toUpperCase()}
                   </Text>
-                  <Text variant="caption" color={colors.textTertiary}>
+                  <Text variant="caption" color={themeColors.textMuted}>
                     {formatDate(item.created_at)}
                   </Text>
                 </View>
@@ -319,41 +287,48 @@ export const PanditKundliScreen: React.FC = () => {
 
               {/* Devotee Info */}
               <View style={styles.infoSection}>
-                <Text variant="caption" color={colors.textSecondary}>
+                <Text variant="caption" color={themeColors.textMuted}>
                   Devotee:
                 </Text>
-                <Text variant="body" style={styles.customerName}>
-                  👤 {item.customer?.display_name || "Devotee"}
+                <Text variant="body" color={themeColors.textPrimary} style={styles.customerName}>
+                  👤 {item.customer?.display_name ? `Devotee ${item.customer.display_name}` : "Devotee Sharma"}
                 </Text>
               </View>
 
               {/* Birth Chart Data */}
-              <View style={styles.birthGrid}>
+              <View
+                style={[
+                  styles.birthGrid,
+                  {
+                    backgroundColor: isDark ? "rgba(224, 86, 36, 0.12)" : colors.primaryLight || "#FEF3EB",
+                  },
+                ]}
+              >
                 <View style={styles.birthGridItem}>
-                  <Text variant="caption" color={colors.textTertiary}>
+                  <Text variant="caption" color={themeColors.textMuted}>
                     Date of Birth
                   </Text>
-                  <Text variant="caption" color={colors.textPrimary} style={styles.birthValue}>
+                  <Text variant="caption" color={themeColors.textPrimary} style={styles.birthValue}>
                     {formatDate(item.date_of_birth)}
                   </Text>
                 </View>
 
                 <View style={styles.birthGridItem}>
-                  <Text variant="caption" color={colors.textTertiary}>
+                  <Text variant="caption" color={themeColors.textMuted}>
                     Time of Birth
                   </Text>
-                  <Text variant="caption" color={colors.textPrimary} style={styles.birthValue}>
+                  <Text variant="caption" color={themeColors.textPrimary} style={styles.birthValue}>
                     {item.time_of_birth}
                   </Text>
                 </View>
 
                 <View style={styles.birthGridItem}>
-                  <Text variant="caption" color={colors.textTertiary}>
+                  <Text variant="caption" color={themeColors.textMuted}>
                     Place of Birth
                   </Text>
                   <Text
                     variant="caption"
-                    color={colors.textPrimary}
+                    color={themeColors.textPrimary}
                     style={styles.birthValue}
                     numberOfLines={1}
                   >
@@ -364,11 +339,18 @@ export const PanditKundliScreen: React.FC = () => {
 
               {/* Devotee Notes */}
               {item.additional_notes ? (
-                <View style={styles.notesBox}>
-                  <Text variant="caption" color={colors.textTertiary}>
+                <View
+                  style={[
+                    styles.notesBox,
+                    {
+                      backgroundColor: isDark ? "rgba(245, 158, 11, 0.15)" : "#FFF8E1",
+                    },
+                  ]}
+                >
+                  <Text variant="caption" color={themeColors.textMuted}>
                     Devotee Focus / Questions:
                   </Text>
-                  <Text variant="caption" color={colors.textPrimary} style={styles.notesText}>
+                  <Text variant="caption" color={themeColors.textPrimary} style={styles.notesText}>
                     "{item.additional_notes}"
                   </Text>
                 </View>
@@ -385,12 +367,12 @@ export const PanditKundliScreen: React.FC = () => {
                   </View>
                 ) : (
                   <View style={styles.docStatusPending}>
-                    <Text style={styles.docStatusPendingText}>
+                    <Text style={[styles.docStatusPendingText, { color: themeColors.textMuted }]}>
                       ⏳ Awaiting PDF Upload
                     </Text>
                   </View>
                 )}
-                <Text style={styles.priceTag}>{formatCurrency(item.price)}</Text>
+                <Text style={[styles.priceTag, { color: colors.primary }]}>{formatCurrency(item.price)}</Text>
               </View>
 
               {/* Pandit Action */}
@@ -433,17 +415,25 @@ export const PanditKundliScreen: React.FC = () => {
         onRequestClose={handleCloseUploadModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text variant="h3" style={styles.modalTitle}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.surfaceCard }]}>
+            <Text variant="h3" color={colors.primary} style={styles.modalTitle}>
               Upload Handwritten Kundli PDF
             </Text>
-            <Text variant="caption" color={colors.textSecondary} style={styles.modalSubtitle}>
+            <Text variant="caption" color={themeColors.textMuted} style={styles.modalSubtitle}>
               Upload high-resolution scanned PDF of the completed handwritten Vedic Kundli for
               Order #{selectedOrderForUpload?.order_number || selectedOrderForUpload?.id.slice(0, 8)}
             </Text>
 
             {pickedFile ? (
-              <View style={styles.pickedFileBox}>
+              <View
+                style={[
+                  styles.pickedFileBox,
+                  {
+                    backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "#F5F5F5",
+                    borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.borderLight,
+                  },
+                ]}
+              >
                 <View style={styles.pickedFileHeader}>
                   <Text variant="captionMedium" color={colors.primary}>
                     📄 Selected PDF Document
@@ -452,10 +442,10 @@ export const PanditKundliScreen: React.FC = () => {
                     ✓ Verified PDF
                   </Text>
                 </View>
-                <Text variant="bodyMedium" numberOfLines={1}>
+                <Text variant="bodyMedium" color={themeColors.textPrimary} numberOfLines={1}>
                   {pickedFile.name}
                 </Text>
-                <Text variant="caption" color={colors.textSecondary}>
+                <Text variant="caption" color={themeColors.textMuted}>
                   Size: {(pickedFile.size / (1024 * 1024)).toFixed(2)} MB
                 </Text>
                 <Button
@@ -467,8 +457,16 @@ export const PanditKundliScreen: React.FC = () => {
                 />
               </View>
             ) : (
-              <View style={styles.selectFileBox}>
-                <Text variant="caption" color={colors.textSecondary} align="center" style={styles.selectPrompt}>
+              <View
+                style={[
+                  styles.selectFileBox,
+                  {
+                    backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "#FBF9F7",
+                    borderColor: colors.border || "#94a3b8",
+                  },
+                ]}
+              >
+                <Text variant="caption" color={themeColors.textMuted} align="center" style={styles.selectPrompt}>
                   Select the high-resolution scanned Kundli PDF chart from your device storage.
                 </Text>
                 <Button
@@ -489,7 +487,14 @@ export const PanditKundliScreen: React.FC = () => {
             />
 
             {uploadError ? (
-              <View style={styles.modalErrorBox}>
+              <View
+                style={[
+                  styles.modalErrorBox,
+                  {
+                    backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#FFEBEE",
+                  },
+                ]}
+              >
                 <Text style={styles.modalErrorText}>⚠️ {uploadError}</Text>
               </View>
             ) : null}
@@ -517,101 +522,88 @@ export const PanditKundliScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-    backgroundColor: colors.surface,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
   },
   headerTitle: {
-    color: colors.primary,
+    marginBottom: 2,
   },
   tabsRow: {
     flexDirection: "row",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
   },
   tabChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderRadius: radius.full,
-    backgroundColor: colors.surfaceSubtle,
-    marginRight: spacing.sm,
-  },
-  tabChipActive: {
-    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    minHeight: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
   },
   tabLabel: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.textSecondary,
-  },
-  tabLabelActive: {
-    color: "#FFFFFF",
-    fontWeight: typography.fontWeight.bold,
+    fontSize: 13,
+    fontWeight: "600",
   },
   listContent: {
-    padding: spacing.md,
-    paddingBottom: spacing.xxl,
+    padding: 16,
+    paddingBottom: 32,
   },
   orderCard: {
-    marginBottom: spacing.md,
-    borderColor: colors.borderLight,
+    marginBottom: 16,
     borderWidth: 1,
+    borderRadius: 10,
+    padding: 16,
   },
   orderCardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: spacing.sm,
-    paddingBottom: spacing.xs,
+    marginBottom: 12,
+    paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
   },
   orderNumber: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: "700",
   },
   statusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   statusBadgeText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.semibold,
+    fontSize: 11,
+    fontWeight: "600",
   },
   infoSection: {
-    marginBottom: spacing.xs,
+    marginBottom: 8,
   },
   customerName: {
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
+    fontWeight: "600",
     marginTop: 2,
   },
   birthGrid: {
     flexDirection: "row",
-    backgroundColor: colors.primaryLight,
-    padding: spacing.sm,
-    borderRadius: radius.sm,
-    marginTop: spacing.xs,
-    marginBottom: spacing.xs,
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    marginBottom: 8,
+    gap: 8,
   },
   birthGridItem: {
     flex: 1,
   },
   birthValue: {
-    fontWeight: typography.fontWeight.medium,
+    fontWeight: "600",
     marginTop: 2,
   },
   notesBox: {
-    backgroundColor: "#FFF8E1",
-    padding: spacing.xs,
-    borderRadius: radius.sm,
-    marginVertical: spacing.xs,
+    padding: 10,
+    borderRadius: 8,
+    marginVertical: 8,
   },
   notesText: {
     fontStyle: "italic",
@@ -621,42 +613,40 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: spacing.sm,
-    marginBottom: spacing.sm,
+    marginTop: 10,
+    marginBottom: 10,
   },
   docStatusReady: {
     flex: 1,
   },
   docStatusText: {
-    fontSize: typography.fontSize.xs,
+    fontSize: 12,
     color: "#2E7D32",
-    fontWeight: typography.fontWeight.medium,
+    fontWeight: "600",
   },
   docStatusPending: {
     flex: 1,
   },
   docStatusPendingText: {
-    fontSize: typography.fontSize.xs,
-    color: colors.textTertiary,
+    fontSize: 12,
   },
   priceTag: {
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.primary,
+    fontSize: 16,
+    fontWeight: "700",
   },
   uploadBtn: {
-    marginTop: spacing.xs,
+    marginTop: 8,
+    minHeight: 48,
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
-    padding: spacing.lg,
+    padding: 20,
   },
   modalContent: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
+    borderRadius: 14,
+    padding: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -664,68 +654,66 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   modalTitle: {
-    color: colors.primary,
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
   modalSubtitle: {
-    marginBottom: spacing.md,
+    marginBottom: 14,
   },
   modalErrorBox: {
-    backgroundColor: "#FFEBEE",
-    padding: spacing.sm,
-    borderRadius: radius.sm,
-    marginBottom: spacing.sm,
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
   },
   modalErrorText: {
     color: "#C62828",
-    fontSize: typography.fontSize.xs,
+    fontSize: 12,
   },
   modalActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: spacing.sm,
-    marginTop: spacing.md,
+    gap: 12,
+    marginTop: 16,
   },
   modalCancelBtn: {
     flex: 1,
+    minHeight: 48,
   },
   modalConfirmBtn: {
     flex: 1,
+    minHeight: 48,
   },
   pickedFileBox: {
-    backgroundColor: "#F5F5F5",
-    borderColor: colors.borderLight,
     borderWidth: 1,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 14,
   },
   pickedFileHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: spacing.xs,
+    marginBottom: 6,
   },
   validBadge: {
     fontWeight: "700",
   },
   changeFileBtn: {
-    marginTop: spacing.sm,
+    marginTop: 10,
+    minHeight: 48,
   },
   selectFileBox: {
-    padding: spacing.md,
-    backgroundColor: "#FBF9F7",
-    borderRadius: radius.md,
-    marginBottom: spacing.md,
+    padding: 16,
+    borderRadius: 10,
+    marginBottom: 14,
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: colors.border,
     alignItems: "center",
   },
   selectPrompt: {
-    marginBottom: spacing.sm,
+    marginBottom: 12,
   },
   selectFileBtn: {
     width: "100%",
+    minHeight: 48,
   },
 });
