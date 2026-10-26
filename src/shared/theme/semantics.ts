@@ -6,6 +6,7 @@ export const lightColors = {
   surfaceCard: primitiveTokens.colors.neutral[0], // #FFFFFF
   surfaceSubtle: primitiveTokens.colors.amber[100], // #FEF3C7
   surfaceNav: 'rgba(255, 253, 249, 0.95)',
+  obsidianVoid: primitiveTokens.colors.neutral[1000], // #07090E
 
   // Border
   borderDefault: primitiveTokens.colors.neutral[200], // #F3E8D6
@@ -48,6 +49,7 @@ export const darkColors = {
   surfaceCard: primitiveTokens.colors.neutral[900], // #121824
   surfaceSubtle: 'rgba(245, 158, 11, 0.14)',
   surfaceNav: 'rgba(18, 24, 36, 0.96)',
+  obsidianVoid: primitiveTokens.colors.neutral[1000], // #07090E
 
   borderDefault: primitiveTokens.colors.neutral[800], // #222D42
   borderAccent: primitiveTokens.colors.amber[500], // #F59E0B
