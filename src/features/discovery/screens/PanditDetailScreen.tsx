@@ -61,10 +61,10 @@ export const PanditDetailScreen: React.FC = () => {
       selectedOffering.temple_price ||
       selectedOffering.remote_price ||
       selectedOffering.price ||
-      2100
-    : 2100;
+      undefined
+    : undefined;
 
-  const advanceInr = Math.round(basePriceInr * 0.5);
+  const advanceInr = basePriceInr ? Math.round(basePriceInr * 0.5) : undefined;
 
   const handleShare = async () => {
     try {
@@ -124,7 +124,11 @@ export const PanditDetailScreen: React.FC = () => {
                   {isHi ? "एस्क्रो अग्रिम (50%)" : "Escrow Advance (50%)"}
                 </VText>
                 <VText variant="titleMedium" color="brandPrimary" weight="700">
-                  {formatCurrency(advanceInr)}
+                  {advanceInr
+                    ? formatCurrency(advanceInr)
+                    : isHi
+                    ? "परामर्शानुसार दक्षिणा"
+                    : "Dakshina on booking"}
                 </VText>
               </View>
               <View style={styles.escrowBadge}>
@@ -257,10 +261,10 @@ export const PanditDetailScreen: React.FC = () => {
             <View style={[styles.statDivider, { backgroundColor: colors.borderDefault }]} />
             <View style={styles.statColumn}>
               <VText variant="caption" color="textMuted">
-                {isHi ? "गोत्र प्रवर" : "Gotra Lineage"}
+                {isHi ? "गोत्र परंपरा" : "Vedic Lineage"}
               </VText>
               <VText variant="titleSmall" color="brandPrimary" weight="700">
-                {isHi ? "शाण्डिल्य / कश्यप" : "Shandilya / Kashyapa"}
+                {isHi ? "सत्यापित वैदिक परंपरा" : "Verified Vedic Lineage"}
               </VText>
             </View>
           </View>

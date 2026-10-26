@@ -690,7 +690,11 @@ export const HomeScreen: React.FC = () => {
                     <VText variant="caption" color="textMuted">
                       {isHi ? "प्रारंभिक दक्षिणा: " : "Starting Dakshina: "}
                       <VText variant="labelMedium" color="brandPrimary" weight="700">
-                        {formatCurrency(pandit.puja_price || 2100)}
+                        {pandit.puja_price
+                          ? formatCurrency(pandit.puja_price)
+                          : isHi
+                          ? "परामर्शानुसार दक्षिणा"
+                          : "Dakshina on booking"}
                       </VText>
                     </VText>
                     <VText variant="labelMedium" color="brandPrimary" weight="700">

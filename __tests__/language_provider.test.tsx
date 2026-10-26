@@ -57,17 +57,18 @@ import { AppProviders } from '../src/app/AppProviders';
 import { useTheme } from '../src/shared/theme';
 
 describe('Bilingual Localization Engine — LanguageProvider & useLanguage', () => {
-  it('throws a descriptive error when useLanguage is called outside LanguageProvider', () => {
+  it('provides default Hindi context if useLanguage is called outside LanguageProvider', () => {
+    let capturedContext!: LanguageContextValue;
     const ProblematicConsumer = () => {
-      useLanguage();
+      capturedContext = useLanguage();
       return null;
     };
 
-    expect(() => {
-      act(() => {
-        ReactTestRenderer.create(<ProblematicConsumer />);
-      });
-    }).toThrow('useLanguage must be used within a LanguageProvider');
+    act(() => {
+      ReactTestRenderer.create(<ProblematicConsumer />);
+    });
+    expect(capturedContext).toBeDefined();
+    expect(capturedContext.language).toBe('hi');
   });
 
   it('defaults to Hindi (hi) locale as primary Vedic default', () => {

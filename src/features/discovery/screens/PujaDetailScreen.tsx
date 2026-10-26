@@ -107,7 +107,7 @@ export const PujaDetailScreen: React.FC = () => {
       ? modePrices?.temple
       : effectiveMode === "remote"
       ? modePrices?.remote
-      : puja?.starting_price || 2100;
+      : puja?.starting_price || undefined;
 
   return (
     <ScreenWrapper
@@ -133,7 +133,24 @@ export const PujaDetailScreen: React.FC = () => {
                   </VText>
                 </View>
               </View>
-            ) : null
+            ) : (
+              <View style={styles.summaryRow}>
+                <View>
+                  <VText variant="caption" color="textMuted">
+                    {isHi ? "प्रारंभिक दक्षिणा" : "STARTING DAKSHINA"}
+                  </VText>
+                  <VText variant="titleMedium" color="brandPrimary" weight="700">
+                    {isHi ? "परामर्शानुसार दक्षिणा" : "Dakshina on booking"}
+                  </VText>
+                </View>
+                <View style={styles.escrowBadge}>
+                  <Ionicons name="shield-checkmark" size={14} color={colors.statusActive} />
+                  <VText variant="caption" color="textPrimary" weight="600" style={{ marginLeft: 4 }}>
+                    100% Escrow Protection
+                  </VText>
+                </View>
+              </View>
+            )
           }
           primaryLabel={buttonTitle}
           onPrimaryPress={() =>
@@ -379,9 +396,9 @@ export const PujaDetailScreen: React.FC = () => {
               </VText>
               {samagriPackages[0].items && samagriPackages[0].items.length > 0 ? (
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-                  {samagriPackages[0].items.map((pkgItem) => (
+                  {samagriPackages[0].items.map((pkgItem, idx) => (
                     <VTag
-                      key={pkgItem.item?.id || Math.random().toString()}
+                      key={pkgItem.item?.id || `samagri-${idx}`}
                       label={`✓ ${pkgItem.item?.name || "Samagri"} (${pkgItem.quantity} ${pkgItem.item?.unit || "unit"})`}
                       variant="assist"
                     />

@@ -171,16 +171,18 @@ describe('Territory G — Typography System (typography.ts)', () => {
 });
 
 describe('Territory G — Dual Theme Provider (ThemeProvider.tsx)', () => {
-  it('throws an error if useTheme is called outside ThemeProvider', () => {
+  it('provides default light theme if useTheme is called outside ThemeProvider', () => {
+    let capturedTheme: any;
     const ConsumerOutside = () => {
-      useTheme();
+      capturedTheme = useTheme();
       return null;
     };
-    expect(() => {
-      act(() => {
-        ReactTestRenderer.create(<ConsumerOutside />);
-      });
-    }).toThrow('useTheme must be used within a ThemeProvider');
+    act(() => {
+      ReactTestRenderer.create(<ConsumerOutside />);
+    });
+    expect(capturedTheme).toBeDefined();
+    expect(capturedTheme.colorScheme).toBe('light');
+    expect(capturedTheme.colors.surfaceBase).toBe('#FFFDF9');
   });
 
   it('provides light theme when initialized with light mode', () => {

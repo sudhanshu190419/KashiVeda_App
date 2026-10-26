@@ -24,7 +24,15 @@ export interface LanguageProviderProps {
   initialLanguage?: Language;
 }
 
-export const LanguageContext = createContext<LanguageContextValue | null>(null);
+export const defaultLanguageContext: LanguageContextValue = {
+  language: 'hi',
+  setLanguage: () => {},
+  toggleLanguage: () => {},
+  t: (key: StringKey) => getString(key, 'hi'),
+  pick: (hi: string, en: string) => hi,
+};
+
+export const LanguageContext = createContext<LanguageContextValue>(defaultLanguageContext);
 
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({
   children,
@@ -55,22 +63,5 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
 
 export const useLanguage = (): LanguageContextValue => {
   const context = useContext(LanguageContext);
-  if (!context) {
-    const stack = new Error().stack || '';
-    if (stack.includes('ProblematicConsumer')) {
-      throw new Error('useLanguage must be used within a LanguageProvider');
-    }
-    const isTestEnv =
-      typeof (globalThis as any).process !== 'undefined' &&
-      (globalThis as any).process?.env?.NODE_ENV === 'test';
-    const fallbackLang: Language = isTestEnv ? 'en' : 'hi';
-    return {
-      language: fallbackLang,
-      setLanguage: () => {},
-      toggleLanguage: () => {},
-      t: (key: StringKey) => getString(key, fallbackLang),
-      pick: (hi: string, en: string) => (fallbackLang === 'hi' ? hi : en),
-    };
-  }
-  return context;
+  return context || defaultLanguageContext;
 };

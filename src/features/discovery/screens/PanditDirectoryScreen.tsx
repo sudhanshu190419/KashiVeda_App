@@ -351,7 +351,11 @@ export const PanditDirectoryScreen: React.FC = () => {
                       {isHi ? "प्रारंभिक दक्षिणा" : "Starting Dakshina"}
                     </VText>
                     <VText variant="labelLarge" color="brandPrimary" weight="700">
-                      {formatCurrency(pandit.puja_price || 2100)}
+                      {pandit.puja_price
+                        ? formatCurrency(pandit.puja_price)
+                        : isHi
+                        ? "परामर्शानुसार दक्षिणा"
+                        : "Dakshina on booking"}
                     </VText>
                   </View>
                   <VButton
