@@ -95,7 +95,7 @@ export const DailyRashiInsightCard: React.FC<DailyRashiInsightCardProps> = ({
           >
             <View style={[styles.lockedHeader, { marginBottom: spacing.xs }]}>
               <VText style={styles.lockedIcon}>📡</VText>
-              <VBadge variant="status" color="muted" label={isHi ? "ऑफ़लाइन मोड" : "Offline Mode"} />
+              <VBadge variant="status" color="muted" label="Offline Mode" />
             </View>
 
             <VText variant="headlineMedium" weight="600" color="textPrimary" style={styles.lockedTitle}>
@@ -117,7 +117,7 @@ export const DailyRashiInsightCard: React.FC<DailyRashiInsightCardProps> = ({
 
             {onRetry && (
               <VButton
-                title={isHi ? "पुनः प्रयास करें 🔄" : "Retry Connection 🔄"}
+                title="Retry Connection 🔄"
                 variant="outline"
                 size="md"
                 onPress={onRetry}
@@ -144,7 +144,7 @@ export const DailyRashiInsightCard: React.FC<DailyRashiInsightCardProps> = ({
         >
           <View style={[styles.lockedHeader, { marginBottom: spacing.xs }]}>
             <VText style={styles.lockedIcon}>🔒</VText>
-            <VBadge variant="status" color="brand" label={isHi ? "वैदिक राशिफल" : "Paid Vedic Guidance"} />
+            <VBadge variant="status" color="brand" label="Paid Vedic Guidance" />
           </View>
 
           <VText variant="headlineMedium" weight="600" color="textPrimary" style={styles.lockedTitle}>
@@ -430,7 +430,7 @@ export const DailyRashiInsightCard: React.FC<DailyRashiInsightCardProps> = ({
             </VText>
             {onRetry && (
               <VButton
-                title={isHi ? "पुनः प्रयास करें 🔄" : "Retry Connection 🔄"}
+                title="Retry Connection 🔄"
                 variant="outline"
                 size="sm"
                 onPress={onRetry}
