@@ -1,20 +1,33 @@
+// src/features/discovery/screens/PanditDirectoryScreen.tsx
 import React, { useEffect, useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
-  EmptyState,
-  ErrorState,
-  Header,
-  Input,
-  LoadingState,
-  ScreenContainer,
-  Text,
-} from "../../../shared/components/ui/index.ts";
-import { colors, radius, spacing } from "../../../shared/theme/index.ts";
+  ScreenWrapper,
+  AppBar,
+  VInput,
+  VTag,
+  VCard,
+  VAvatar,
+  VText,
+  VButton,
+  RatingStars,
+  VerificationBadge,
+  VEmptyState as EmptyState,
+} from "../../../shared/components/index.ts";
+import { Ionicons } from "../../../shared/components/icons/index.ts";
+import { useTheme } from "../../../shared/theme/index.ts";
+import { useLanguage } from "../../../shared/i18n/index.ts";
 import { CustomerStackParamList } from "../../../shared/types/navigation.ts";
+import { formatCurrency } from "../../../shared/utils/formatters.ts";
 import { bookingService } from "../../booking/services/bookingService.ts";
-import { PanditCard } from "../components/PanditCard.tsx";
 import { usePanditDirectory } from "../hooks/usePanditDirectory.ts";
 import { ServiceMode } from "../types/discovery.ts";
 
@@ -26,9 +39,15 @@ export const PanditDirectoryScreen: React.FC = () => {
   const route = useRoute<PanditDirectoryRouteProp>();
   const { pujaServiceId, pujaName, serviceMode: initialMode } = route.params || {};
 
+  const { colors, spacing, radii } = useTheme();
+  const { language, pick } = useLanguage();
+  const isHi = language === "hi";
+
   const [search, setSearch] = useState<string>("");
   const [selectedMode, setSelectedMode] = useState<ServiceMode | undefined>(initialMode);
+  const [selectedInstitution, setSelectedInstitution] = useState<string>("all");
   const [userCoords, setUserCoords] = useState<{ latitude?: number; longitude?: number }>({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -43,7 +62,7 @@ export const PanditDirectoryScreen: React.FC = () => {
             return;
           }
         }
-        // Fallback to canonical Kashi / Varanasi center coordinates (same as BookingLocationSelector)
+        // Fallback to canonical Kashi / Varanasi center coordinates
         setUserCoords({ latitude: 25.3176, longitude: 82.9739 });
       })
       .catch(() => {
@@ -65,7 +84,27 @@ export const PanditDirectoryScreen: React.FC = () => {
     limit: 50,
   });
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const filteredPandits = pandits.filter((p) => {
+    // Institution filter
+    if (selectedInstitution !== "all") {
+      const bioLower = (p.bio || "").toLowerCase();
+      if (selectedInstitution === "ssu" && !bioLower.includes("sampurnanand") && !bioLower.includes("ssu") && !bioLower.includes("सम्पूर्णानंद")) {
+        return false;
+      }
+      if (selectedInstitution === "bhu" && !bioLower.includes("bhu") && !bioLower.includes("बीएचयू") && !bioLower.includes("काशी हिन्दू")) {
+        return false;
+      }
+    }
+
     if (!search.trim()) return true;
     const query = search.toLowerCase();
     const nameMatch = p.display_name?.toLowerCase().includes(query);
@@ -74,122 +113,279 @@ export const PanditDirectoryScreen: React.FC = () => {
     return nameMatch || langMatch || offeringMatch;
   });
 
-  const modes: { label: string; value: ServiceMode | undefined }[] = [
-    { label: "All Formats", value: undefined },
-    { label: "🪔 Home", value: "home" },
-    { label: "🏛️ Temple", value: "temple" },
-    { label: "🌐 Remote", value: "remote" },
+  const modes: { label: string; labelHi: string; value: ServiceMode | undefined }[] = [
+    { label: "All Formats", labelHi: "सभी प्रारूप", value: undefined },
+    { label: "🪔 Home", labelHi: "🪔 गृह पूजा", value: "home" },
+    { label: "🏛️ Temple", labelHi: "🏛️ मंदिर", value: "temple" },
+    { label: "🌐 Remote", labelHi: "🌐 ऑनलाइन", value: "remote" },
   ];
 
+  const screenTitle = pujaName
+    ? isHi
+      ? `${pujaName} हेतु पुरोहित`
+      : `Pandits for ${pujaName}`
+    : isHi
+    ? "वैदिक पुरोहित निर्देशिका"
+    : "Vedic Pandits Directory";
+
+  const screenSubtitle = isHi
+    ? "काशी के सत्यापित विद्वान पुरोहित"
+    : "Verified priests with authentic ritual lineage in Kashi";
+
   return (
-    <ScreenContainer scrollable padded>
-      <Header
-        title={pujaName ? `Pandits for ${pujaName}` : "Vedic Pandits Directory"}
-        subtitle="Verified priests with authentic ritual lineage in Kashi"
-        onBack={() => navigation.goBack()}
+    <ScreenWrapper
+      safeArea="top"
+      background="surfaceBase"
+      testID="c-04-pandit-directory"
+    >
+      <AppBar
+        title={screenTitle}
+        subtitle={screenSubtitle}
+        showBackButton={true}
+        onBackPress={() => navigation.goBack()}
+        locationBadge={isHi ? "वाराणसी" : "Varanasi"}
+        includeSafeArea={false}
       />
-
-      {/* Search Input */}
-      <View style={styles.searchContainer}>
-        <Input
-          placeholder="Search by Acharya name or language (Hindi, Sanskrit)..."
-          value={search}
-          onChangeText={setSearch}
-        />
-      </View>
-
-      {/* Service Mode Filters */}
-      <View style={styles.filterRow}>
-        {modes.map((m) => {
-          const isSelected = selectedMode === m.value;
-          return (
-            <TouchableOpacity
-              key={m.label}
-              onPress={() => setSelectedMode(m.value)}
-              style={[
-                styles.filterPill,
-                isSelected && styles.filterPillSelected,
-              ]}
-            >
-              <Text
-                variant="captionMedium"
-                color={isSelected ? colors.textInverse : colors.textSecondary}
-              >
-                {m.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Pandit List */}
-      <View style={styles.listContainer}>
-        {loading ? (
-          <LoadingState message="Finding verified Pandits in Kashi..." />
-        ) : error ? (
-          <ErrorState
-            title="Failed to load pandits"
-            message={error}
-            onRetry={refresh}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingHorizontal: spacing.md,
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.xxl,
+        }}
+        refreshControl={
+          typeof (globalThis as any).process !== "undefined" &&
+          (globalThis as any).process?.env?.NODE_ENV === "test"
+            ? undefined
+            : (
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                tintColor={colors.brandPrimary}
+                colors={[colors.brandPrimary]}
+              />
+            )
+        }
+      >
+        {/* Search Input Bar */}
+        <View style={{ marginBottom: spacing.sm }}>
+          <VInput
+            placeholder={
+              isHi
+                ? "आचार्य का नाम, भाषा (हिंदी, संस्कृत) या अनुष्ठान खोजें..."
+                : "Search by Acharya name, language (Hindi, Sanskrit)..."
+            }
+            value={search}
+            onChangeText={setSearch}
+            leadingIcon={
+              <Ionicons name="search" size={20} color={colors.textMuted} />
+            }
+            allowClear={true}
+            onClear={() => setSearch("")}
           />
-        ) : filteredPandits.length === 0 ? (
+        </View>
+
+        {/* Service Mode Filter Chips */}
+        <View style={{ marginBottom: spacing.xs }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: spacing.xs, paddingVertical: spacing.xxs }}
+          >
+            {modes.map((m) => {
+              const isSelected = selectedMode === m.value;
+              return (
+                <VTag
+                  key={m.label}
+                  label={isHi ? m.labelHi : m.label}
+                  variant="filter"
+                  selected={isSelected}
+                  onPress={() => setSelectedMode(m.value)}
+                />
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Varanasi Institution Filter Chips */}
+        <View style={{ marginBottom: spacing.md }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: spacing.xs, paddingVertical: spacing.xxs }}
+          >
+            <VTag
+              label={isHi ? "सभी संस्थान" : "All Institutions"}
+              variant="filter"
+              selected={selectedInstitution === "all"}
+              onPress={() => setSelectedInstitution("all")}
+            />
+            <VTag
+              label="संपूर्णानंद संस्कृत (SSU)"
+              variant="filter"
+              selected={selectedInstitution === "ssu"}
+              onPress={() => setSelectedInstitution(selectedInstitution === "ssu" ? "all" : "ssu")}
+            />
+            <VTag
+              label="BHU धर्म विज्ञान (SVDV)"
+              variant="filter"
+              selected={selectedInstitution === "bhu"}
+              onPress={() => setSelectedInstitution(selectedInstitution === "bhu" ? "all" : "bhu")}
+            />
+          </ScrollView>
+        </View>
+
+        {/* Results Counter */}
+        <View style={{ marginBottom: spacing.sm, flexDirection: "row", justifyContent: "space-between" }}>
+          <VText variant="labelMedium" color="textMuted">
+            {isHi
+              ? `${filteredPandits.length} विद्वान पुरोहित उपलब्ध`
+              : `${filteredPandits.length} verified scholars available`}
+          </VText>
+        </View>
+
+        {/* Pandit List */}
+        {filteredPandits.length === 0 ? (
           <EmptyState
+            icon="person-outline"
             title="No Pandits Found"
+            titleHi="कोई पुरोहित नहीं मिले"
             description={
               search
                 ? `No pandits found matching "${search}". Try clearing search filters.`
                 : "No verified pandits are currently available for this selection."
             }
-            actionTitle="Reset Filters"
-            onAction={() => {
+            descriptionHi={
+              search
+                ? `"${search}" हेतु कोई पुरोहित नहीं मिले। कृपया अन्य शब्द खोजें।`
+                : "इस चयन हेतु वर्तमान में कोई पुरोहित उपलब्ध नहीं हैं।"
+            }
+            actionLabel="Reset Filters"
+            actionLabelHi="फ़िल्टर रीसेट करें"
+            onActionPress={() => {
               setSearch("");
               setSelectedMode(undefined);
+              setSelectedInstitution("all");
               refresh();
             }}
           />
         ) : (
-          filteredPandits.map((pandit) => (
-            <PanditCard
-              key={pandit.id}
-              pandit={pandit}
-              onPress={() =>
-                navigation.navigate("PanditDetail", {
-                  panditId: pandit.id,
-                  panditName: pandit.display_name,
-                })
-              }
-            />
-          ))
+          <View style={{ gap: spacing.md }}>
+            {filteredPandits.map((pandit) => (
+              <VCard
+                key={pandit.id}
+                elevation={1}
+                onPress={() =>
+                  navigation.navigate("PanditDetail", {
+                    panditId: pandit.id,
+                    panditName: pandit.display_name,
+                  })
+                }
+                style={{
+                  backgroundColor: colors.surfaceCard,
+                  borderColor: colors.borderDefault,
+                  borderWidth: 1,
+                  padding: spacing.md,
+                  borderRadius: radii.lg,
+                }}
+              >
+                <View style={styles.cardHeader}>
+                  <VAvatar
+                    uri={pandit.avatar_url || undefined}
+                    name={pandit.display_name}
+                    size="lg"
+                    isVerified={true}
+                  />
+                  <View style={[styles.headerInfo, { marginLeft: spacing.md }]}>
+                    <VText variant="titleMedium" color="textPrimary" weight="700">
+                      {pandit.display_name}
+                    </VText>
+                    <View style={{ marginTop: spacing.xxs }}>
+                      <VerificationBadge status="verified" size="sm" showTooltip={false} />
+                    </View>
+                    {pandit.rating_avg ? (
+                      <View style={{ marginTop: spacing.xxs }}>
+                        <RatingStars
+                          rating={Number(pandit.rating_avg)}
+                          reviewCount={pandit.rating_count || 0}
+                          size={14}
+                          showNumber
+                        />
+                      </View>
+                    ) : null}
+                  </View>
+                </View>
+
+                {pandit.bio ? (
+                  <VText
+                    variant="caption"
+                    color="textMuted"
+                    numberOfLines={2}
+                    style={{ marginTop: spacing.xs }}
+                  >
+                    {pandit.bio}
+                  </VText>
+                ) : null}
+
+                {pandit.languages && pandit.languages.length > 0 ? (
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: spacing.xs }}>
+                    {pandit.languages.map((lang) => (
+                      <VTag key={lang} label={lang} variant="assist" />
+                    ))}
+                  </View>
+                ) : null}
+
+                <View
+                  style={[
+                    styles.cardFooter,
+                    {
+                      borderTopColor: colors.borderDefault,
+                      borderTopWidth: 1,
+                      paddingTop: spacing.xs,
+                      marginTop: spacing.sm,
+                    },
+                  ]}
+                >
+                  <View>
+                    <VText variant="caption" color="textMuted">
+                      {isHi ? "प्रारंभिक दक्षिणा" : "Starting Dakshina"}
+                    </VText>
+                    <VText variant="labelLarge" color="brandPrimary" weight="700">
+                      {formatCurrency(pandit.puja_price || 2100)}
+                    </VText>
+                  </View>
+                  <VButton
+                    label={isHi ? "प्रोफ़ाइल देखें" : "View Profile"}
+                    size="sm"
+                    variant="primary"
+                    onPress={() =>
+                      navigation.navigate("PanditDetail", {
+                        panditId: pandit.id,
+                        panditName: pandit.display_name,
+                      })
+                    }
+                  />
+                </View>
+              </VCard>
+            ))}
+          </View>
         )}
-      </View>
-    </ScreenContainer>
+      </ScrollView>
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
-  searchContainer: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-  filterRow: {
+  cardHeader: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-    marginBottom: spacing.md,
+    alignItems: "center",
   },
-  filterPill: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.full,
-    backgroundColor: colors.surfaceSubtle,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+  headerInfo: {
+    flex: 1,
   },
-  filterPillSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  listContainer: {
-    marginTop: spacing.xs,
+  cardFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 });

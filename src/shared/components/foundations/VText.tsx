@@ -125,7 +125,7 @@ export const VText = forwardRef<any, VTextProps>(function VText(
   // Retrieve base typography definition
   const baseTypography = isDevanagari
     ? getDevanagariTextStyle(variant)
-    : theme.typography[variant];
+    : (theme.typography[variant] || theme.typography.bodyMedium);
 
   // Flatten incoming style for floor overrides and inspection
   const flattened = (StyleSheet.flatten(style) || {}) as TextStyle;

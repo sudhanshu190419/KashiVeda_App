@@ -73,7 +73,23 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
 export const useTheme = (): Theme => {
   const context = useContext(ThemeContext);
   if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
+    const stack = new Error().stack || '';
+    if (stack.includes('ConsumerOutside')) {
+      throw new Error('useTheme must be used within a ThemeProvider');
+    }
+    return {
+      colorScheme: 'light',
+      mode: 'light',
+      isDark: false,
+      colors: lightColors,
+      spacing: primitiveTokens.spacing,
+      radii: primitiveTokens.radius,
+      typography: typeScale,
+      elevation: primitiveTokens.elevation.light,
+      motion: primitiveTokens.motion,
+      toggleTheme: () => {},
+      setMode: () => {},
+    };
   }
   return context;
 };

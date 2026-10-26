@@ -14,7 +14,8 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useTheme, getDevanagariLineHeight } from '../../theme';
 
 export interface VButtonProps {
-  label: string;
+  label?: string;
+  title?: string;
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
   size?: 'sm' | 'md' | 'lg';
@@ -33,6 +34,7 @@ export type ButtonProps = VButtonProps;
 
 export const VButton: React.FC<VButtonProps> = ({
   label,
+  title,
   onPress,
   variant = 'primary',
   size = 'lg',
@@ -102,8 +104,10 @@ export const VButton: React.FC<VButtonProps> = ({
     }
   };
 
+  const resolvedLabel = label ?? title ?? '';
+
   // Devanagari script detection for font pairing and vertical clearance
-  const isDevanagari = /[\u0900-\u097F]/.test(label);
+  const isDevanagari = /[\u0900-\u097F]/.test(resolvedLabel);
   const baseType = size === 'sm' ? typography.labelMedium : typography.labelLarge;
   const fontSize = Math.max(baseType.fontSize, 12);
   const lineHeight = isDevanagari ? getDevanagariLineHeight(fontSize) : baseType.lineHeight;
@@ -158,7 +162,7 @@ export const VButton: React.FC<VButtonProps> = ({
             ]}
             numberOfLines={1}
           >
-            {label}
+            {resolvedLabel}
           </Text>
           {trailingIcon ? <View style={[styles.iconContainer, { marginLeft: spacing.sm }]}>{trailingIcon}</View> : null}
         </>
@@ -191,7 +195,7 @@ export const VButton: React.FC<VButtonProps> = ({
         disabled={isDisabled || isLoading}
         hitSlop={hitSlop}
         accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel || label}
+        accessibilityLabel={accessibilityLabel || resolvedLabel}
         accessibilityHint={accessibilityHint}
         accessibilityState={{ disabled: isDisabled, busy: isLoading }}
         testID={testID}

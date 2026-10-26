@@ -123,7 +123,7 @@ export type TypeScale = typeof typeScale;
  * accounting for higher line-height requirements and Devanagari font families.
  */
 export const getDevanagariTextStyle = (variant: TypographyVariant): TypographyStyle => {
-  const base = typeScale[variant];
+  const base = typeScale[variant] || typeScale.bodyMedium;
   const devanagariFont =
     base.fontWeight === '700'
       ? 'NotoSansDevanagari-Bold'

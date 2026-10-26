@@ -19,11 +19,17 @@ export interface EmptyStateProps {
   subtitleHi?: string;
   /** Alias for subtitle for ergonomic DX */
   description?: string;
+  /** Alias for subtitleHi for ergonomic DX */
+  descriptionHi?: string;
   /** Alias for subtitle for ergonomic DX */
   message?: string;
   actionLabel?: string;
   actionLabelHi?: string;
+  /** Alias for actionLabel for backwards compatibility */
+  actionTitle?: string;
   onActionPress?: () => void;
+  /** Alias for onActionPress for backwards compatibility */
+  onAction?: () => void;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -43,21 +49,29 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   subtitle,
   subtitleHi,
   description,
+  descriptionHi,
   message,
   actionLabel,
   actionLabelHi,
+  actionTitle,
   onActionPress,
+  onAction,
   style,
 }) => {
   const { colors, spacing, radii } = useTheme();
   const { language } = useLanguage();
 
+  const effectiveActionLabel = actionLabel ?? actionTitle;
+  const effectiveActionPress = onActionPress ?? onAction;
+
   const resolvedSubtitle = subtitle ?? description ?? message;
   const resolvedTitle = language === 'hi' ? titleHi ?? title : title;
   const resolvedBody =
-    language === 'hi' ? subtitleHi ?? resolvedSubtitle : resolvedSubtitle;
+    language === 'hi'
+      ? subtitleHi ?? descriptionHi ?? resolvedSubtitle
+      : resolvedSubtitle;
   const resolvedAction =
-    language === 'hi' ? actionLabelHi ?? actionLabel : actionLabel;
+    language === 'hi' ? actionLabelHi ?? effectiveActionLabel : effectiveActionLabel;
 
   // Render icon slot (either custom ReactNode or Ionicons glyph)
   const renderIcon = () => {
@@ -101,7 +115,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       <View
         style={[
           styles.textBlock,
-          { marginBottom: resolvedAction && onActionPress ? spacing.xxl : 0 },
+          { marginBottom: resolvedAction && effectiveActionPress ? spacing.xxl : 0 },
         ]}
       >
         {resolvedBody ? (
@@ -112,11 +126,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       </View>
 
       {/* Primary Action Button */}
-      {resolvedAction && onActionPress ? (
+      {resolvedAction && effectiveActionPress ? (
         <View style={styles.actionWrapper}>
           <VButton
             label={resolvedAction}
-            onPress={onActionPress}
+            onPress={effectiveActionPress}
             variant="primary"
             size="lg"
           />
