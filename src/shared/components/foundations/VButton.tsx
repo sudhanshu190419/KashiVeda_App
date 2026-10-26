@@ -16,13 +16,15 @@ import { useTheme, getDevanagariLineHeight } from '../../theme';
 export interface VButtonProps {
   label?: string;
   title?: string;
-  onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
+  onPress?: () => void;
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   leadingIcon?: React.ReactNode;
   trailingIcon?: React.ReactNode;
   isLoading?: boolean;
+  loading?: boolean;
   isDisabled?: boolean;
+  disabled?: boolean;
   fullWidth?: boolean;
   accessibilityLabel?: string;
   accessibilityHint?: string;
@@ -41,13 +43,18 @@ export const VButton: React.FC<VButtonProps> = ({
   leadingIcon,
   trailingIcon,
   isLoading = false,
+  loading,
   isDisabled = false,
+  disabled,
   fullWidth = false,
   accessibilityLabel,
   accessibilityHint,
   testID,
   style,
 }) => {
+  const effectiveLoading = isLoading || loading || false;
+  const effectiveDisabled = isDisabled || disabled || false;
+  const normalizedVariant = variant === 'danger' ? 'destructive' : variant;
   const { colors, spacing, radii, typography } = useTheme();
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -115,10 +122,10 @@ export const VButton: React.FC<VButtonProps> = ({
 
   // Variant color definitions
   const getTextColor = (): string => {
-    if (isDisabled) {
+    if (effectiveDisabled) {
       return colors.textMuted;
     }
-    switch (variant) {
+    switch (normalizedVariant) {
       case 'primary':
         return colors.textOnPrimary;
       case 'secondary':
@@ -138,7 +145,7 @@ export const VButton: React.FC<VButtonProps> = ({
 
   const renderContent = () => (
     <View style={styles.contentRow}>
-      {isLoading ? (
+      {effectiveLoading ? (
         <ActivityIndicator
           size="small"
           color={textColor}
@@ -178,7 +185,7 @@ export const VButton: React.FC<VButtonProps> = ({
     alignItems: 'center',
     justifyContent: 'center',
     width: fullWidth ? '100%' : undefined,
-    opacity: isDisabled ? 0.38 : 1,
+    opacity: effectiveDisabled ? 0.38 : 1,
   };
 
   return (
@@ -192,15 +199,15 @@ export const VButton: React.FC<VButtonProps> = ({
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        disabled={isDisabled || isLoading}
+        disabled={effectiveDisabled || effectiveLoading}
         hitSlop={hitSlop}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel || resolvedLabel}
         accessibilityHint={accessibilityHint}
-        accessibilityState={{ disabled: isDisabled, busy: isLoading }}
+        accessibilityState={{ disabled: effectiveDisabled, busy: effectiveLoading }}
         testID={testID}
       >
-        {variant === 'primary' ? (
+        {normalizedVariant === 'primary' ? (
           <LinearGradient
             colors={[colors.brandButtonGradient[0], colors.brandButtonGradient[1]]}
             start={{ x: 0, y: 0 }}
@@ -213,20 +220,20 @@ export const VButton: React.FC<VButtonProps> = ({
           <View
             style={[
               containerBaseStyle,
-              variant === 'secondary' && {
+              normalizedVariant === 'secondary' && {
                 backgroundColor: colors.surfaceCard,
                 borderColor: colors.borderDefault,
                 borderWidth: 1,
               },
-              variant === 'outline' && {
+              normalizedVariant === 'outline' && {
                 backgroundColor: 'transparent',
                 borderColor: colors.borderAccent,
                 borderWidth: 1.5,
               },
-              variant === 'ghost' && {
+              normalizedVariant === 'ghost' && {
                 backgroundColor: 'transparent',
               },
-              variant === 'destructive' && {
+              normalizedVariant === 'destructive' && {
                 backgroundColor: colors.errorBg,
                 borderColor: colors.statusAlert,
                 borderWidth: 1,

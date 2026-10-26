@@ -11,6 +11,8 @@ import {
   VDivider,
   LiveStatusPill,
   EmptyState,
+  VTabs,
+  TabItem,
 } from "../../../shared/components/index.ts";
 import { useTheme } from "../../../shared/theme/index.ts";
 import { useLanguage } from "../../../shared/i18n/index.ts";
@@ -36,11 +38,11 @@ export const BookingsScreen: React.FC = () => {
     loadMore,
   } = useBookingHistory(filter);
 
-  const filters = [
-    { key: "all", label: "All" },
-    { key: "upcoming", label: "Upcoming" },
-    { key: "completed", label: "Completed" },
-    { key: "cancelled", label: "Cancelled" },
+  const filters: TabItem[] = [
+    { id: "all", label: "All" },
+    { id: "upcoming", label: "Upcoming" },
+    { id: "completed", label: "Completed" },
+    { id: "cancelled", label: "Cancelled" },
   ];
 
   const renderBookingItem = ({ item }: { item: BookingDetail }) => {
@@ -128,33 +130,14 @@ export const BookingsScreen: React.FC = () => {
       }
       contentContainerStyle={{ flex: 1, paddingHorizontal: spacing.md }}
     >
-      {/* Filter Tabs */}
-      <View style={styles.filterRow}>
-        {filters.map((f) => {
-          const isActive = filter === f.key;
-          return (
-            <TouchableOpacity
-              key={f.key}
-              style={[
-                styles.filterChip,
-                {
-                  backgroundColor: isActive ? colors.surfaceSubtle : colors.surfaceCard,
-                  borderColor: isActive ? colors.brandPrimary : colors.borderDefault,
-                },
-              ]}
-              onPress={() => setFilter(f.key)}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: isActive }}
-            >
-              <VText
-                variant="labelMedium"
-                color={isActive ? "brandPrimary" : "textMuted"}
-              >
-                {f.label}
-              </VText>
-            </TouchableOpacity>
-          );
-        })}
+      {/* Filter Tabs via Territory G VTabs */}
+      <View style={styles.tabsWrap}>
+        <VTabs
+          tabs={filters}
+          activeTab={filter}
+          onTabChange={(tabId) => setFilter(tabId)}
+          variant="pill"
+        />
       </View>
 
       {/* Booking List */}
@@ -195,19 +178,8 @@ export const BookingsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  filterRow: {
-    flexDirection: "row",
-    gap: 8,
+  tabsWrap: {
     marginVertical: 12,
-  },
-  filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 9999,
-    borderWidth: 1,
-    minHeight: 48,
-    justifyContent: "center",
-    alignItems: "center",
   },
   listContent: {
     gap: 12,

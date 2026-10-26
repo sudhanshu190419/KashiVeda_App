@@ -21,8 +21,8 @@ import {
   StepItem,
   VDivider,
   RatingStars,
+  VButton,
 } from "../../../shared/components/index.ts";
-import { Button } from "../../../shared/components/ui/Button.tsx";
 import { useTheme } from "../../../shared/theme/index.ts";
 import { useLanguage } from "../../../shared/i18n/index.ts";
 import { CustomerStackParamList } from "../../../shared/types/navigation.ts";
@@ -222,8 +222,9 @@ export const BookingDetailsScreen: React.FC = () => {
           <VText variant="bodyMedium" color="textMuted" align="center" style={{ marginBottom: spacing.lg }}>
             {error || "Could not retrieve this booking record."}
           </VText>
-          <Button
+          <VButton
             title="Try Again"
+            label="Try Again"
             onPress={refresh}
             variant="outline"
             style={{ minHeight: 48, minWidth: 160 }}
@@ -413,12 +414,13 @@ export const BookingDetailsScreen: React.FC = () => {
             </View>
 
             {booking.status === "confirmed" || booking.status === "in_progress" || booking.status === "rescheduled" ? (
-              <Button
+              <VButton
                 title={loadingToken ? "Connecting to Sanctum..." : "Enter Live Video Sanctum 🎥"}
+                label={loadingToken ? "Connecting to Sanctum..." : "Enter Live Video Sanctum 🎥"}
                 variant="primary"
                 size="md"
                 onPress={handleJoinLive}
-                disabled={loadingToken}
+                isDisabled={loadingToken}
                 style={{ minHeight: 48, marginTop: spacing.sm }}
               />
             ) : null}
@@ -539,8 +541,17 @@ export const BookingDetailsScreen: React.FC = () => {
                   : "⚠️ Balance must be settled prior to ritual completion."}
               </VText>
             </View>
-            <Button
+            <VButton
               title={
+                payingBalance
+                  ? "Initializing Balance Checkout..."
+                  : startDate.getTime() <= Date.now()
+                  ? `Pay Remaining Balance — ${formatCurrency(currentOutstandingBalance)} 💳`
+                  : startDate.getTime() - 24 * 60 * 60 * 1000 <= Date.now()
+                  ? `Pay Remaining Balance Promptly — ${formatCurrency(currentOutstandingBalance)} 💳`
+                  : `Pay Remaining Balance — ${formatCurrency(currentOutstandingBalance)} 💳`
+              }
+              label={
                 payingBalance
                   ? "Initializing Balance Checkout..."
                   : startDate.getTime() <= Date.now()
@@ -552,7 +563,7 @@ export const BookingDetailsScreen: React.FC = () => {
               variant="primary"
               size="md"
               onPress={handlePayBalance}
-              disabled={payingBalance}
+              isDisabled={payingBalance}
               style={{ minHeight: 48, marginTop: spacing.sm }}
             />
             {balanceError ? (
@@ -591,8 +602,9 @@ export const BookingDetailsScreen: React.FC = () => {
               <VText variant="bodyMedium" color="textMuted" style={styles.reviewPromptText}>
                 Your sacred ritual has been completed. Share your feedback to help other devotees in the Sanatan community.
               </VText>
-              <Button
+              <VButton
                 title="Write Review & Rate Acharya ★"
+                label="Write Review & Rate Acharya ★"
                 variant="primary"
                 size="md"
                 onPress={() => setReviewModalVisible(true)}
@@ -622,6 +634,9 @@ export const BookingDetailsScreen: React.FC = () => {
               </View>
               <View style={styles.reviewStarsRow}>
                 <RatingStars rating={review.rating} size={18} />
+                <VText variant="bodyMedium" color="brandPrimary" style={{ marginLeft: spacing.xs }}>
+                  {"★".repeat(Math.max(1, Math.min(5, review.rating))) + "☆".repeat(Math.max(0, 5 - review.rating))}
+                </VText>
                 <VText variant="caption" color="textMuted" style={{ marginLeft: spacing.sm }}>
                   {formatDate(review.created_at)}
                 </VText>
@@ -648,8 +663,9 @@ export const BookingDetailsScreen: React.FC = () => {
           </VText>
           <View style={styles.actionButtonsCol}>
             {isReschedulable && (
-              <Button
+              <VButton
                 title="Reschedule Ritual (1 Free Reschedule)"
+                label="Reschedule Ritual (1 Free Reschedule)"
                 variant="secondary"
                 size="md"
                 onPress={() => setRescheduleModalVisible(true)}
@@ -657,8 +673,9 @@ export const BookingDetailsScreen: React.FC = () => {
               />
             )}
             {isCancellable && (
-              <Button
+              <VButton
                 title="Cancel Ritual"
+                label="Cancel Ritual"
                 variant="outline"
                 size="md"
                 onPress={handleOpenCancelModal}
@@ -763,19 +780,22 @@ export const BookingDetailsScreen: React.FC = () => {
                 />
 
                 <View style={styles.modalActions}>
-                  <Button
+                  <VButton
                     title="Keep Booking"
+                    label="Keep Booking"
                     variant="secondary"
                     size="md"
                     onPress={() => setCancelModalVisible(false)}
                     style={{ minHeight: 48, flex: 1 }}
                   />
-                  <Button
+                  <VButton
                     title={cancelling ? "Processing..." : "Confirm Cancel"}
+                    label={cancelling ? "Processing..." : "Confirm Cancel"}
                     variant="primary"
                     size="md"
                     onPress={handleConfirmCancel}
-                    disabled={cancelling}
+                    isDisabled={cancelling}
+                    isLoading={cancelling}
                     style={{ minHeight: 48, flex: 1 }}
                   />
                 </View>
@@ -819,19 +839,22 @@ export const BookingDetailsScreen: React.FC = () => {
               </VText>
 
               <View style={styles.modalActions}>
-                <Button
+                <VButton
                   title="Close"
+                  label="Close"
                   variant="secondary"
                   size="md"
                   onPress={() => setRescheduleModalVisible(false)}
                   style={{ minHeight: 48, flex: 1 }}
                 />
-                <Button
+                <VButton
                   title={rescheduling ? "Updating..." : "Confirm New Slot"}
+                  label={rescheduling ? "Updating..." : "Confirm New Slot"}
                   variant="primary"
                   size="md"
                   onPress={handleConfirmReschedule}
-                  disabled={rescheduling}
+                  isDisabled={rescheduling}
+                  isLoading={rescheduling}
                   style={{ minHeight: 48, flex: 1 }}
                 />
               </View>
