@@ -156,3 +156,63 @@ jest.mock('react-native-incall-manager', () => ({
   },
 }));
 
+
+
+// react-native-linear-gradient
+jest.mock('react-native-linear-gradient', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return ({ children, ...props }) => React.createElement(View, props, children);
+});
+
+// react-native-vector-icons shims
+const createMockIcon = (iconSetName) => {
+  const React = require('react');
+  const { Text } = require('react-native');
+  const Component = (props) =>
+    React.createElement(
+      Text,
+      { testID: `icon-${iconSetName}-${props.name || 'unnamed'}`, ...props },
+      props.name
+    );
+  Component.loadFont = jest.fn();
+  Component.hasIcon = jest.fn(() => true);
+  Component.getImageSource = jest.fn(() => Promise.resolve({}));
+  Component.getImageSourceSync = jest.fn(() => ({}));
+  return Component;
+};
+
+jest.mock('react-native-vector-icons/Ionicons', () => createMockIcon('ionicons'));
+jest.mock('react-native-vector-icons/MaterialCommunityIcons', () => createMockIcon('mci'));
+jest.mock('react-native-vector-icons/Feather', () => createMockIcon('feather'));
+jest.mock('react-native-vector-icons/MaterialIcons', () => createMockIcon('material'));
+jest.mock('react-native-vector-icons/FontAwesome', () => createMockIcon('fontawesome'));
+jest.mock('react-native-vector-icons/FontAwesome5', () => createMockIcon('fontawesome5'));
+jest.mock('react-native-vector-icons/AntDesign', () => createMockIcon('antdesign'));
+jest.mock('react-native-vector-icons/Entypo', () => createMockIcon('entypo'));
+jest.mock('react-native-vector-icons/Octicons', () => createMockIcon('octicons'));
+jest.mock('react-native-vector-icons/SimpleLineIcons', () => createMockIcon('simpleline'));
+
+
+// react-native-reanimated mock
+jest.mock('react-native-reanimated', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    default: {
+      View: ({ children, ...props }) => React.createElement(View, props, children),
+      createAnimatedComponent: (c) => c,
+    },
+    useSharedValue: (init) => ({ value: init }),
+    useAnimatedStyle: (cb) => cb(),
+    withRepeat: (anim) => anim,
+    withTiming: (toVal) => toVal,
+    interpolateColor: (_val, _inRange, outRange) => outRange[0],
+    Easing: {
+      linear: (t) => t,
+      inOut: () => (t) => t,
+      ease: (t) => t,
+    },
+  };
+});
