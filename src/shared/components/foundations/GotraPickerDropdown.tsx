@@ -7,10 +7,10 @@ import {
   TextInput,
   FlatList,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '../icons';
 import { useTheme, getDevanagariLineHeight } from '../../theme';
 import { useLanguage } from '../../i18n';

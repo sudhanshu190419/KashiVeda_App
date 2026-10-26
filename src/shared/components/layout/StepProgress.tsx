@@ -139,7 +139,7 @@ export const StepProgress: React.FC<StepProgressProps> = ({
                     borderRadius: radii.full,
                   },
                 ]}
-                hitSlop={{ top: 12, bottom: 12, left: 4, right: 4 }}
+                hitSlop={{ top: 21, bottom: 21, left: 4, right: 4 }}
                 accessibilityRole="button"
                 accessibilityLabel={`Step ${index + 1}: ${resolveStepTitle(normalizedSteps[index])}`}
               />

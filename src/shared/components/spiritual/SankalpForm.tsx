@@ -377,7 +377,7 @@ export const SankalpForm: React.FC<SankalpFormProps> = ({
                 {onRemoveFamilyMember && (
                   <Pressable
                     onPress={() => onRemoveFamilyMember(member.id)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
                     accessibilityRole="button"
                     accessibilityLabel={
                       isHi ? `${member.name} हटाएं` : `Remove ${member.name}`
