@@ -188,6 +188,7 @@ export const AppBar: React.FC<AppBarProps> = ({
               {/* Language Switcher — flips the whole app locale */}
               <Pressable
                 onPress={toggleLanguage}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                 style={[
                   styles.langToggleBtn,
                   {
@@ -205,8 +206,8 @@ export const AppBar: React.FC<AppBarProps> = ({
                     {
                       color: colors.brandPrimary,
                       fontFamily: 'NotoSansDevanagari-SemiBold',
-                      fontSize: typography.caption.fontSize,
-                      lineHeight: getDevanagariLineHeight(typography.caption.fontSize),
+                      fontSize: 12,
+                      lineHeight: getDevanagariLineHeight(12),
                     },
                   ]}
                 >
@@ -298,12 +299,11 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   langToggleBtn: {
-    minWidth: 48,
-    minHeight: 48,
+    width: 36,
+    height: 36,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
   },
   langText: {
     fontWeight: '700',

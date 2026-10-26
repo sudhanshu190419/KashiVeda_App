@@ -444,11 +444,13 @@ export const PanchangCard: React.FC<PanchangCardProps> = ({
                         ? colors.statusActive
                         : colors.textPrimary,
                       fontFamily: scriptFont(item.value),
-                      fontSize: typography.labelLarge.fontSize,
-                      lineHeight: getDevanagariLineHeight(typography.labelLarge.fontSize),
+                      fontSize: item.value.length > 15 ? 12 : typography.labelLarge.fontSize,
+                      lineHeight: getDevanagariLineHeight(item.value.length > 15 ? 12 : typography.labelLarge.fontSize),
                     },
                   ]}
                   numberOfLines={1}
+                  adjustsFontSizeToFit={true}
+                  minimumFontScale={0.75}
                 >
                   {item.value}
                 </Text>

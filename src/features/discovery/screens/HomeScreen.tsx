@@ -144,16 +144,6 @@ export const HomeScreen: React.FC = () => {
           >
             {isHi ? `नमस्ते, ${displayName}` : `Namaste, ${displayName}`}
           </VText>
-          <VText
-            variant="bodyMedium"
-            color="textMuted"
-            style={{ marginTop: spacing.xxs }}
-          >
-            {pick(
-              "काशी के वैदिक अनुष्ठान, सत्यापित विद्वान पुरोहित एवं पावन आशीर्वाद।",
-              "Experience authentic Vedic rituals, verified Pandits, and sacred blessings of Kashi."
-            )}
-          </VText>
         </View>
 
         {/* Compact Daily Panchang Preview Widget */}
