@@ -41,7 +41,8 @@ import {
 } from "../features/astrology/index.ts";
 import { ProfileScreen } from "../features/auth/index.ts";
 import { PanditApplicationWizardScreen, PanditApplicationStatusScreen } from "../features/pandit/index.ts";
-import { colors, typography } from "../shared/theme/index.ts";
+import { useTheme } from "../shared/theme/index.ts";
+import { Ionicons } from "../shared/components/icons/index.ts";
 import {
   CustomerStackParamList,
   CustomerTabParamList,
@@ -51,46 +52,77 @@ const Tab = createBottomTabNavigator<CustomerTabParamList>();
 const Stack = createNativeStackNavigator<CustomerStackParamList>();
 
 const CustomerTabNavigator: React.FC = () => {
+  const { colors, isDark } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarActiveTintColor: colors.brandPrimary,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.borderLight,
+          backgroundColor: isDark ? colors.surfaceCard : colors.surfaceBase,
+          borderTopColor: colors.borderDefault,
+          borderTopWidth: 1,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 6,
         },
         tabBarLabelStyle: {
-          fontSize: typography.fontSize.xs,
-          fontWeight: typography.fontWeight.medium,
+          fontSize: 11,
+          fontWeight: "600",
         },
       }}
     >
       <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{ tabBarLabel: "Home" }}
+        options={{
+          tabBarLabel: "Home",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "home" : "home-outline"} size={22} color={color} />
+          ),
+        }}
       />
       <Tab.Screen
         name="Explore"
         component={ExploreScreen}
-        options={{ tabBarLabel: "Rituals" }}
+        options={{
+          tabBarLabel: "Rituals",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "flame" : "flame-outline"} size={22} color={color} />
+          ),
+        }}
       />
       <Tab.Screen
         name="Bookings"
         component={BookingsScreen}
-        options={{ tabBarLabel: "My Pujas" }}
+        options={{
+          tabBarLabel: "My Pujas",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "calendar" : "calendar-outline"} size={22} color={color} />
+          ),
+        }}
       />
       <Tab.Screen
         name="Kundli"
         component={KundliScreen}
-        options={{ tabBarLabel: "Kundli" }}
+        options={{
+          tabBarLabel: "Kundli",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "compass" : "compass-outline"} size={22} color={color} />
+          ),
+        }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ tabBarLabel: "Account" }}
+        options={{
+          tabBarLabel: "Account",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />
+          ),
+        }}
       />
     </Tab.Navigator>
   );

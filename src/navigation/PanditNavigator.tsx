@@ -16,53 +16,85 @@ import {
   PanditPayoutSetupScreen,
   PanditTemplesScreen,
 } from "../features/pandit/index.ts";
-import { colors, typography } from "../shared/theme/index.ts";
+import { useTheme } from "../shared/theme/index.ts";
+import { Ionicons } from "../shared/components/icons/index.ts";
 import { PanditStackParamList, PanditTabParamList } from "../shared/types/index.ts";
 
 const Tab = createBottomTabNavigator<PanditTabParamList>();
 const Stack = createNativeStackNavigator<PanditStackParamList>();
 
 const PanditTabNavigator: React.FC = () => {
+  const { colors, isDark } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarActiveTintColor: colors.brandPrimary,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.borderLight,
+          backgroundColor: isDark ? colors.surfaceCard : colors.surfaceBase,
+          borderTopColor: colors.borderDefault,
+          borderTopWidth: 1,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 6,
         },
         tabBarLabelStyle: {
-          fontSize: typography.fontSize.xs,
-          fontWeight: typography.fontWeight.medium,
+          fontSize: 11,
+          fontWeight: "600",
         },
       }}
     >
       <Tab.Screen
         name="PanditDashboard"
         component={PanditDashboardScreen}
-        options={{ tabBarLabel: "Dashboard" }}
+        options={{
+          tabBarLabel: "Dashboard",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "speedometer" : "speedometer-outline"} size={22} color={color} />
+          ),
+        }}
       />
       <Tab.Screen
         name="PanditBookings"
         component={PanditBookingsScreen}
-        options={{ tabBarLabel: "Rituals" }}
+        options={{
+          tabBarLabel: "Rituals",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "flame" : "flame-outline"} size={22} color={color} />
+          ),
+        }}
       />
       <Tab.Screen
         name="PanditAvailability"
         component={PanditAvailabilityScreen}
-        options={{ tabBarLabel: "Schedule" }}
+        options={{
+          tabBarLabel: "Schedule",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "time" : "time-outline"} size={22} color={color} />
+          ),
+        }}
       />
       <Tab.Screen
         name="PanditKundli"
         component={PanditKundliScreen}
-        options={{ tabBarLabel: "Kundlis" }}
+        options={{
+          tabBarLabel: "Kundlis",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "compass" : "compass-outline"} size={22} color={color} />
+          ),
+        }}
       />
       <Tab.Screen
         name="PanditProfile"
         component={PanditProfileScreen}
-        options={{ tabBarLabel: "Profile" }}
+        options={{
+          tabBarLabel: "Profile",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />
+          ),
+        }}
       />
     </Tab.Navigator>
   );
