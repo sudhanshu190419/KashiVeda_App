@@ -206,7 +206,7 @@ export const PanditLiveSessionScreen: React.FC = () => {
               color={colors.textPrimary}
               style={styles.loadingText}
             >
-              {pick("आचार्य रूप में गर्भगृह में प्रवेश कर रहे हैं...", "Entering Sanctum as Acharya...")}
+              {pick("पंडित जी रूप में गर्भगृह में प्रवेश कर रहे हैं...", "Entering Sanctum as Pandit Ji...")}
             </Text>
             <Text variant="caption" color={colors.textMuted}>
               {pick(`कक्ष से जुड़ रहे हैं: ${roomName}`, `Connecting to ${roomName}`)}

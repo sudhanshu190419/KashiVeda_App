@@ -47,7 +47,7 @@ export const panditService = {
 
     return {
       ...(panditData as PanditProfile),
-      display_name: profileData?.display_name || "Acharya",
+      display_name: profileData?.display_name || "Pandit Ji",
       phone: profileData?.phone || undefined,
       avatar_url: profileData?.avatar_url || null,
     };

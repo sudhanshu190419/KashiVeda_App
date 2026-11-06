@@ -260,7 +260,7 @@ describe("Pandit Review and Rating System Test Suite", () => {
       });
 
       const json = JSON.stringify(tree.toJSON());
-      expect(json).toContain("Rate Your Pandit");
+      expect(json).toContain("Rate Your Pandit Ji");
       expect(json).toContain("Acharya Ram Shastri");
       expect(json).toContain("Written Feedback (Optional)");
       expect(json).toContain("0 / 1000");
@@ -375,7 +375,7 @@ describe("Pandit Review and Rating System Test Suite", () => {
       });
 
       const json = JSON.stringify(tree.toJSON());
-      expect(json).toContain("★ New Acharya");
+      expect(json).toContain("★ New Pandit Ji");
       expect(json).not.toContain("★ 0.0");
     });
   });
@@ -392,8 +392,8 @@ describe("Pandit Review and Rating System Test Suite", () => {
       });
 
       const json = JSON.stringify(tree.toJSON());
-      expect(json).toContain("Rate & Review Your Pandit");
-      expect(json).toContain("Write Review & Rate Acharya ★");
+      expect(json).toContain("Rate & Review Your Pandit Ji");
+      expect(json).toContain("Write Review & Rate Pandit Ji");
     });
 
     it("renders submitted review card when booking is completed and review already exists", async () => {
@@ -419,7 +419,7 @@ describe("Pandit Review and Rating System Test Suite", () => {
       expect(json).toContain("Verified Feedback");
       expect(json).toContain("★★★★★");
       expect(json).toContain("Truly divine experience with complete Vedic rituals.");
-      expect(json).not.toContain("Write Review & Rate Acharya ★");
+      expect(json).not.toContain("Write Review & Rate Pandit Ji");
     });
 
     it("does not render review section when booking is upcoming", async () => {
@@ -524,7 +524,7 @@ describe("Pandit Review and Rating System Test Suite", () => {
       });
 
       const json = JSON.stringify(tree.toJSON());
-      expect(json).toContain("★ New Acharya");
+      expect(json).toContain("★ New Pandit Ji");
       expect(json).not.toContain("★ 0.0");
     });
   });

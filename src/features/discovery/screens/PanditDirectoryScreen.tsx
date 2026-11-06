@@ -30,6 +30,7 @@ import { formatCurrency } from "../../../shared/utils/formatters.ts";
 import { bookingService } from "../../booking/services/bookingService.ts";
 import { usePanditDirectory } from "../hooks/usePanditDirectory.ts";
 import { ServiceMode } from "../types/discovery.ts";
+import { PanditCard } from "../components/PanditCard.tsx";
 
 type PanditDirectoryRouteProp = RouteProp<CustomerStackParamList, "PanditDirectory">;
 type CustomerNavigationProp = NativeStackNavigationProp<CustomerStackParamList>;
@@ -115,9 +116,9 @@ export const PanditDirectoryScreen: React.FC = () => {
 
   const modes: { label: string; labelHi: string; value: ServiceMode | undefined }[] = [
     { label: "All Formats", labelHi: "सभी प्रारूप", value: undefined },
-    { label: "🪔 Home", labelHi: "🪔 गृह पूजा", value: "home" },
-    { label: "🏛️ Temple", labelHi: "🏛️ मंदिर", value: "temple" },
-    { label: "🌐 Remote", labelHi: "🌐 ऑनलाइन", value: "remote" },
+    { label: "Home", labelHi: "गृह पूजा", value: "home" },
+    { label: "Temple", labelHi: "मंदिर", value: "temple" },
+    { label: "Remote", labelHi: "ऑनलाइन", value: "remote" },
   ];
 
   const screenTitle = pujaName
@@ -125,12 +126,12 @@ export const PanditDirectoryScreen: React.FC = () => {
       ? `${pujaName} हेतु पुरोहित`
       : `Pandits for ${pujaName}`
     : isHi
-    ? "वैदिक पुरोहित निर्देशिका"
-    : "Vedic Pandits Directory";
+    ? "वैदिक पंडित जी निर्देशिका"
+    : "Vedic Pandit Ji Directory";
 
   const screenSubtitle = isHi
     ? "काशी के सत्यापित विद्वान पुरोहित"
-    : "Verified priests with authentic ritual lineage in Kashi";
+    : "Verified Pandit Ji with authentic ritual lineage in Kashi";
 
   return (
     <ScreenWrapper
@@ -172,8 +173,8 @@ export const PanditDirectoryScreen: React.FC = () => {
           <VInput
             placeholder={
               isHi
-                ? "आचार्य का नाम, भाषा (हिंदी, संस्कृत) या अनुष्ठान खोजें..."
-                : "Search by Acharya name, language (Hindi, Sanskrit)..."
+                ? "पंडित जी का नाम, भाषा (हिंदी, संस्कृत) या अनुष्ठान खोजें..."
+                : "Search by Pandit Ji name, language (Hindi, Sanskrit)..."
             }
             value={search}
             onChangeText={setSearch}
@@ -272,105 +273,16 @@ export const PanditDirectoryScreen: React.FC = () => {
         ) : (
           <View style={{ gap: spacing.md }}>
             {filteredPandits.map((pandit) => (
-              <VCard
+              <PanditCard
                 key={pandit.id}
-                elevation={1}
+                pandit={pandit}
                 onPress={() =>
                   navigation.navigate("PanditDetail", {
                     panditId: pandit.id,
                     panditName: pandit.display_name,
                   })
                 }
-                style={{
-                  backgroundColor: colors.surfaceCard,
-                  borderColor: colors.borderDefault,
-                  borderWidth: 1,
-                  padding: spacing.md,
-                  borderRadius: radii.lg,
-                }}
-              >
-                <View style={styles.cardHeader}>
-                  <VAvatar
-                    uri={pandit.avatar_url || undefined}
-                    name={pandit.display_name}
-                    size="lg"
-                    isVerified={true}
-                  />
-                  <View style={[styles.headerInfo, { marginLeft: spacing.md }]}>
-                    <VText variant="titleMedium" color="textPrimary" weight="700">
-                      {pandit.display_name}
-                    </VText>
-                    <View style={{ marginTop: spacing.xxs }}>
-                      <VerificationBadge status="verified" size="sm" showTooltip={false} />
-                    </View>
-                    {pandit.rating_avg ? (
-                      <View style={{ marginTop: spacing.xxs }}>
-                        <RatingStars
-                          rating={Number(pandit.rating_avg)}
-                          reviewCount={pandit.rating_count || 0}
-                          size={14}
-                          showNumber
-                        />
-                      </View>
-                    ) : null}
-                  </View>
-                </View>
-
-                {pandit.bio ? (
-                  <VText
-                    variant="caption"
-                    color="textMuted"
-                    numberOfLines={2}
-                    style={{ marginTop: spacing.xs }}
-                  >
-                    {pandit.bio}
-                  </VText>
-                ) : null}
-
-                {pandit.languages && pandit.languages.length > 0 ? (
-                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: spacing.xs }}>
-                    {pandit.languages.map((lang) => (
-                      <VTag key={lang} label={lang} variant="assist" />
-                    ))}
-                  </View>
-                ) : null}
-
-                <View
-                  style={[
-                    styles.cardFooter,
-                    {
-                      borderTopColor: colors.borderDefault,
-                      borderTopWidth: 1,
-                      paddingTop: spacing.xs,
-                      marginTop: spacing.sm,
-                    },
-                  ]}
-                >
-                  <View>
-                    <VText variant="caption" color="textMuted">
-                      {isHi ? "प्रारंभिक दक्षिणा" : "Starting Dakshina"}
-                    </VText>
-                    <VText variant="labelLarge" color="brandPrimary" weight="700">
-                      {pandit.puja_price
-                        ? formatCurrency(pandit.puja_price)
-                        : isHi
-                        ? "परामर्शानुसार दक्षिणा"
-                        : "Dakshina on booking"}
-                    </VText>
-                  </View>
-                  <VButton
-                    label={isHi ? "प्रोफ़ाइल देखें" : "View Profile"}
-                    size="sm"
-                    variant="primary"
-                    onPress={() =>
-                      navigation.navigate("PanditDetail", {
-                        panditId: pandit.id,
-                        panditName: pandit.display_name,
-                      })
-                    }
-                  />
-                </View>
-              </VCard>
+              />
             ))}
           </View>
         )}

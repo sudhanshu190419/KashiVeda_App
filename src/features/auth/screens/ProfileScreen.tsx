@@ -327,8 +327,8 @@ export const ProfileScreen: React.FC = () => {
             </View>
             <VText variant="caption" color={colors.textMuted} style={styles.cardDesc}>
               {pick(
-                "आप प्रमाणित काशी वेदा आचार्य हैं। अनुष्ठान बुकिंग, समय-सारणी और कुंडली प्रबंधन के लिए पंडित मोड में स्विच करें।",
-                "You are authorized as a certified Kashi Veda Acharya. Switch to Pandit Mode to manage ritual bookings, schedules, and Kundli requests."
+                "आप प्रमाणित काशी वेदा पंडित जी हैं। अनुष्ठान बुकिंग, समय-सारणी और कुंडली प्रबंधन के लिए पंडित मोड में स्विच करें।",
+                "You are authorized as a certified Kashi Veda Pandit Ji. Switch to Pandit Mode to manage ritual bookings, schedules, and Kundli requests."
               )}
             </VText>
             <VButton
@@ -409,7 +409,11 @@ export const ProfileScreen: React.FC = () => {
         )}
 
         {/* Navigation Shortcut Cards */}
-        <VCard elevation={1} style={styles.menuCard}>
+        <VCard
+          elevation={1}
+          style={styles.menuCard}
+          onPress={() => navigation.navigate("SavedAddresses")}
+        >
           <View style={styles.menuRow}>
             <Ionicons
               name="location-outline"
@@ -432,7 +436,11 @@ export const ProfileScreen: React.FC = () => {
           </View>
         </VCard>
 
-        <VCard elevation={1} style={styles.menuCard}>
+        <VCard
+          elevation={1}
+          style={styles.menuCard}
+          onPress={() => navigation.navigate("KundliProfiles")}
+        >
           <View style={styles.menuRow}>
             <Ionicons
               name="sparkles-outline"
@@ -442,7 +450,7 @@ export const ProfileScreen: React.FC = () => {
             />
             <View style={styles.menuTextContainer}>
               <VText variant="titleMedium">
-                {pick("पारिवारिक कुंडली प्रोफाइल", "Family Kundli Profiles")}
+                {pick("कुंडली प्रोफाइल", "Kundli Profiles")}
               </VText>
               <VText variant="caption" color={colors.textMuted}>
                 {pick(

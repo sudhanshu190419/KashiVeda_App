@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Kashi Veda — Sacred Observances</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Editorial Serif Fonts & Body Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400;1,600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with custom configuration -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary-container": "#fff1eb",
+            "error": "#ba1a1a",
+            "surface-variant": "#e9e1dc",
+            "surface-container-lowest": "#ffffff",
+            "secondary": "#bb0112",
+            "surface-bright": "#fff8f4",
+            "on-primary": "#ffffff",
+            "on-tertiary-fixed": "#2f1500",
+            "tertiary-fixed": "#ffdcc3",
+            "on-primary-fixed": "#331200",
+            "primary-fixed": "#ffdbca",
+            "outline-variant": "#ddc1b3",
+            "surface-container-low": "#faf2ed",
+            "primary-fixed-dim": "#ffb68e",
+            "on-error-container": "#93000a",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "error-container": "#ffdad6",
+            "surface-container": "#f4ece7",
+            "tertiary-container": "#a95b00",
+            "surface-container-highest": "#e9e1dc",
+            "on-secondary": "#ffffff",
+            "secondary-container": "#e02928",
+            "on-secondary-fixed": "#410002",
+            "inverse-primary": "#ffb68e",
+            "tertiary": "#854600",
+            "on-primary-fixed-variant": "#763300",
+            "background": "#fff8f4",
+            "secondary-fixed-dim": "#ffb4ab",
+            "tertiary-fixed-dim": "#ffb77d",
+            "primary": "#903f00",
+            "on-secondary-container": "#fffbff",
+            "on-surface": "#1e1b18",
+            "inverse-on-surface": "#f7efea",
+            "surface-container-high": "#eee7e1",
+            "surface": "#fff8f4",
+            "surface-tint": "#9b4500",
+            "secondary-fixed": "#ffdad6",
+            "on-surface-variant": "#564338",
+            "on-secondary-fixed-variant": "#93000b",
+            "on-background": "#1e1b18",
+            "surface-dim": "#e0d9d3",
+            "on-tertiary": "#ffffff",
+            "on-error": "#ffffff",
+            "primary-container": "#b45309",
+            "outline": "#897267",
+            "inverse-surface": "#33302c",
+            "on-tertiary-container": "#fff1e9"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin": "1rem",
+            "space-sm": "0.5rem",
+            "space-xs": "0.25rem",
+            "space-md": "0.75rem",
+            "space-lg": "1rem",
+            "gutter": "1rem",
+            "space-xl": "1.5rem"
+          },
+          "fontFamily": {
+            "label-sm": ["Plus Jakarta Sans"],
+            "label-md": ["Plus Jakarta Sans"],
+            "label-lg": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "body-md": ["Plus Jakarta Sans"],
+            "body-lg": ["Plus Jakarta Sans"],
+            "headline-sm": ["Playfair Display"],
+            "headline-md": ["Playfair Display"],
+            "headline-lg": ["Playfair Display"],
+            "display-lg": ["Playfair Display"],
+            "display-lg-mobile": ["Playfair Display"]
+          },
+          "fontSize": {
+            "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.06em", "fontWeight": "500" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "body-sm": ["13px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "400" }],
+            "body-md": ["14px", { "lineHeight": "22px", "letterSpacing": "0em", "fontWeight": "400" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "letterSpacing": "0em", "fontWeight": "400" }],
+            "headline-sm": ["18px", { "lineHeight": "26px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "headline-md": ["22px", { "lineHeight": "30px", "letterSpacing": "0em", "fontWeight": "600" }],
+            "headline-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "0em", "fontWeight": "600" }],
+            "display-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.01em", "fontWeight": "700" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface antialiased selection:bg-primary-fixed selection:text-on-primary-fixed min-h-screen flex flex-col items-center">
+<!-- Mobile Viewport Constraint (390px) -->
+<div class="w-full max-w-[390px] min-h-screen bg-surface flex flex-col relative shadow-sm">
+<!-- TopAppBar Component (from Shared Components JSON) -->
+<header class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-14 w-full max-w-[390px] mx-auto bg-surface dark:bg-inverse-surface border-b border-outline-variant/40 dark:border-outline/30">
+<div class="flex items-center space-x-3">
+<button aria-label="Temple Menu" class="w-12 h-12 flex items-center justify-center rounded-lg text-primary dark:text-inverse-primary hover:bg-surface-container transition-colors duration-150 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[22px]">temple_hindu</span>
+</button>
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md font-semibold text-primary dark:text-inverse-primary tracking-wide leading-none">Kashi Veda</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant tracking-wider mt-0.5">Daily Sanctum • Kashi, IN</span>
+</div>
+</div>
+<button aria-label="Notifications" class="w-12 h-12 flex items-center justify-center rounded-lg text-primary dark:text-inverse-primary hover:bg-surface-container transition-colors duration-150 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[22px]">notifications</span>
+</button>
+</header>
+<!-- Main Content Canvas (Ivory ground with quiet vertical rhythm) -->
+<main class="flex-1 w-full pt-16 px-4 pb-24">
+<!-- Section Introductory Label -->
+<div class="mt-4 mb-4 flex items-center justify-between">
+<p class="text-label-md font-label-md text-on-surface-variant uppercase tracking-widest text-[11px]">Sacred Observances</p>
+<div class="flex items-center space-x-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container inline-block"></span>
+<span class="text-label-sm font-label-sm text-primary-container">Kashi Ghats</span>
+</div>
+</div>
+<!-- Vertical Card Stack (Generous gaps, no clashing borders, subtle tone containment) -->
+<div class="flex flex-col gap-4">
+<!-- CARD 1: Shubh Muhurat Card (Panchang) -->
+<article class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/40 shadow-sm transition-all duration-200">
+<div class="flex items-baseline justify-between border-b border-outline-variant/30 pb-3">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Today's Muhurat</h2>
+<span class="text-body-sm font-body-sm text-on-surface-variant">Shukla Dashami, Kartik</span>
+</div>
+<div class="py-4">
+<div class="flex items-center justify-between">
+<div>
+<span class="text-label-sm font-label-sm text-primary-container tracking-wider uppercase block mb-1">Active Auspicious Window</span>
+<p class="font-headline-lg text-headline-lg text-on-surface tracking-tight">11:45 AM – 12:35 PM</p>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-0.5">Abhijit Muhurat • Highly Favorable</p>
+</div>
+</div>
+</div>
+<div class="pt-3 border-t border-outline-variant/30 flex items-center justify-between">
+<p class="text-body-sm font-body-sm text-on-surface-variant">Rohini Nakshatra • Rahu Kaal 4:30 PM</p>
+<span class="material-symbols-outlined text-outline-variant text-[18px]">wb_sunny</span>
+</div>
+</article>
+<!-- CARD 2: Pandit Profile Card (Redesigned without Dakshina) -->
+<article class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/40 shadow-sm transition-all duration-200">
+<div class="flex items-start space-x-3.5">
+<img class="w-14 h-14 rounded-full object-cover border border-outline-variant/60 shadow-inner flex-shrink-0" data-alt="Dignified, revered elderly Vedic scholar and priest from Varanasi with serene contemplative expression, dressed in handspun natural ivory khadi silk uttariya, soft warm temple dawn light illuminated with sandalwood paste on forehead, authentic and peaceful documentary style portrait." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdoN486fc8xF04NHDJeqrvVyhxsGWGNRicvx4xp5-509GyVgqM7NONWNcTiMYIAvFZthPpFy3Kkt6z2_rqo2St4UyAPlLi7LzSslumYxxOG8Ofn46LEN_tM_rjYwr57iu7hGZHJWOou_Cs31xVhhh1Iye6Z2gvHee61YKx8PyA-JtLxpa-T-i8H23Caas0QxCZTgeg1McFKy49_qCJ_VsxqZLcrc2rWuAWMItfxWTqhHBPsrxKq9_KT39nuvBkML66KS6ocqUK_Us"/>
+<div class="flex-1 min-w-0">
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">Pt. Ramkrishna Shastri</h2>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-0.5">Shukla Yajurveda • 22 Years Tradition</p>
+</div>
+</div>
+<div class="mt-3.5 py-2 px-3 bg-surface-container-low rounded-lg border border-outline-variant/30 flex items-center justify-between text-label-sm font-label-sm">
+<div class="flex items-center space-x-1.5 text-on-surface-variant">
+<span class="text-primary-container font-semibold">★ 4.9</span>
+<span>(184 Yajmans)</span>
+</div>
+<span class="text-on-surface-variant truncate">Kashi Vidvat Parishad</span>
+</div>
+<button class="mt-3.5 w-full min-h-[48px] rounded-lg bg-primary-container text-on-primary font-label-lg text-label-lg hover:opacity-95 active:scale-95 transition-all flex items-center justify-center">
+Request Sankalp
+</button>
+</article>
+<!-- CARD 3: Sacred Puja Booking Card -->
+<article class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/40 shadow-sm transition-all duration-200 relative overflow-hidden">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center space-x-2">
+<span class="w-2 h-2 rounded-full bg-emerald-600 inline-block animate-pulse"></span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Confirmed</span>
+</div>
+<span class="text-label-sm font-label-sm text-primary-container">Live Darshan</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Rudrabhishek Puja</h2>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-1">Kashi Vishwanath Temple • Kartik Purnima, 6:30 PM</p>
+<div class="mt-3.5 py-2 px-3 bg-surface-container-low rounded-lg border border-outline-variant/30">
+<p class="font-headline-sm text-[13px] italic text-on-surface-variant">For Sharma Parivar (Kashyap Gotra)</p>
+</div>
+<button class="mt-4 w-full min-h-[48px] rounded-lg bg-on-surface text-surface-container-lowest font-label-lg text-label-lg hover:bg-inverse-surface active:scale-95 transition-all flex items-center justify-center space-x-2">
+<span class="material-symbols-outlined text-[18px]">play_circle</span>
+<span>Join Live Stream</span>
+</button>
+</article>
+<!-- CARD 4: Daily Vedic Guidance Card -->
+<article class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/40 shadow-sm transition-all duration-200">
+<div class="flex items-center justify-between border-b border-outline-variant/30 pb-2.5">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Mesh (Aries) Insight</h2>
+<span class="material-symbols-outlined text-outline text-[20px]">flare</span>
+</div>
+<p class="text-body-md font-body-md text-on-surface mt-3 leading-relaxed">
+            Favorable alignment for health and new undertakings today. Maintain composure during midday interactions.
+          </p>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-2 border-l-2 border-primary-container pl-3 py-0.5">
+            Recite Aditya Hridaya Stotram facing East during sunrise.
+          </p>
+<div class="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between">
+<span class="text-label-sm font-label-sm text-outline tracking-wider uppercase">Color: Saffron • Lucky: 9</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Surya Hora</span>
+</div>
+</article>
+<!-- CARD 5: Pure Samagri Kit Card -->
+<article class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/40 shadow-sm transition-all duration-200">
+<div class="flex items-baseline justify-between">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Puja Essentials Kit</h2>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Handpicked for Rudrabhishek</span>
+</div>
+<div class="mt-3.5 space-y-2.5 py-1">
+<div class="flex items-center space-x-2.5">
+<span class="material-symbols-outlined text-primary-container text-[18px]">check_circle</span>
+<span class="text-body-sm font-body-sm text-on-surface">Haridwar Brahmakund Ganga Jal (250ml)</span>
+</div>
+<div class="flex items-center space-x-2.5">
+<span class="material-symbols-outlined text-primary-container text-[18px]">check_circle</span>
+<span class="text-body-sm font-body-sm text-on-surface">Desi Gir Cow Bilona Ghee (500g)</span>
+</div>
+<div class="flex items-center space-x-2.5">
+<span class="material-symbols-outlined text-primary-container text-[18px]">check_circle</span>
+<span class="text-body-sm font-body-sm text-on-surface">Fresh Bilva Patra &amp; Kusha</span>
+</div>
+<div class="flex items-center space-x-2.5">
+<span class="material-symbols-outlined text-primary-container text-[18px]">check_circle</span>
+<span class="text-body-sm font-body-sm text-on-surface">Natural Sandalwood Paste</span>
+</div>
+</div>
+<div class="mt-5 pt-4 border-t border-outline-variant/30 flex items-center justify-between">
+<div>
+<span class="text-label-sm font-label-sm text-on-surface-variant block">Complete Kit</span>
+<p class="text-body-lg font-body-lg font-semibold text-on-surface">₹1,000</p>
+</div>
+<button class="min-h-[48px] px-5 rounded-lg bg-primary-container text-on-primary font-label-lg text-label-lg hover:opacity-95 active:scale-95 transition-all flex items-center justify-center space-x-1.5">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>Add Samagri</span>
+</button>
+</div>
+</article>
+</div>
+</main>
+<!-- BottomNavBar Component (from Shared Components JSON with Sanctum active) -->
+<nav class="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-2 h-16 w-full max-w-[390px] mx-auto bg-surface dark:bg-inverse-surface border-t border-outline-variant/40 dark:border-outline/30 shadow-md">
+<!-- Sanctum (Active Tab) -->
+<a class="flex flex-col items-center justify-center text-primary dark:text-inverse-primary font-semibold py-1 min-w-[56px] min-h-[48px] active:scale-95 transition-transform duration-150" href="#sanctum">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="text-label-sm font-label-sm mt-0.5">Sanctum</span>
+</a>
+<!-- Panchang -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant py-1 min-w-[56px] min-h-[48px] hover:bg-surface-container-high dark:hover:bg-surface-variant/40 transition-colors duration-150 active:scale-95 transition-transform duration-150" href="#panchang">
+<span class="material-symbols-outlined text-[22px]">calendar_today</span>
+<span class="text-label-sm font-label-sm mt-0.5">Panchang</span>
+</a>
+<!-- Pandits -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant py-1 min-w-[56px] min-h-[48px] hover:bg-surface-container-high dark:hover:bg-surface-variant/40 transition-colors duration-150 active:scale-95 transition-transform duration-150" href="#pandits">
+<span class="material-symbols-outlined text-[22px]">person_outline</span>
+<span class="text-label-sm font-label-sm mt-0.5">Pandits</span>
+</a>
+<!-- Rituals -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant py-1 min-w-[56px] min-h-[48px] hover:bg-surface-container-high dark:hover:bg-surface-variant/40 transition-colors duration-150 active:scale-95 transition-transform duration-150" href="#rituals">
+<span class="material-symbols-outlined text-[22px]">auto_stories</span>
+<span class="text-label-sm font-label-sm mt-0.5">Rituals</span>
+</a>
+<!-- Samagri -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant py-1 min-w-[56px] min-h-[48px] hover:bg-surface-container-high dark:hover:bg-surface-variant/40 transition-colors duration-150 active:scale-95 transition-transform duration-150" href="#samagri">
+<span class="material-symbols-outlined text-[22px]">inventory_2</span>
+<span class="text-label-sm font-label-sm mt-0.5">Samagri</span>
+</a>
+</nav>
+</div>
+</body></html>

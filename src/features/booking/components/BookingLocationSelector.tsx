@@ -124,16 +124,16 @@ export const BookingLocationSelector: React.FC<BookingLocationSelectorProps> = (
           Ritual Location
         </Text>
         <Card variant="elevated" style={styles.remoteCard}>
-          <Text style={styles.remoteIcon}>🌐</Text>
+          
           <Text variant="h3" style={styles.remoteTitle}>
             Live Remote Vedic Sanctum
           </Text>
           <Text variant="body" color={colors.textSecondary} style={styles.remoteDesc}>
-            No physical location required. A private, encrypted 1-on-1 HD live video room will be generated on LiveKit Cloud for you and the Acharya.
+            No physical location required. A private, encrypted 1-on-1 HD live video room will be generated on LiveKit Cloud for you and Pandit Ji.
           </Text>
           <View style={styles.remoteBadge}>
             <Text variant="captionMedium" color={colors.primary}>
-              ✨ Live Video Room (15 mins prior to start)
+              Live Video Room (15 mins prior to start)
             </Text>
           </View>
         </Card>

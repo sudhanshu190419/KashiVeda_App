@@ -8,4 +8,5 @@ export * from "./SamagriSelector.tsx";
 export * from "./PrasadSelector.tsx";
 export * from "./BookingPriceBreakdown.tsx";
 export * from "./SubmitReviewModal.tsx";
+export * from "./MuhuratProposalCard.tsx";
 

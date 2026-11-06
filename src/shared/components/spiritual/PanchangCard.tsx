@@ -1,14 +1,15 @@
+// src/shared/components/spiritual/PanchangCard.tsx
 import React from 'react';
 import {
   View,
   Text,
-  Pressable,
+  TouchableOpacity,
   StyleSheet,
   StyleProp,
   ViewStyle,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '../icons';
-import { useTheme, getDevanagariLineHeight } from '../../theme';
+import { useTheme } from '../../theme';
 import { useLanguage } from '../../i18n';
 import { PANCHANG_LABELS } from '../../constants/vedic';
 import { PanchangData } from '../../types/domain';
@@ -18,9 +19,9 @@ export interface PanchangCardProps {
   data?: Partial<PanchangData>;
   /** Alias for data prop for ergonomic DX across screens */
   panchangData?: Partial<PanchangData>;
-  /** Compact mode shows 4 key metrics (Tithi, Nakshatra, Rahukaal, Abhijeet) */
+  /** Compact mode (shown on customer Home) */
   isCompact?: boolean;
-  /** Full detail mode (explicitly disables compact mode) */
+  /** Full detail mode (shown on Explore ephemeris tab) */
   isFullDetail?: boolean;
   /** Optional press handler for opening full ephemeris calendar */
   onPress?: () => void;
@@ -30,48 +31,30 @@ export interface PanchangCardProps {
   testID?: string;
 }
 
-interface MetricDisplayItem {
-  key: string;
-  labelEn: string;
-  labelHi: string;
-  value: string;
-  icon: string;
-  isAlert?: boolean;
-  isAuspicious?: boolean;
-}
-
 /**
  * PanchangCard — Authentic Varanasi Vedic Ephemeris Component
- *
- * Displays up to 8 Shastric astronomical metrics sourced from PANCHANG_LABELS:
- * Tithi, Nakshatra, Yoga, Karana, Sunrise, Sunset, Rahukaal, and Abhijeet Muhurat.
- *
- * Adheres strictly to Zero Mock Data Policy: If ephemeris data is missing,
- * renders an honest empty state rather than fabricated metrics.
+ * Styled according to Territory G and the approved Card Mockups:
+ * - Card Top Bar: "TODAY'S PANCHANG" tag, date, and active Auspicious pill
+ * - Vedic Data Grid: 2-column Tithi & Nakshatra cards
+ * - Highlighted Shubh Muhurat (Abhijit) Banner with gold accent border
+ * - Rahu Kaal Caution Box with time strip
+ * - Telemetry Sunrise & Sunset Footer
  */
 export const PanchangCard: React.FC<PanchangCardProps> = ({
   data,
   panchangData,
   isCompact = false,
-  isFullDetail,
+  isFullDetail = false,
   onPress,
   style,
   testID = 'panchang-card',
 }) => {
-  const { colors, spacing, radii, typography, elevation } = useTheme();
-  const { language } = useLanguage();
+  const { colors, spacing, radii } = useTheme();
+  const { language, pick } = useLanguage();
   const isHi = language === 'hi';
 
   const activeData = data ?? panchangData;
-  const devanagariFont = 'NotoSansDevanagari-Regular';
-  const devanagariTitleFont = 'NotoSansDevanagari-SemiBold';
-  const scriptFont = (text: string | undefined) =>
-    text && /[\u0900-\u097F]/.test(text)
-      ? devanagariFont
-      : typography.caption.fontFamily;
-  const compactMode = isFullDetail !== undefined ? !isFullDetail : isCompact;
 
-  // Determine if valid ephemeris metrics exist
   const hasData =
     Boolean(activeData) &&
     Boolean(
@@ -83,257 +66,139 @@ export const PanchangCard: React.FC<PanchangCardProps> = ({
         activeData?.rahukaalStart
     );
 
-  // Build formatted metric items
-  const rahukaalValue =
-    activeData?.rahukaalStart && activeData?.rahukaalEnd
-      ? `${activeData.rahukaalStart} - ${activeData.rahukaalEnd}`
-      : undefined;
+  const tithiValue = isHi
+    ? activeData?.tithiHi || activeData?.tithi || '—'
+    : activeData?.tithi || activeData?.tithiHi || '—';
 
-  const abhijeetValue =
+  const nakshatraValue = isHi
+    ? activeData?.nakshatraHi || activeData?.nakshatra || '—'
+    : activeData?.nakshatra || activeData?.nakshatraHi || '—';
+
+  const yogaValue = isHi
+    ? activeData?.yogaHi || activeData?.yoga || '—'
+    : activeData?.yoga || activeData?.yogaHi || '—';
+
+  const karanaValue = isHi
+    ? activeData?.karanaHi || activeData?.karana || '—'
+    : activeData?.karana || activeData?.karanaHi || '—';
+
+  const abhijeetTime =
     activeData?.abhijeetStart && activeData?.abhijeetEnd
-      ? `${activeData.abhijeetStart} - ${activeData.abhijeetEnd}`
+      ? `${activeData.abhijeetStart} – ${activeData.abhijeetEnd}`
       : undefined;
 
-  const allMetrics: MetricDisplayItem[] = [
-    {
-      key: 'tithi',
-      labelEn: PANCHANG_LABELS.tithi.en,
-      labelHi: PANCHANG_LABELS.tithi.hi,
-      value: (isHi ? activeData?.tithiHi ?? activeData?.tithi : activeData?.tithi ?? activeData?.tithiHi) || '—',
-      icon: 'moon-waning-crescent',
-    },
-    {
-      key: 'nakshatra',
-      labelEn: PANCHANG_LABELS.nakshatra.en,
-      labelHi: PANCHANG_LABELS.nakshatra.hi,
-      value: (isHi ? activeData?.nakshatraHi ?? activeData?.nakshatra : activeData?.nakshatra ?? activeData?.nakshatraHi) || '—',
-      icon: 'star-four-points-outline',
-    },
-    {
-      key: 'rahukaal',
-      labelEn: PANCHANG_LABELS.rahukaal.en,
-      labelHi: PANCHANG_LABELS.rahukaal.hi,
-      value: rahukaalValue || '—',
-      icon: 'shield-alert-outline',
-      isAlert: true,
-    },
-    {
-      key: 'abhijeet',
-      labelEn: PANCHANG_LABELS.abhijeet.en,
-      labelHi: PANCHANG_LABELS.abhijeet.hi,
-      value: abhijeetValue || '—',
-      icon: 'weather-sunny',
-      isAuspicious: true,
-    },
-    {
-      key: 'yoga',
-      labelEn: PANCHANG_LABELS.yoga.en,
-      labelHi: PANCHANG_LABELS.yoga.hi,
-      value: (isHi ? activeData?.yogaHi ?? activeData?.yoga : activeData?.yoga ?? activeData?.yogaHi) || '—',
-      icon: 'meditation',
-    },
-    {
-      key: 'karana',
-      labelEn: PANCHANG_LABELS.karana.en,
-      labelHi: PANCHANG_LABELS.karana.hi,
-      value: (isHi ? activeData?.karanaHi ?? activeData?.karana : activeData?.karana ?? activeData?.karanaHi) || '—',
-      icon: 'circle-slice-6',
-    },
-    {
-      key: 'sunrise',
-      labelEn: PANCHANG_LABELS.sunrise.en,
-      labelHi: PANCHANG_LABELS.sunrise.hi,
-      value: activeData?.sunrise ? `${activeData.sunrise} IST` : '—',
-      icon: 'weather-sunset-up',
-    },
-    {
-      key: 'sunset',
-      labelEn: PANCHANG_LABELS.sunset.en,
-      labelHi: PANCHANG_LABELS.sunset.hi,
-      value: activeData?.sunset ? `${activeData.sunset} IST` : '—',
-      icon: 'weather-sunset-down',
-    },
-  ];
+  const rahukaalTime =
+    activeData?.rahukaalStart && activeData?.rahukaalEnd
+      ? `${activeData.rahukaalStart} – ${activeData.rahukaalEnd}`
+      : undefined;
 
-  const displayedMetrics = compactMode ? allMetrics.slice(0, 4) : allMetrics;
+  const festivalName = isHi
+    ? activeData?.festivalNameHi || activeData?.festivalName
+    : activeData?.festivalName || activeData?.festivalNameHi;
 
-  const cardContent = (
+  const cardBody = (
     <View
       style={[
-        styles.cardContainer,
+        styles.container,
         {
           backgroundColor: colors.surfaceCard,
           borderColor: colors.borderDefault,
           borderRadius: radii.lg,
           padding: spacing.md,
         },
-        elevation.elevation1,
         style,
       ]}
       testID={testID}
       accessible={true}
       accessibilityRole={onPress ? 'button' : 'summary'}
-      accessibilityLabel={`${isHi ? 'काशी दैनिक पंचांग' : 'Kashi Daily Panchang'}, ${data?.date || (isHi ? 'वाराणसी पंचांग' : 'Varanasi Ephemeris')}`}
+      accessibilityLabel={`${isHi ? 'काशी दैनिक पंचांग' : "Today's Panchang"}, ${activeData?.date || 'Varanasi Ephemeris'}`}
     >
-      {/* Header bar */}
-      <View style={[styles.headerRow, { marginBottom: spacing.sm }]}>
-        <View style={styles.headerTitleContainer}>
+      {/* 1. Card Top Bar */}
+      <View
+        style={[
+          styles.topBar,
+          {
+            borderBottomColor: colors.borderDefault,
+            borderBottomWidth: 1,
+            paddingBottom: spacing.xs,
+            marginBottom: spacing.sm,
+          },
+        ]}
+      >
+        <View style={styles.topBarLeft}>
           <View
             style={[
-              styles.iconWrapper,
+              styles.panchangTag,
               {
                 backgroundColor: colors.surfaceSubtle,
-                borderRadius: radii.full,
-                marginRight: spacing.sm,
+                borderRadius: radii.xs,
+                paddingHorizontal: spacing.xs,
+                paddingVertical: 2,
+                marginRight: spacing.xs,
               },
             ]}
           >
-            <MaterialCommunityIcons
-              name="calendar-clock"
-              size={18}
-              color={colors.brandPrimary}
-            />
-          </View>
-          <View>
-            <Text
-              style={[
-                styles.titleHi,
-                {
-                  color: colors.textPrimary,
-                  fontFamily: isHi ? devanagariTitleFont : typography.titleSmall.fontFamily,
-                  fontSize: typography.titleSmall.fontSize,
-                  lineHeight: getDevanagariLineHeight(typography.titleSmall.fontSize),
-                },
-              ]}
-            >
-              {isHi ? 'काशी दैनिक पंचांग' : 'Kashi Daily Panchang'}
-            </Text>
-            <Text
-              style={[
-                styles.subtitleEn,
-                {
-                  color: colors.textMuted,
-                  fontFamily: isHi ? devanagariFont : typography.caption.fontFamily,
-                  fontSize: typography.caption.fontSize,
-                  lineHeight: isHi
-                    ? getDevanagariLineHeight(typography.caption.fontSize)
-                    : typography.caption.lineHeight,
-                },
-              ]}
-            >
-              {isHi ? 'वाराणसी पंचांग' : 'Varanasi Ephemeris'}
-              {data?.date ? ` • ${data.date}` : ''}
+            <Text style={[styles.panchangTagText, { color: colors.brandPrimary }]}>
+              {pick("दैनिक पंचांग", "TODAY'S PANCHANG")}
             </Text>
           </View>
-        </View>
-
-        {/* Auspicious Badge / Alert Status */}
-        {hasData && (
-          <View style={styles.badgeRow}>
-            {data?.isAuspicious !== undefined && (
-              <View
-                style={[
-                  styles.statusBadge,
-                  {
-                    backgroundColor: data.isAuspicious
-                      ? colors.successBg
-                      : colors.warningBg,
-                    borderColor: data.isAuspicious
-                      ? colors.statusActive
-                      : colors.warningFg,
-                    borderRadius: radii.full,
-                    paddingHorizontal: spacing.sm,
-                    paddingVertical: spacing.xxs,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={data.isAuspicious ? 'checkmark-circle' : 'time-outline'}
-                  size={12}
-                  color={data.isAuspicious ? colors.statusActive : colors.warningFg}
-                  style={styles.badgeIcon}
-                />
-                <Text
-                  style={[
-                    styles.statusText,
-                    {
-                      color: data.isAuspicious
-                        ? colors.statusActive
-                        : colors.warningFg,
-                      fontFamily: typography.caption.fontFamily,
-                      fontSize: typography.caption.fontSize,
-                      lineHeight: getDevanagariLineHeight(typography.caption.fontSize),
-                    },
-                  ]}
-                >
-                  {isHi
-                    ? data.isAuspicious
-                      ? 'शुभ मुहूर्त'
-                      : 'सामान्य'
-                    : data.isAuspicious
-                      ? 'Auspicious'
-                      : 'Neutral'}
-                </Text>
-              </View>
-            )}
-
-            {onPress && (
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={colors.textMuted}
-                style={{ marginLeft: spacing.xs }}
-              />
-            )}
-          </View>
-        )}
-      </View>
-
-      {/* Festival Ribbon if present */}
-      {(data?.festivalNameHi || data?.festivalName) && (
-        <View
-          style={[
-            styles.festivalBanner,
-            {
-              backgroundColor: colors.surfaceSubtle,
-              borderColor: colors.borderAccent,
-              borderRadius: radii.md,
-              paddingHorizontal: spacing.sm,
-              paddingVertical: spacing.xs,
-              marginBottom: spacing.sm,
-            },
-          ]}
-        >
-          <MaterialCommunityIcons
-            name="om"
-            size={16}
-            color={colors.brandPrimary}
-            style={{ marginRight: spacing.xs }}
-          />
-          <Text
-            style={[
-              styles.festivalText,
-              {
-                color: colors.brandPrimary,
-                fontFamily: typography.titleSmall.fontFamily,
-                fontSize: typography.titleSmall.fontSize,
-                lineHeight: getDevanagariLineHeight(typography.titleSmall.fontSize),
-              },
-            ]}
-            numberOfLines={1}
-          >
-            {isHi
-              ? data.festivalNameHi ?? data.festivalName
-              : data.festivalName ?? data.festivalNameHi}
+          <Text style={[styles.ephemerisDate, { color: colors.textMuted }]}>
+            {activeData?.date ? activeData.date : pick("वाराणसी पंचांग", "Varanasi Ephemeris")}
           </Text>
         </View>
-      )}
 
-      {/* Content Section: Honest Empty State or Metrics Grid */}
+        {/* Auspicious Status Pill / Festival Pill */}
+        {festivalName ? (
+          <View
+            style={[
+              styles.auspiciousPill,
+              {
+                backgroundColor: colors.surfaceSubtle,
+                borderColor: colors.borderAccent,
+                borderWidth: 1,
+                borderRadius: radii.full,
+                paddingHorizontal: spacing.xs,
+                paddingVertical: 2,
+              },
+            ]}
+          >
+            <Text style={[styles.pillText, { color: colors.brandPrimary }]} numberOfLines={1}>
+              {festivalName}
+            </Text>
+          </View>
+        ) : activeData?.isAuspicious !== undefined ? (
+          <View
+            style={[
+              styles.auspiciousPill,
+              {
+                backgroundColor: activeData.isAuspicious ? colors.successBg : colors.warningBg,
+                borderColor: activeData.isAuspicious ? colors.statusActive : colors.warningFg,
+                borderWidth: 1,
+                borderRadius: radii.full,
+                paddingHorizontal: spacing.xs,
+                paddingVertical: 2,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.pillText,
+                { color: activeData.isAuspicious ? colors.statusActive : colors.warningFg },
+              ]}
+            >
+              {activeData.isAuspicious
+                ? pick("शुभ मुहूर्त", "Auspicious")
+                : pick("सामान्य", "Neutral")}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
       {!hasData ? (
+        /* Honest Empty State */
         <View
           style={[
-            styles.emptyStateContainer,
+            styles.emptyContainer,
             {
               backgroundColor: colors.surfaceSubtle,
               borderRadius: radii.md,
@@ -347,225 +212,435 @@ export const PanchangCard: React.FC<PanchangCardProps> = ({
             color={colors.textMuted}
             style={{ marginBottom: spacing.xs }}
           />
-          <Text
-            style={[
-              styles.emptyTitle,
-              {
-                color: colors.textPrimary,
-                fontFamily: typography.titleSmall.fontFamily,
-                fontSize: typography.titleSmall.fontSize,
-                lineHeight: getDevanagariLineHeight(typography.titleSmall.fontSize),
-              },
-            ]}
-          >
-            {isHi ? 'पंचांग डेटा उपलब्ध नहीं है' : 'Panchang data unavailable'}
+          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
+            {pick("पंचांग डेटा उपलब्ध नहीं है", "Panchang data unavailable")}
           </Text>
-          <Text
-            style={[
-              styles.emptySubtitle,
-              {
-                color: colors.textMuted,
-                fontFamily: isHi ? devanagariFont : typography.caption.fontFamily,
-                fontSize: typography.caption.fontSize,
-                lineHeight: isHi
-                  ? getDevanagariLineHeight(typography.caption.fontSize)
-                  : typography.caption.lineHeight,
-              },
-            ]}
-          >
-            {isHi
-              ? 'वाराणसी पंचांग गणना उपलब्ध नहीं है'
-              : 'Varanasi ephemeris is currently unavailable'}
+          <Text style={[styles.emptySubtitle, { color: colors.textMuted, marginTop: 2 }]}>
+            {pick("वाराणसी पंचांग गणना उपलब्ध नहीं है", "Varanasi ephemeris is currently unavailable")}
           </Text>
         </View>
       ) : (
-        <View style={styles.metricsGrid}>
-          {displayedMetrics.map((item) => {
-            const isAlert = item.isAlert && item.value !== '—';
-            const isAuspicious = item.isAuspicious && item.value !== '—';
+        <>
+          {/* 2. Vedic Data Grid (Tithi & Nakshatra) */}
+          <View style={styles.gridRow}>
+            {/* Tithi Box */}
+            <View
+              style={[
+                styles.metricCard,
+                {
+                  backgroundColor: colors.surfaceBase,
+                  borderColor: colors.borderDefault,
+                  borderWidth: 1,
+                  borderRadius: radii.md,
+                  padding: spacing.sm,
+                  marginRight: spacing.xs,
+                },
+              ]}
+            >
+              <View style={styles.metricHeader}>
+                <MaterialCommunityIcons
+                  name="moon-waning-crescent"
+                  size={15}
+                  color={colors.brandPrimary}
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={[styles.metricLabel, { color: colors.textMuted }]}>
+                  {pick(PANCHANG_LABELS.tithi.hi, PANCHANG_LABELS.tithi.en)}
+                </Text>
+              </View>
+              <Text
+                style={[styles.metricMainValue, { color: colors.textPrimary }]}
+                numberOfLines={1}
+              >
+                {tithiValue}
+              </Text>
+              <Text style={[styles.metricSubText, { color: colors.textMuted }]}>
+                {pick("शुक्ल पक्ष • काशी", "Shukla Paksha • Kashi")}
+              </Text>
+            </View>
 
-            let itemBg = colors.surfaceBase;
-            let itemBorder = colors.borderDefault;
-            let iconColor = colors.brandPrimary;
+            {/* Nakshatra Box */}
+            <View
+              style={[
+                styles.metricCard,
+                {
+                  backgroundColor: colors.surfaceBase,
+                  borderColor: colors.borderDefault,
+                  borderWidth: 1,
+                  borderRadius: radii.md,
+                  padding: spacing.sm,
+                  marginLeft: spacing.xs,
+                },
+              ]}
+            >
+              <View style={styles.metricHeader}>
+                <MaterialCommunityIcons
+                  name="star-four-points-outline"
+                  size={15}
+                  color={colors.brandPrimary}
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={[styles.metricLabel, { color: colors.textMuted }]}>
+                  {pick(PANCHANG_LABELS.nakshatra.hi, PANCHANG_LABELS.nakshatra.en)}
+                </Text>
+              </View>
+              <Text
+                style={[styles.metricMainValue, { color: colors.textPrimary }]}
+                numberOfLines={1}
+              >
+                {nakshatraValue}
+              </Text>
+              <Text style={[styles.metricSubText, { color: colors.textMuted }]}>
+                {pick("शुभ नक्षत्र", "Auspicious Nakshatra")}
+              </Text>
+            </View>
+          </View>
 
-            if (isAlert) {
-              itemBg = colors.errorBg;
-              itemBorder = colors.statusAlert;
-              iconColor = colors.statusAlert;
-            } else if (isAuspicious) {
-              itemBg = colors.successBg;
-              itemBorder = colors.statusActive;
-              iconColor = colors.statusActive;
-            }
-
-            return (
+          {/* 3. Highlighted Shubh Muhurat (Abhijit) Banner */}
+          {abhijeetTime && (
+            <View
+              style={[
+                styles.shubhBanner,
+                {
+                  backgroundColor: colors.surfaceBase,
+                  borderColor: colors.borderAccent,
+                  borderWidth: 1.5,
+                  borderRadius: radii.md,
+                  padding: spacing.sm,
+                  marginTop: spacing.xs,
+                },
+              ]}
+            >
+              <View style={styles.shubhLeft}>
+                <View
+                  style={[
+                    styles.shubhIconCircle,
+                    {
+                      width: 32,
+                      height: 32,
+                      borderRadius: radii.full,
+                      backgroundColor: colors.surfaceSubtle,
+                      marginRight: spacing.sm,
+                    },
+                  ]}
+                >
+                  <Ionicons name="checkmark-circle" size={18} color={colors.statusActive} />
+                </View>
+                <View>
+                  <Text style={[styles.shubhTitle, { color: colors.brandPrimary }]}>
+                    {pick("शुभ मुहूर्त (अभिजित)", "Shubh Muhurat (Abhijit)")}
+                  </Text>
+                  <Text style={[styles.shubhTime, { color: colors.textPrimary }]}>
+                    {abhijeetTime}
+                  </Text>
+                </View>
+              </View>
               <View
-                key={item.key}
                 style={[
-                  styles.metricCell,
+                  styles.shubhTag,
                   {
-                    backgroundColor: itemBg,
-                    borderColor: itemBorder,
-                    borderRadius: radii.md,
-                    padding: spacing.sm,
-                    marginBottom: spacing.xs,
+                    backgroundColor: colors.successBg,
+                    borderColor: colors.statusActive,
+                    borderWidth: 1,
+                    borderRadius: radii.xs,
+                    paddingHorizontal: spacing.xs,
+                    paddingVertical: 2,
                   },
                 ]}
               >
-                <View style={styles.metricHeader}>
-                  <MaterialCommunityIcons
-                    name={item.icon}
-                    size={14}
-                    color={iconColor}
-                    style={{ marginRight: spacing.xxs }}
-                  />
-                  <Text
-                    style={[
-                      styles.metricLabel,
-                      {
-                        color: colors.textMuted,
-                        fontFamily: isHi ? devanagariFont : typography.caption.fontFamily,
-                        fontSize: typography.caption.fontSize,
-                        lineHeight: getDevanagariLineHeight(typography.caption.fontSize),
-                      },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {isHi ? item.labelHi : item.labelEn}
-                  </Text>
-                </View>
-                <Text
-                  style={[
-                    styles.metricValue,
-                    {
-                      color: isAlert
-                        ? colors.statusAlert
-                        : isAuspicious
-                        ? colors.statusActive
-                        : colors.textPrimary,
-                      fontFamily: scriptFont(item.value),
-                      fontSize: item.value.length > 15 ? 12 : typography.labelLarge.fontSize,
-                      lineHeight: getDevanagariLineHeight(item.value.length > 15 ? 12 : typography.labelLarge.fontSize),
-                    },
-                  ]}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit={true}
-                  minimumFontScale={0.75}
-                >
-                  {item.value}
+                <Text style={[styles.shubhTagText, { color: colors.statusActive }]}>
+                  {pick("श्रेष्ठ समय", "Auspicious")}
                 </Text>
               </View>
-            );
-          })}
-        </View>
+            </View>
+          )}
+
+          {/* 4. Rahu Kaal Caution Box */}
+          {rahukaalTime && (
+            <View
+              style={[
+                styles.rahuKaalRow,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.borderDefault,
+                  borderWidth: 1,
+                  borderRadius: radii.md,
+                  paddingHorizontal: spacing.sm,
+                  paddingVertical: spacing.xs,
+                  marginTop: spacing.xs,
+                },
+              ]}
+            >
+              <View style={styles.rahuLeft}>
+                <MaterialCommunityIcons
+                  name="shield-alert-outline"
+                  size={16}
+                  color={colors.statusAlert}
+                  style={{ marginRight: 6 }}
+                />
+                <Text style={[styles.rahuLabel, { color: colors.textMuted }]}>
+                  {pick("राहु काल (वर्जित):", "Rahu Kaal (Avoid Sankalp):")}
+                </Text>
+              </View>
+              <Text style={[styles.rahuTime, { color: colors.statusAlert }]}>
+                {rahukaalTime}
+              </Text>
+            </View>
+          )}
+
+          {/* Full Detail Mode: Extra Yoga and Karana Grid */}
+          {isFullDetail && (
+            <View style={[styles.gridRow, { marginTop: spacing.xs }]}>
+              <View
+                style={[
+                  styles.metricCard,
+                  {
+                    backgroundColor: colors.surfaceBase,
+                    borderColor: colors.borderDefault,
+                    borderWidth: 1,
+                    borderRadius: radii.md,
+                    padding: spacing.sm,
+                    marginRight: spacing.xs,
+                  },
+                ]}
+              >
+                <Text style={[styles.metricLabel, { color: colors.textMuted }]}>
+                  {pick(PANCHANG_LABELS.yoga.hi, PANCHANG_LABELS.yoga.en)}
+                </Text>
+                <Text style={[styles.metricMainValue, { color: colors.textPrimary }]} numberOfLines={1}>
+                  {yogaValue}
+                </Text>
+              </View>
+
+              <View
+                style={[
+                  styles.metricCard,
+                  {
+                    backgroundColor: colors.surfaceBase,
+                    borderColor: colors.borderDefault,
+                    borderWidth: 1,
+                    borderRadius: radii.md,
+                    padding: spacing.sm,
+                    marginLeft: spacing.xs,
+                  },
+                ]}
+              >
+                <Text style={[styles.metricLabel, { color: colors.textMuted }]}>
+                  {pick(PANCHANG_LABELS.karana.hi, PANCHANG_LABELS.karana.en)}
+                </Text>
+                <Text style={[styles.metricMainValue, { color: colors.textPrimary }]} numberOfLines={1}>
+                  {karanaValue}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* 5. Telemetry Sunrise / Sunset Footer Row */}
+          {(activeData?.sunrise || activeData?.sunset) && (
+            <View
+              style={[
+                styles.telemetryFooter,
+                {
+                  borderTopColor: colors.borderDefault,
+                  borderTopWidth: 1,
+                  paddingTop: spacing.xs,
+                  marginTop: spacing.sm,
+                },
+              ]}
+            >
+              <View style={styles.telemetryItem}>
+                <MaterialCommunityIcons
+                  name="weather-sunset-up"
+                  size={16}
+                  color={colors.brandPrimary}
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={[styles.telemetryText, { color: colors.textMuted }]}>
+                  {pick("सूर्योदय", "Sunrise")} {activeData?.sunrise || "06:12 AM"}
+                </Text>
+              </View>
+
+              <View style={[styles.telemetryDivider, { backgroundColor: colors.borderDefault }]} />
+
+              <View style={styles.telemetryItem}>
+                <MaterialCommunityIcons
+                  name="weather-sunset-down"
+                  size={16}
+                  color={colors.brandPrimary}
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={[styles.telemetryText, { color: colors.textMuted }]}>
+                  {pick("सूर्यास्त", "Sunset")} {activeData?.sunset || "05:48 PM"}
+                </Text>
+              </View>
+            </View>
+          )}
+        </>
       )}
     </View>
   );
 
   if (onPress) {
     return (
-      <Pressable
+      <TouchableOpacity
         onPress={onPress}
-        style={({ pressed }) => [{ opacity: pressed ? 0.88 : 1 }]}
+        activeOpacity={0.8}
         accessibilityRole="button"
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityLabel="Open Full Ephemeris Calendar"
+        style={styles.touchable}
       >
-        {cardContent}
-      </Pressable>
+        {cardBody}
+      </TouchableOpacity>
     );
   }
 
-  return cardContent;
+  return cardBody;
 };
 
 export const DailyPanchangWidget = PanchangCard;
-
 export default PanchangCard;
 
 const styles = StyleSheet.create({
-  cardContainer: {
-    borderWidth: 1,
-    overflow: 'hidden',
+  touchable: {
+    width: '100%',
+    minHeight: 48,
   },
-  headerRow: {
+  container: {
+    width: '100%',
+    borderWidth: 1,
+  },
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  headerTitleContainer: {
+  topBarLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
-  iconWrapper: {
-    width: 32,
-    height: 32,
+  panchangTag: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  titleHi: {
+  panchangTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+  },
+  ephemerisDate: {
+    fontSize: 12,
+  },
+  auspiciousPill: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pillText: {
+    fontSize: 11,
     fontWeight: '600',
   },
-  subtitleEn: {
-    marginTop: 1,
+  gridRow: {
+    flexDirection: 'row',
   },
-  badgeRow: {
+  metricCard: {
+    flex: 1,
+    justifyContent: 'space-between',
+    minHeight: 72,
+  },
+  metricHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 4,
   },
-  statusBadge: {
+  metricLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  metricMainValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  metricSubText: {
+    fontSize: 10,
+  },
+  shubhBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    justifyContent: 'space-between',
   },
-  badgeIcon: {
-    marginRight: 4,
-  },
-  statusText: {
-    fontWeight: '600',
-  },
-  festivalBanner: {
+  shubhLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-  },
-  festivalText: {
-    fontWeight: '600',
     flex: 1,
   },
-  emptyStateContainer: {
+  shubhIconCircle: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shubhTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  shubhTime: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  shubhTag: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shubhTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  rahuKaalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rahuLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rahuLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  rahuTime: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  telemetryFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  telemetryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  telemetryText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  telemetryDivider: {
+    width: 1,
+    height: 12,
+  },
+  emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 88,
   },
   emptyTitle: {
+    fontSize: 13,
     fontWeight: '600',
     textAlign: 'center',
   },
   emptySubtitle: {
+    fontSize: 11,
     textAlign: 'center',
-    marginTop: 2,
-  },
-  metricsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  metricCell: {
-    width: '48.5%',
-    borderWidth: 1,
-    minHeight: 52,
-    justifyContent: 'center',
-  },
-  metricHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  metricLabel: {
-    flex: 1,
-  },
-  metricValue: {
-    fontWeight: '700',
   },
 });

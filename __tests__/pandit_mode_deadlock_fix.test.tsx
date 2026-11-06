@@ -318,7 +318,7 @@ describe("M14.2.1: Post-Approval Pandit Mode Auth Deadlock & Bootstrap Fix", () 
 
     expect(fullText).toContain("पण्डित सेवा कक्ष");
     expect(fullText).toContain("Pranam, Sudhanshu Sharma");
-    expect(fullText).toContain("Verified Acharya ✓");
+    expect(fullText).toContain("Verified Pandit Ji ✓");
     expect(fullText).toContain("Bank account verification required");
   });
 });

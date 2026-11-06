@@ -16,6 +16,7 @@ import {
   PanditPayoutSetupScreen,
   PanditTemplesScreen,
 } from "../features/pandit/index.ts";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../shared/theme/index.ts";
 import { Ionicons } from "../shared/components/icons/index.ts";
 import { PanditStackParamList, PanditTabParamList } from "../shared/types/index.ts";
@@ -25,6 +26,8 @@ const Stack = createNativeStackNavigator<PanditStackParamList>();
 
 const PanditTabNavigator: React.FC = () => {
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, 8);
 
   return (
     <Tab.Navigator
@@ -36,8 +39,8 @@ const PanditTabNavigator: React.FC = () => {
           backgroundColor: isDark ? colors.surfaceCard : colors.surfaceBase,
           borderTopColor: colors.borderDefault,
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
+          height: 56 + bottomInset,
+          paddingBottom: bottomInset,
           paddingTop: 6,
         },
         tabBarLabelStyle: {
@@ -52,7 +55,7 @@ const PanditTabNavigator: React.FC = () => {
         options={{
           tabBarLabel: "Dashboard",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "speedometer" : "speedometer-outline"} size={22} color={color} />
+            <Ionicons name={focused ? "speedometer" : "speedometer-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -62,7 +65,7 @@ const PanditTabNavigator: React.FC = () => {
         options={{
           tabBarLabel: "Rituals",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "flame" : "flame-outline"} size={22} color={color} />
+            <Ionicons name={focused ? "flame" : "flame-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -72,7 +75,7 @@ const PanditTabNavigator: React.FC = () => {
         options={{
           tabBarLabel: "Schedule",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "time" : "time-outline"} size={22} color={color} />
+            <Ionicons name={focused ? "time" : "time-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -82,7 +85,7 @@ const PanditTabNavigator: React.FC = () => {
         options={{
           tabBarLabel: "Kundlis",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "compass" : "compass-outline"} size={22} color={color} />
+            <Ionicons name={focused ? "compass" : "compass-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -92,7 +95,7 @@ const PanditTabNavigator: React.FC = () => {
         options={{
           tabBarLabel: "Profile",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />
+            <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
           ),
         }}
       />

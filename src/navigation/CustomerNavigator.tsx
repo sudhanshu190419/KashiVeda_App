@@ -13,6 +13,7 @@ import {
 import {
   ExploreScreen,
   HomeScreen,
+  PanchangScreen,
   PanditDetailScreen,
   PanditDirectoryScreen,
   PujaCategoryListScreen,
@@ -23,9 +24,11 @@ import {
   KundliDetailScreen,
   KundliOrdersScreen,
   KundliPaymentScreen,
+  KundliProfilesScreen,
   KundliScreen,
   KundliWizardScreen,
 } from "../features/kundli/index.ts";
+import { SavedAddressesScreen } from "../features/address/index.ts";
 import {
   FreeKundliWizardScreen,
   FreeKundliResultScreen,
@@ -41,6 +44,7 @@ import {
 } from "../features/astrology/index.ts";
 import { ProfileScreen } from "../features/auth/index.ts";
 import { PanditApplicationWizardScreen, PanditApplicationStatusScreen } from "../features/pandit/index.ts";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../shared/theme/index.ts";
 import { Ionicons } from "../shared/components/icons/index.ts";
 import {
@@ -53,6 +57,8 @@ const Stack = createNativeStackNavigator<CustomerStackParamList>();
 
 const CustomerTabNavigator: React.FC = () => {
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, 8);
 
   return (
     <Tab.Navigator
@@ -64,8 +70,8 @@ const CustomerTabNavigator: React.FC = () => {
           backgroundColor: isDark ? colors.surfaceCard : colors.surfaceBase,
           borderTopColor: colors.borderDefault,
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
+          height: 56 + bottomInset,
+          paddingBottom: bottomInset,
           paddingTop: 6,
         },
         tabBarLabelStyle: {
@@ -80,7 +86,7 @@ const CustomerTabNavigator: React.FC = () => {
         options={{
           tabBarLabel: "Home",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "home" : "home-outline"} size={22} color={color} />
+            <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -88,9 +94,9 @@ const CustomerTabNavigator: React.FC = () => {
         name="Explore"
         component={ExploreScreen}
         options={{
-          tabBarLabel: "Rituals",
+          tabBarLabel: "Pujas",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "flame" : "flame-outline"} size={22} color={color} />
+            <Ionicons name={focused ? "flame" : "flame-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -100,7 +106,7 @@ const CustomerTabNavigator: React.FC = () => {
         options={{
           tabBarLabel: "My Pujas",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "calendar" : "calendar-outline"} size={22} color={color} />
+            <Ionicons name={focused ? "calendar" : "calendar-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -110,7 +116,7 @@ const CustomerTabNavigator: React.FC = () => {
         options={{
           tabBarLabel: "Kundli",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "compass" : "compass-outline"} size={22} color={color} />
+            <Ionicons name={focused ? "compass" : "compass-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -120,7 +126,7 @@ const CustomerTabNavigator: React.FC = () => {
         options={{
           tabBarLabel: "Account",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />
+            <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -136,6 +142,7 @@ export const CustomerNavigator: React.FC = () => {
       }}
     >
       <Stack.Screen name="CustomerTabs" component={CustomerTabNavigator} />
+      <Stack.Screen name="Panchang" component={PanchangScreen} />
       <Stack.Screen name="PujaCategoryList" component={PujaCategoryListScreen} />
       <Stack.Screen name="PujaList" component={PujaListScreen} />
       <Stack.Screen name="PujaDetail" component={PujaDetailScreen} />
@@ -161,6 +168,8 @@ export const CustomerNavigator: React.FC = () => {
       <Stack.Screen name="PanditApplicationWizard" component={PanditApplicationWizardScreen} />
       <Stack.Screen name="PanditApplicationStatus" component={PanditApplicationStatusScreen} />
       <Stack.Screen name="CustomerLiveSession" component={CustomerLiveSessionScreen} />
+      <Stack.Screen name="SavedAddresses" component={SavedAddressesScreen} />
+      <Stack.Screen name="KundliProfiles" component={KundliProfilesScreen} />
     </Stack.Navigator>
   );
 };

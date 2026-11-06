@@ -57,7 +57,7 @@ import { AppProviders } from '../src/app/AppProviders';
 import { useTheme } from '../src/shared/theme';
 
 describe('Bilingual Localization Engine — LanguageProvider & useLanguage', () => {
-  it('provides default Hindi context if useLanguage is called outside LanguageProvider', () => {
+  it('provides default English context if useLanguage is called outside LanguageProvider', () => {
     let capturedContext!: LanguageContextValue;
     const ProblematicConsumer = () => {
       capturedContext = useLanguage();
@@ -68,10 +68,10 @@ describe('Bilingual Localization Engine — LanguageProvider & useLanguage', () 
       ReactTestRenderer.create(<ProblematicConsumer />);
     });
     expect(capturedContext).toBeDefined();
-    expect(capturedContext.language).toBe('hi');
+    expect(capturedContext.language).toBe('en');
   });
 
-  it('defaults to Hindi (hi) locale as primary Vedic default', () => {
+  it('defaults to English (en) locale as primary default', () => {
     let capturedContext!: LanguageContextValue;
 
     const TestConsumer = () => {
@@ -87,9 +87,9 @@ describe('Bilingual Localization Engine — LanguageProvider & useLanguage', () 
       );
     });
 
-    expect(capturedContext.language).toBe('hi');
-    expect(capturedContext.t('app.name')).toBe('काशी वेदा');
-    expect(capturedContext.t('app.location')).toBe('वाराणसी');
+    expect(capturedContext.language).toBe('en');
+    expect(capturedContext.t('app.name')).toBe('Kashi Veda');
+    expect(capturedContext.t('app.location')).toBe('Varanasi');
   });
 
   it('supports initialLanguage prop override', () => {
@@ -102,18 +102,18 @@ describe('Bilingual Localization Engine — LanguageProvider & useLanguage', () 
 
     act(() => {
       ReactTestRenderer.create(
-        <LanguageProvider initialLanguage="en">
+        <LanguageProvider initialLanguage="hi">
           <TestConsumer />
         </LanguageProvider>
       );
     });
 
-    expect(capturedContext.language).toBe('en');
-    expect(capturedContext.t('app.name')).toBe('Kashi Veda');
-    expect(capturedContext.t('app.location')).toBe('Varanasi');
+    expect(capturedContext.language).toBe('hi');
+    expect(capturedContext.t('app.name')).toBe('काशी वेदा');
+    expect(capturedContext.t('app.location')).toBe('वाराणसी');
   });
 
-  it('correctly toggles language between Hindi and English', () => {
+  it('correctly toggles language between English and Hindi', () => {
     let capturedContext!: LanguageContextValue;
 
     const TestConsumer = () => {
@@ -129,18 +129,9 @@ describe('Bilingual Localization Engine — LanguageProvider & useLanguage', () 
       );
     });
 
-    expect(capturedContext.language).toBe('hi');
-
-    // Toggle from Hindi to English
-    act(() => {
-      capturedContext.toggleLanguage();
-    });
-
     expect(capturedContext.language).toBe('en');
-    expect(capturedContext.t('app.name')).toBe('Kashi Veda');
-    expect(capturedContext.t('common.languageCode')).toBe('हिं');
 
-    // Toggle back from English to Hindi
+    // Toggle from English to Hindi
     act(() => {
       capturedContext.toggleLanguage();
     });
@@ -148,6 +139,15 @@ describe('Bilingual Localization Engine — LanguageProvider & useLanguage', () 
     expect(capturedContext.language).toBe('hi');
     expect(capturedContext.t('app.name')).toBe('काशी वेदा');
     expect(capturedContext.t('common.languageCode')).toBe('EN');
+
+    // Toggle back from Hindi to English
+    act(() => {
+      capturedContext.toggleLanguage();
+    });
+
+    expect(capturedContext.language).toBe('en');
+    expect(capturedContext.t('app.name')).toBe('Kashi Veda');
+    expect(capturedContext.t('common.languageCode')).toBe('हिं');
   });
 
   it('supports explicit setLanguage calls', () => {
@@ -277,7 +277,7 @@ describe('Bilingual Localization Engine — Re-exports and AppProviders Integrat
     expect(capturedTheme).toBeDefined();
     expect(capturedTheme.colorScheme).toBe('light');
     expect(capturedLanguage).toBeDefined();
-    expect(capturedLanguage.language).toBe('hi');
-    expect(capturedLanguage.t('app.name')).toBe('काशी वेदा');
+    expect(capturedLanguage.language).toBe('en');
+    expect(capturedLanguage.t('app.name')).toBe('Kashi Veda');
   });
 });

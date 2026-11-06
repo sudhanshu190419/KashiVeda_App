@@ -1,6 +1,6 @@
 // src/features/booking/screens/BookingsScreen.tsx
 import React, { useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from "react-native";
+import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
@@ -8,16 +8,15 @@ import {
   AppBar,
   VCard,
   VText,
-  VDivider,
-  LiveStatusPill,
   EmptyState,
   VTabs,
   TabItem,
+  UpcomingPujaCard,
 } from "../../../shared/components/index.ts";
 import { useTheme } from "../../../shared/theme/index.ts";
 import { useLanguage } from "../../../shared/i18n/index.ts";
 import { CustomerStackParamList } from "../../../shared/types/navigation.ts";
-import { formatCurrency, formatDate, formatTime } from "../../../shared/utils/formatters.ts";
+import { formatDate, formatTime } from "../../../shared/utils/formatters.ts";
 import { useBookingHistory } from "../hooks/useBookingHistory.ts";
 import { BookingDetail } from "../types/booking.types.ts";
 
@@ -47,73 +46,26 @@ export const BookingsScreen: React.FC = () => {
 
   const renderBookingItem = ({ item }: { item: BookingDetail }) => {
     const startDate = new Date(item.scheduled_start_at);
+    const locationStr =
+      item.temple?.name ||
+      (item.service_mode === "home" ? "Devotee Residence" : undefined);
 
     return (
-      <TouchableOpacity
+      <UpcomingPujaCard
+        pujaName={item.puja_service?.name || "Vedic Puja"}
+        location={locationStr}
+        serviceMode={item.service_mode as any}
+        status={item.status}
+        dateString={formatDate(startDate)}
+        timeString={formatTime(startDate)}
+        panditName={item.pandit?.display_name || "Assigned Pandit Ji"}
+        sankalpName={item.notes || undefined}
         onPress={() => navigation.navigate("BookingDetail", { bookingId: item.id })}
-        activeOpacity={0.7}
-        style={{ minHeight: 48 }}
-        accessibilityRole="button"
-        accessibilityLabel={`Booking ${item.booking_number}, ${item.puja_service?.name || "Vedic Puja"}`}
-      >
-        <VCard variant="default" elevation={1} style={styles.bookingCard}>
-          <View style={styles.cardTopRow}>
-            <View style={{ flex: 1, marginRight: spacing.sm }}>
-              <VText variant="caption" color="textMuted">
-                {item.booking_number}
-              </VText>
-              <VText variant="titleMedium" color="textPrimary" weight="600" style={styles.pujaTitle}>
-                {item.puja_service?.name || "Vedic Puja"}
-              </VText>
-            </View>
-            <LiveStatusPill status={item.status} />
-          </View>
-
-          <View style={styles.cardMidRow}>
-            <View style={styles.panditRow}>
-              <VText variant="bodyMedium">🪔</VText>
-              <VText variant="bodyMedium" color="textMuted" style={{ marginLeft: spacing.xs }}>
-                {item.pandit?.display_name || "Assigned Acharya"}
-              </VText>
-            </View>
-            <View
-              style={[
-                styles.modeBadge,
-                {
-                  backgroundColor: colors.surfaceSubtle,
-                  borderColor: colors.borderDefault,
-                },
-              ]}
-            >
-              <VText variant="caption" color="brandPrimary" style={styles.modeText}>
-                {item.service_mode}
-              </VText>
-            </View>
-          </View>
-
-          <VDivider style={{ marginVertical: spacing.xs }} />
-
-          <View style={styles.cardBottomRow}>
-            <View>
-              <VText variant="caption" color="textMuted">
-                Scheduled For
-              </VText>
-              <VText variant="bodyMedium" weight="600">
-                {formatDate(startDate)} at {formatTime(startDate)}
-              </VText>
-            </View>
-
-            <View style={styles.amountBox}>
-              <VText variant="caption" color="textMuted" align="right">
-                Dakshina
-              </VText>
-              <VText variant="titleMedium" color="brandPrimary" align="right" weight="700">
-                {formatCurrency(item.total_amount)}
-              </VText>
-            </View>
-          </View>
-        </VCard>
-      </TouchableOpacity>
+        onActionPress={() => navigation.navigate("BookingDetail", { bookingId: item.id })}
+        actionLabel={pick("विवरण देखें", "View Booking Details")}
+        style={{ marginBottom: spacing.md }}
+        testID={`booking-card-${item.id}`}
+      />
     );
   };
 
@@ -179,52 +131,14 @@ export const BookingsScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   tabsWrap: {
-    marginVertical: 12,
+    paddingVertical: 8,
   },
   listContent: {
-    gap: 12,
-    paddingBottom: 32,
-  },
-  bookingCard: {
-    padding: 16,
-  },
-  cardTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  pujaTitle: {
-    marginTop: 2,
-  },
-  cardMidRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginVertical: 8,
-  },
-  panditRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  modeBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  cardBottomRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  amountBox: {
-    alignItems: "flex-end",
+    paddingBottom: 24,
+    paddingTop: 4,
   },
   emptyCard: {
-    paddingVertical: 32,
-    marginTop: 16,
-  },
-  modeText: {
-    textTransform: "capitalize",
+    padding: 24,
+    alignItems: "center",
   },
 });

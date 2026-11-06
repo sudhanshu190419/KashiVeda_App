@@ -289,8 +289,8 @@ export const SuccessCelebration: React.FC<SuccessCelebrationProps> = ({
                 ]}
               >
                 <View style={[styles.receiptHeaderRow, { marginBottom: spacing.xs }]}>
-                  <MaterialCommunityIcons
-                    name="receipt-text-outline"
+                  <Ionicons
+                    name="receipt-outline"
                     size={16}
                     color={colors.brandPrimary}
                   />

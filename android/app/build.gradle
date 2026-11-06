@@ -119,3 +119,13 @@ dependencies {
 }
 
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
+
+// Ensure react-native-vector-icons fonts are properly copied and merged in AGP 8+
+afterEvaluate {
+    def fontCopyTask = tasks.findByName("copyReactNativeVectorIconFonts")
+    if (fontCopyTask) {
+        tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.configureEach {
+            it.dependsOn(fontCopyTask)
+        }
+    }
+}

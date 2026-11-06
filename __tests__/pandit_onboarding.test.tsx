@@ -499,7 +499,7 @@ describe("M14.2: Pandit Onboarding & Admin Approval Vertical Slice", () => {
       const textNodes = tree.root.findAll((node: any) => typeof node.props?.children === "string");
       const str = textNodes.map((n: any) => n.props.children).join(" ");
       expect(str).toContain("APPROVED & CONSECRATED");
-      expect(str).toContain("Welcome, Acharya!");
+      expect(str).toContain("Welcome, Pandit Ji!");
       expect(str).toContain("Enter Pandit Mode");
     });
   });

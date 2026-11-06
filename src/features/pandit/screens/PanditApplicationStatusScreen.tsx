@@ -83,7 +83,7 @@ export const PanditApplicationStatusScreen: React.FC = () => {
             No Application Found
           </Text>
           <Text variant="body" color={themeColors.textMuted} align="center">
-            You have not yet submitted an application to become a certified Kashi Veda Acharya.
+            You have not yet submitted an application to become a certified Kashi Veda Pandit Ji.
           </Text>
           <Button
             title="Start Application"
@@ -163,7 +163,7 @@ export const PanditApplicationStatusScreen: React.FC = () => {
 
         <Text variant="h2" color={themeColors.textPrimary} style={styles.heroTitle}>
           {status === "approved"
-            ? "Welcome, Acharya!"
+            ? "Welcome, Pandit Ji!"
             : status === "rejected"
             ? "Application Needs Correction"
             : status === "under_review"

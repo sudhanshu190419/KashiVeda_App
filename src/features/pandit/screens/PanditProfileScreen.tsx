@@ -106,7 +106,7 @@ export const PanditProfileScreen: React.FC = () => {
   return (
     <ScreenContainer scrollable padded>
       <Header
-        title="Acharya Profile"
+        title="Pandit Ji Profile"
         subtitle="Manage your Vedic biography, offerings, and credentials"
       />
 
@@ -137,7 +137,7 @@ export const PanditProfileScreen: React.FC = () => {
             </Text>
           </View>
           <View style={styles.profileInfo}>
-            <Text variant="h2">{profile?.display_name || "Acharya"}</Text>
+            <Text variant="h2">{profile?.display_name || "Pandit Ji"}</Text>
             <Text variant="caption" color={colors.textSecondary}>
               Phone: {profile?.phone || "Not set"}
             </Text>
@@ -145,7 +145,7 @@ export const PanditProfileScreen: React.FC = () => {
               <View style={styles.verifiedBadge}>
                 <Text variant="caption" color={colors.primary} style={styles.badgeText}>
                   {panditProfile?.verification_status === "verified"
-                    ? "Verified Acharya ✓"
+                    ? "Verified Pandit Ji ✓"
                     : "Verification Pending"}
                 </Text>
               </View>

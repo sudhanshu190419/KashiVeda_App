@@ -32,7 +32,7 @@ export const BookingPaymentScreen: React.FC = () => {
     bookingNumber = "",
     advanceAmount = 0,
     pujaName = "Ritual",
-    panditName = "Acharya",
+    panditName = "Pandit Ji",
     isBalancePayment = false,
     isFullPayment = false,
   } = route.params || {};
@@ -70,14 +70,12 @@ export const BookingPaymentScreen: React.FC = () => {
       contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: spacing.xxl }}
     >
       <VCard variant="default" elevation={2} style={styles.mainCard}>
-        <VText variant="displayHero" align="center" style={styles.omIcon}>
-          🕉️
-        </VText>
+        
         <VText variant="headlineLarge" align="center" style={styles.pujaTitle}>
           {pujaName}
         </VText>
         <VText variant="bodyMedium" color="textMuted" align="center" style={styles.panditSubtitle}>
-          Acharya: {panditName}
+          Pandit Ji: {panditName}
         </VText>
         <VText variant="caption" color="textMuted" align="center" style={styles.bookingNumber}>
           Booking Ref: {bookingNumber}
@@ -103,7 +101,7 @@ export const BookingPaymentScreen: React.FC = () => {
             {formatCurrency(advanceAmount)}
           </VText>
           <VText variant="caption" color="textMuted" align="center">
-            {pick("आचार्य के साथ आपका पावन अनुष्ठान सुरक्षित करता है", "Secures your sacred ritual with the Acharya")}
+            {pick("पंडित जी के साथ आपका पावन अनुष्ठान सुरक्षित करता है", "Secures your sacred ritual with Pandit Ji")}
           </VText>
         </View>
 
@@ -113,7 +111,7 @@ export const BookingPaymentScreen: React.FC = () => {
             status="payment_pending"
             amountInr={advanceAmount}
             message={pick(
-              "50% एस्क्रो सुरक्षा: पूर्णाहूति के उपरांत ही दक्षिणा आचार्य को अंतरित होगी।",
+              "50% एस्क्रो सुरक्षा: पूर्णाहूति के उपरांत ही दक्षिणा पंडित जी को अंतरित होगी।",
               "50% RBI Escrow Model: Funds held safely until Vedic Purnahuti verification."
             )}
           />
@@ -132,8 +130,8 @@ export const BookingPaymentScreen: React.FC = () => {
         >
           <VText variant="caption" color="textMuted">
             {pick(
-              "🛡️ 100% धनवापसी गारंटी: अनुष्ठान से 48 घंटे पूर्व निःशुल्क रद्दीकरण। पंडित जी की आकस्मिक अनुपस्थिति पर 100% वापसी।",
-              "🛡️ 100% Refund Policy: Full refund if cancelled > 48h prior. 100% customer refund on Pandit emergency."
+              "100% धनवापसी गारंटी: अनुष्ठान से 48 घंटे पूर्व निःशुल्क रद्दीकरण। पंडित जी की आकस्मिक अनुपस्थिति पर 100% वापसी।",
+              "100% Refund Policy: Full refund if cancelled > 48h prior. 100% customer refund on Pandit emergency."
             )}
           </VText>
         </VCard>

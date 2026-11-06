@@ -635,7 +635,7 @@ export const PanditPayoutSetupScreen: React.FC = () => {
 
                 <Input
                   label="Account Holder Name *"
-                  placeholder="e.g. Acharya Ramkrishna Shastri"
+                  placeholder="e.g. Pandit Ramkrishna Shastri"
                   value={holderName}
                   onChangeText={setHolderName}
                   error={fieldErrors.holderName}

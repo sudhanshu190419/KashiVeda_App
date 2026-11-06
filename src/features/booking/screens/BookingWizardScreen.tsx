@@ -156,6 +156,21 @@ export const BookingWizardScreen: React.FC = () => {
   useEffect(() => {
     if (!pujaId) return;
     let isMounted = true;
+
+    // Home service discovery strictly requires validated coordinates from the selected address
+    if (serviceMode === "home" && (!selectedAddress?.latitude || !selectedAddress?.longitude)) {
+      setPanditsList([]);
+      setLoadingPandits(false);
+      return;
+    }
+
+    // Temple service discovery requires a confirmed temple
+    if (serviceMode === "temple" && !selectedTemple?.id) {
+      setPanditsList([]);
+      setLoadingPandits(false);
+      return;
+    }
+
     setLoadingPandits(true);
 
     const loadPandits = async () => {
@@ -199,7 +214,7 @@ export const BookingWizardScreen: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [pujaId, serviceMode, selectedTemple?.id, selectedAddress?.id, panditId, setSelectedPandit, selectedPandit]);
+  }, [pujaId, serviceMode, selectedTemple?.id, selectedAddress?.latitude, selectedAddress?.longitude, panditId, setSelectedPandit, selectedPandit]);
 
   const isRemote = serviceMode === "remote";
   const isTemple = serviceMode === "temple";
@@ -249,7 +264,7 @@ export const BookingWizardScreen: React.FC = () => {
         case "temple":
           return { title: "Temple", titleHi: "मंदिर" };
         case "pandit":
-          return { title: "Acharya", titleHi: "आचार्य" };
+          return { title: "Pandit Ji", titleHi: "पंडित जी" };
         case "slot":
           return { title: "Muhurat", titleHi: "मुहूर्त" };
         case "samagri":
@@ -321,7 +336,7 @@ export const BookingWizardScreen: React.FC = () => {
         bookingNumber: response.booking_number,
         advanceAmount: response.advance_amount,
         pujaName: puja.name,
-        panditName: selectedPandit?.display_name || "Acharya",
+        panditName: selectedPandit?.display_name || "Pandit Ji",
         isFullPayment: response.balance_amount === 0,
         totalAmount: response.total_amount,
       });
@@ -333,7 +348,7 @@ export const BookingWizardScreen: React.FC = () => {
         userFriendly = "This time slot was just reserved. Please choose another time slot.";
         setCurrentStep(stepIndexOf("slot")); // Send back to slot selection
       } else if (rawMsg.includes("not authorized to perform rituals at the selected Temple")) {
-        userFriendly = "The selected Pandit is not approved for this temple. Please choose another Acharya.";
+        userFriendly = "The selected Pandit Ji is not approved for this temple. Please choose another Pandit Ji.";
         setCurrentStep(stepIndexOf("pandit")); // Send back to Pandit selection
       } else if (rawMsg.includes("outside the Pandit's active operational")) {
         userFriendly = "The selected Pandit does not cover this address area. Please choose another address or Pandit.";
@@ -397,15 +412,30 @@ export const BookingWizardScreen: React.FC = () => {
       headerComponent={
         <AppBar
           title={puja.name}
-          subtitle={`Step ${currentStep} of ${totalSteps}`}
+          subtitle={`Step ${currentStep} of ${totalSteps}: ${stepItems[currentStep - 1]?.title || ""}`}
           showBackButton={true}
           onBackPress={handleBack}
         />
       }
       contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: spacing.xxl }}
     >
+      {/* Territory G Multi-Segment Horizontal Progress Bar */}
+      <View style={styles.segmentBarRow}>
+        {steps.map((key, i) => (
+          <View
+            key={key}
+            style={[
+              styles.segmentBar,
+              {
+                backgroundColor: i < currentStep ? colors.brandPrimary : colors.borderDefault,
+              },
+            ]}
+          />
+        ))}
+      </View>
+
       {/* Visual Step Nodes Progress */}
-      <View style={{ marginVertical: spacing.md }}>
+      <View style={{ marginVertical: spacing.sm }}>
         <StepProgress
           steps={stepItems}
           currentStep={currentStep - 1}
@@ -471,7 +501,7 @@ export const BookingWizardScreen: React.FC = () => {
       {currentStepKey === "pandit" && (
         <View style={styles.stepContent}>
           <VText variant="headlineMedium" color="textPrimary" style={styles.sectionTitle}>
-            Choose Verified Acharya
+            Choose Verified Pandit Ji
           </VText>
           <VText variant="caption" color="textMuted" style={styles.sectionSubtitle}>
             {isTemple
@@ -485,13 +515,13 @@ export const BookingWizardScreen: React.FC = () => {
             <View style={styles.loaderWrap}>
               <ActivityIndicator size="small" color={colors.brandPrimary} />
               <VText variant="caption" color="textMuted" style={{ marginTop: spacing.sm }}>
-                {pick("सत्यापित आचार्यों की खोज जारी...", "Finding approved Acharyas...")}
+                {pick("सत्यापित पंडित जी की खोज जारी...", "Finding approved Pandit Ji...")}
               </VText>
             </View>
           ) : panditsList.length === 0 ? (
             <VCard variant="outlined" style={styles.emptyPanditCard}>
               <VText variant="titleMedium" color="textPrimary" align="center" style={{ marginBottom: spacing.xs }}>
-                🏛️ {pick("कोई आचार्य उपलब्ध नहीं", "No Acharyas Available")}
+                {pick("कोई पंडित जी उपलब्ध नहीं", "No Pandit Ji Available")}
               </VText>
               <VText variant="caption" color="textMuted" align="center">
                 {isTemple
@@ -572,6 +602,29 @@ export const BookingWizardScreen: React.FC = () => {
                           )}
                         </View>
                       </View>
+                      <View
+                        style={[
+                          styles.panditFooter,
+                          { borderTopColor: colors.borderDefault },
+                        ]}
+                      >
+                        <TouchableOpacity
+                          onPress={() =>
+                            navigation.navigate("PanditDetail", {
+                              panditId: p.id,
+                              panditName: p.display_name,
+                            })
+                          }
+                          style={styles.viewProfileBtn}
+                          activeOpacity={0.7}
+                          accessibilityRole="button"
+                          accessibilityLabel={`View ${p.display_name} profile`}
+                        >
+                          <VText variant="labelSmall" color="brandPrimary" weight="600">
+                            {pick("प्रोफ़ाइल एवं प्रमाण देखें ›", "View Profile & Credentials ›")}
+                          </VText>
+                        </TouchableOpacity>
+                      </View>
                     </VCard>
                   </TouchableOpacity>
                 );
@@ -646,8 +699,8 @@ export const BookingWizardScreen: React.FC = () => {
               <VText variant="bodyMedium" weight="600">{puja.name}</VText>
             </View>
             <View style={styles.reviewRow}>
-              <VText variant="caption" color="textMuted">Acharya</VText>
-              <VText variant="bodyMedium" weight="600">{selectedPandit?.display_name || "Assigned Pandit"}</VText>
+              <VText variant="caption" color="textMuted">Pandit Ji</VText>
+              <VText variant="bodyMedium" weight="600">{selectedPandit?.display_name || "Assigned Pandit Ji"}</VText>
             </View>
             <View style={styles.reviewRow}>
               <VText variant="caption" color="textMuted">Format</VText>
@@ -701,10 +754,28 @@ export const BookingWizardScreen: React.FC = () => {
               status="payment_pending"
               amountInr={estimatedPricing.advanceAmount}
               message={pick(
-                "50% एस्क्रो सुरक्षा: पूर्णाहूति सत्यापन के उपरांत ही दक्षिणा आचार्य को अंतरित होगी।",
+                "50% एस्क्रो सुरक्षा: पूर्णाहूति सत्यापन के उपरांत ही दक्षिणा पंडित जी को अंतरित होगी।",
                 "50% Escrow Protection: Released only after verified Vedic Purnahuti."
               )}
             />
+          </View>
+
+          {/* 100% Instant Refund Guarantee Badge */}
+          <View
+            style={[
+              styles.refundBadge,
+              {
+                backgroundColor: colors.successBg,
+                borderColor: colors.statusActive,
+              },
+            ]}
+          >
+            <VText variant="caption" color="textPrimary" style={{ flex: 1 }}>
+              {pick(
+                "100% तत्काल धनवापसी गारंटी: यदि पंडित जी द्वारा प्रस्तावित शुभ मुहूर्त आपके परिवार के अनुकूल नहीं होता है, तो कोई कटौती नहीं होगी।",
+                "100% Instant Refund Guarantee: Zero penalty if Pandit Ji's proposed Muhurat does not fit your schedule."
+              )}
+            </VText>
           </View>
 
           {/* 24-Hour Notice */}
@@ -720,7 +791,7 @@ export const BookingWizardScreen: React.FC = () => {
               ]}
             >
               <VText variant="labelMedium" color="warningFg" style={styles.within24hNoticeText}>
-                ⚠️ This ritual is scheduled within 24 hours. Full payment is required when booking.
+                Notice: This ritual is scheduled within 24 hours. Full payment is required when booking.
               </VText>
             </VCard>
           )}
@@ -850,6 +921,18 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
   },
+  panditFooter: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
+  viewProfileBtn: {
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: 8,
+  },
   reviewCard: {
     padding: 16,
     gap: 10,
@@ -872,6 +955,25 @@ const styles = StyleSheet.create({
   },
   within24hNoticeText: {
     lineHeight: 18,
+  },
+  segmentBarRow: {
+    flexDirection: "row",
+    gap: 6,
+    paddingTop: 8,
+    marginBottom: 6,
+  },
+  segmentBar: {
+    flex: 1,
+    height: 5,
+    borderRadius: 3,
+  },
+  refundBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 12,
   },
   footerActions: {
     marginVertical: 24,

@@ -1,10 +1,16 @@
 // src/features/kundli/components/KundliPanditCard.tsx
 import React from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Card, Text } from "../../../shared/components/ui/index.ts";
 import { colors, radius, spacing, typography } from "../../../shared/theme/index.ts";
 import { formatCurrency } from "../../../shared/utils/formatters.ts";
 import { KundliPandit } from "../types/kundli.types.ts";
+
+const SERIF_FONT = Platform.select({
+  ios: "Georgia",
+  android: "serif",
+  default: "serif",
+});
 
 interface KundliPanditCardProps {
   pandit: KundliPandit;
@@ -115,6 +121,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   name: {
+    fontFamily: SERIF_FONT,
+    fontWeight: "600",
     color: colors.textPrimary,
     marginBottom: 2,
   },

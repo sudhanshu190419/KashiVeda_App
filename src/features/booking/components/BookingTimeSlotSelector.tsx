@@ -81,8 +81,15 @@ export const BookingTimeSlotSelector: React.FC<BookingTimeSlotSelectorProps> = (
         Select Muhurat / Time Slot
       </Text>
       <Text variant="caption" color={colors.textSecondary} style={styles.subtitle}>
-        Available starting times based on the Acharya&apos;s working schedule ({durationMinutes} mins).
+        Available starting times based on Pandit Ji&apos;s working schedule ({durationMinutes} mins).
       </Text>
+
+      {/* Vedic Shubh Muhurat Calculation Guidance */}
+      <View style={styles.guidanceBox}>
+        <Text variant="caption" color={colors.textSecondary} style={styles.guidanceText}>
+          Pandit Ji will calculate the exact auspicious Shubh Muhurat within your selected window based on Gotra and Janma Nakshatra.
+        </Text>
+      </View>
 
       {loading ? (
         <View style={styles.loadingBox}>
@@ -157,6 +164,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   slotChip: {
+    minHeight: 48,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,
@@ -165,6 +173,18 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
     minWidth: "30%",
     alignItems: "center",
+    justifyContent: "center",
+  },
+  guidanceBox: {
+    padding: spacing.sm,
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    marginBottom: spacing.md,
+  },
+  guidanceText: {
+    lineHeight: 18,
   },
   slotChipSelected: {
     borderColor: colors.primary,

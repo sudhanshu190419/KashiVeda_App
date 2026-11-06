@@ -37,9 +37,9 @@ export const PujaListScreen: React.FC = () => {
 
   const modes: { label: string; value: ServiceMode | undefined }[] = [
     { label: "All Formats", value: undefined },
-    { label: "🪔 Home", value: "home" },
-    { label: "🌐 Online", value: "remote" },
-    { label: "🏛️ Temple", value: "temple" },
+    { label: "Home", value: "home" },
+    { label: "Online", value: "remote" },
+    { label: "Temple", value: "temple" },
   ];
 
   const headerTitle =
@@ -55,9 +55,9 @@ export const PujaListScreen: React.FC = () => {
 
   const headerSubtitle =
     selectedMode === "home"
-      ? "Book a Pandit to perform your sacred puja at home"
+      ? "Book Pandit Ji to perform your sacred puja at home"
       : selectedMode === "remote"
-      ? "Connect with verified Pandits through live video sessions"
+      ? "Connect with verified Pandit Ji through live video sessions"
       : selectedMode === "temple"
       ? "Sacred ceremonies performed in consecrated sanctums of Kashi"
       : "Authentic pujas performed according to Vedic Shastras";
@@ -147,6 +147,13 @@ export const PujaListScreen: React.FC = () => {
               puja={puja}
               onPress={() =>
                 navigation.navigate("PujaDetail", {
+                  pujaId: puja.id,
+                  pujaName: puja.name,
+                  serviceMode: selectedMode,
+                })
+              }
+              onBookPress={() =>
+                navigation.navigate("BookingWizard", {
                   pujaId: puja.id,
                   pujaName: puja.name,
                   serviceMode: selectedMode,

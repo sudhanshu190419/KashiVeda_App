@@ -48,7 +48,7 @@ export const PanditDashboardScreen: React.FC = () => {
       style={{ backgroundColor: themeColors.surfaceBase }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[colors.primary]} />}
     >
-      {/* Sacred Sanctum Banner & Acharya Blessing */}
+      {/* Sacred Sanctum Banner & Pandit Ji Blessing */}
       <View style={styles.header}>
         <View style={[styles.sacredTopPill, { backgroundColor: isDark ? "rgba(224, 86, 36, 0.15)" : "#FEF3EB" }]}>
           <Text
@@ -60,7 +60,7 @@ export const PanditDashboardScreen: React.FC = () => {
           </Text>
         </View>
         <Text variant="h1" color={themeColors.textPrimary} style={styles.greetingTitle}>
-          {`Pranam, ${summary?.pandit?.display_name || "Acharya"}`}
+          {`Pranam, ${summary?.pandit?.display_name || "Pandit Ji"}`}
         </Text>
         <Text variant="caption" color={themeColors.textMuted}>
           {formatDate(today)} • Authorized Vedic Priest
@@ -85,7 +85,7 @@ export const PanditDashboardScreen: React.FC = () => {
             </Text>
             <Text variant="h3" color={themeColors.textPrimary}>
               {summary?.pandit?.verification_status === "approved"
-                ? "Verified Acharya ✓"
+                ? "Verified Pandit Ji ✓"
                 : "Verification Pending"}
             </Text>
           </View>

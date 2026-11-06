@@ -15,11 +15,11 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({ review }) => {
 
   const formatLabel =
     review.service_mode === "home"
-      ? "🪔 Home"
+      ? "Home"
       : review.service_mode === "temple"
-      ? "🏛️ Temple"
+      ? "Temple"
       : review.service_mode === "remote"
-      ? "🌐 Online"
+      ? "Online"
       : null;
 
   return (
@@ -31,7 +31,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({ review }) => {
           </Text>
           <View style={styles.verifiedBadge}>
             <Text variant="overline" color={colors.success}>
-              ✓ Verified Ritual
+              ✓ Verified Puja
             </Text>
           </View>
         </View>

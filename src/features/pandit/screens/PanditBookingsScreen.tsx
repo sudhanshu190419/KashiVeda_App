@@ -163,7 +163,7 @@ export const PanditBookingsScreen: React.FC = () => {
                 🪔 No Rituals Found
               </Text>
               <Text variant="body" color={themeColors.textMuted} align="center">
-                There are no {filter !== "all" ? filter : ""} bookings assigned to your Acharya profile right now.
+                There are no {filter !== "all" ? filter : ""} bookings assigned to your Pandit Ji profile right now.
               </Text>
             </Card>
           }

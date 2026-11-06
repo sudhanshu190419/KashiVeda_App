@@ -42,3 +42,13 @@ export type { SankalpFormProps, FamilyMemberItem } from './SankalpForm';
 
 export { VerificationBadge } from './VerificationBadge';
 export type { VerificationBadgeProps } from './VerificationBadge';
+
+export { UpcomingPujaCard } from './UpcomingPujaCard';
+export type { UpcomingPujaCardProps } from './UpcomingPujaCard';
+
+export { PujaKitCard } from './PujaKitCard';
+export type { PujaKitCardProps, PujaKitItem } from './PujaKitCard';
+
+export { VedicVideoPlayer } from './VedicVideoPlayer';
+export type { VedicVideoPlayerProps, VedicVideoItem } from './VedicVideoPlayer';
+

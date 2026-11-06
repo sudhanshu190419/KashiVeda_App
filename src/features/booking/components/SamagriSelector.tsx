@@ -6,6 +6,7 @@ import { colors, radius, spacing } from "../../../shared/theme/index.ts";
 import { formatCurrency } from "../../../shared/utils/formatters.ts";
 import { SamagriItem, SamagriPackage, ServiceMode } from "../../discovery/types/discovery.ts";
 import { CustomSamagriSelection } from "../hooks/useBookingFlow.ts";
+import { PujaKitCard, PujaKitItem } from "../../../shared/components/spiritual/PujaKitCard.tsx";
 
 interface SamagriSelectorProps {
   serviceMode?: ServiceMode;
@@ -94,45 +95,28 @@ export const SamagriSelector: React.FC<SamagriSelectorProps> = ({
                 0
               );
             }
+            const kitItems: PujaKitItem[] | undefined =
+              pkg.items && pkg.items.length > 0
+                ? pkg.items.map((pi) => ({
+                    name: pi.item.name,
+                    quantity: `${pi.quantity} ${pi.item.unit || ""}`.trim(),
+                  }))
+                : undefined;
 
             return (
-              <TouchableOpacity
+              <PujaKitCard
                 key={pkg.id}
-                onPress={() => onSelectPackage(pkg)}
-                activeOpacity={0.7}
-              >
-                <Card
-                  variant={isSelected ? "elevated" : "outlined"}
-                  style={[styles.packageCard, isSelected && styles.packageCardSelected]}
-                >
-                  <View style={styles.packageHeader}>
-                    <View style={styles.packageTitleBox}>
-                      <Text variant="bodyMedium">{pkg.name}</Text>
-                      {pkg.description ? (
-                        <Text variant="caption" color={colors.textSecondary} style={styles.pkgDesc}>
-                          {pkg.description}
-                        </Text>
-                      ) : null}
-                    </View>
-                    <View style={styles.packagePriceBox}>
-                      <Text variant="bodyMedium" color={colors.primary}>
-                        {formatCurrency(pkgPrice)}
-                      </Text>
-                      <View style={[styles.radioCircle, isSelected && styles.radioSelected]}>
-                        {isSelected && <View style={styles.radioInner} />}
-                      </View>
-                    </View>
-                  </View>
-
-                  {pkg.items && pkg.items.length > 0 ? (
-                    <View style={styles.itemsPreview}>
-                      <Text variant="caption" color={colors.textTertiary}>
-                        Includes: {pkg.items.map((pi) => `${pi.item.name} (${pi.quantity} ${pi.item.unit})`).join(", ")}
-                      </Text>
-                    </View>
-                  ) : null}
-                </Card>
-              </TouchableOpacity>
+                packageName={pkg.name}
+                subtitle={pkg.description || "Essential items consecrated for this ritual"}
+                items={kitItems}
+                price={pkgPrice}
+                isSelected={isSelected}
+                onToggleSelect={() => onSelectPackage(isSelected ? null : pkg)}
+                onActionPress={() => onSelectPackage(pkg)}
+                actionLabel={isSelected ? "Selected ✓" : "Select Package"}
+                style={{ marginBottom: spacing.md }}
+                testID={`samagri-pkg-${pkg.id}`}
+              />
             );
           })}
         </View>

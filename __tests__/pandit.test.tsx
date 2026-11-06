@@ -500,7 +500,7 @@ describe("M4 Pandit Operational Workflows Test Suite", () => {
     });
 
     const root = renderer!.root;
-    expect(root.findAllByProps({ children: "Acharya Profile" }).length).toBeGreaterThan(0);
+    expect(root.findAllByProps({ children: "Pandit Ji Profile" }).length).toBeGreaterThan(0);
     expect(root.findAllByProps({ children: "Acharya Shastri" }).length).toBeGreaterThan(0);
     expect(root.findAllByProps({ children: "15 Years" }).length).toBeGreaterThan(0);
   });

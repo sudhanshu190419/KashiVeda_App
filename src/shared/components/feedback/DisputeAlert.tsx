@@ -261,8 +261,8 @@ export const DisputeAlert: React.FC<DisputeAlertProps> = ({
             style={{ marginTop: spacing.xs }}
           >
             {isHi
-              ? 'विवादों का समाधान काशी के आचार्य परिषद द्वारा सत्य एवं संवाद के शास्त्रीय सिद्धांतों के आधार पर किया जाता है।'
-              : 'Disputes are mediated per ancient Kashi Dharmashastra principles of Satya (truth) and Samvad (dialogue). Our Acharya board reviews timestamps, ritual preparations and samagri verifications before issuing a ruling or escrow disbursement.'}
+              ? 'विवादों का समाधान काशी के पंडित जी परिषद द्वारा सत्य एवं संवाद के शास्त्रीय सिद्धांतों के आधार पर किया जाता है।'
+              : 'Disputes are mediated per ancient Kashi Dharmashastra principles of Satya (truth) and Samvad (dialogue). Our Pandit Ji council reviews timestamps, ritual preparations and samagri verifications before issuing a ruling or escrow disbursement.'}
           </VText>
         </View>
 

@@ -4,3 +4,4 @@ export * from "./KundliWizardScreen.tsx";
 export * from "./KundliPaymentScreen.tsx";
 export * from "./KundliOrdersScreen.tsx";
 export * from "./KundliDetailScreen.tsx";
+export * from "./KundliProfilesScreen.tsx";

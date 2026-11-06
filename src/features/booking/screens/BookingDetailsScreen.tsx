@@ -27,7 +27,7 @@ import { useTheme } from "../../../shared/theme/index.ts";
 import { useLanguage } from "../../../shared/i18n/index.ts";
 import { CustomerStackParamList } from "../../../shared/types/navigation.ts";
 import { formatCurrency, formatDate, formatTime } from "../../../shared/utils/formatters.ts";
-import { SubmitReviewModal } from "../components/index.ts";
+import { SubmitReviewModal, MuhuratProposalCard } from "../components/index.ts";
 import { useBookingDetails, useBookingReview } from "../hooks/index.ts";
 import { bookingPaymentService } from "../services/bookingPaymentService.ts";
 import { bookingService } from "../services/bookingService.ts";
@@ -88,7 +88,7 @@ export const BookingDetailsScreen: React.FC = () => {
           token: creds.token,
           serverUrl: creds.server_url,
           pujaName: booking.puja_service?.name || "Vedic Ritual",
-          panditName: booking.pandit?.display_name || "Acharya",
+          panditName: booking.pandit?.display_name || "Pandit Ji",
         });
       }
     } catch (err: any) {
@@ -112,7 +112,7 @@ export const BookingDetailsScreen: React.FC = () => {
         bookingNumber: booking.booking_number,
         advanceAmount: balanceOrder.amount,
         pujaName: booking.puja_service?.name || "Vedic Ritual",
-        panditName: booking.pandit?.display_name || "Acharya",
+        panditName: booking.pandit?.display_name || "Pandit Ji",
         isBalancePayment: true,
       });
     } catch (err: any) {
@@ -171,7 +171,7 @@ export const BookingDetailsScreen: React.FC = () => {
     try {
       await bookingService.requestBookingReschedule(booking.id, rescheduleDateStr);
       setRescheduleModalVisible(false);
-      Alert.alert("Ritual Rescheduled! 🕉️", "Your booking time has been updated at no additional cost.");
+      Alert.alert("Ritual Rescheduled", "Your booking time has been updated at no additional cost.");
       refresh();
     } catch (err: any) {
       Alert.alert("Reschedule Error", err?.message || "Could not reschedule ritual.");
@@ -290,6 +290,29 @@ export const BookingDetailsScreen: React.FC = () => {
       }
       contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: spacing.xxl }}
     >
+      {/* Structured Muhurat Action Card (Shown when status is rescheduled / proposal active) */}
+      {booking.status === "rescheduled" && (
+        <MuhuratProposalCard
+          panditName={booking.pandit?.display_name || "Pt. Ramkrishna Shastri"}
+          panditAvatarUri={booking.pandit?.avatar_url || undefined}
+          specialization="Shukla Yajurveda • Consecrated Kashi Scholar"
+          requestedDateText={formatDate(startDate)}
+          recommendedMuhuratText={`${formatDate(startDate)} • ${formatTime(startDate)}`}
+          astrologicalReason="Calculated based on Gotra and Janma Nakshatra to avoid Bhadra and Rahu Kaal overlap, aligning with the most auspicious Shubh Muhurat for maximum planetary blessings."
+          advanceDepositAmount={booking.advance_amount}
+          panditPhone={booking.pandit?.phone || undefined}
+          onAccept={() => {
+            Alert.alert(
+              "Muhurat Confirmed",
+              "You have accepted Pandit Ji's recommended Shubh Muhurat. Your ceremony schedule is locked."
+            );
+            refresh();
+          }}
+          onRequestAnotherDate={() => setRescheduleModalVisible(true)}
+          onCancelWithRefund={handleOpenCancelModal}
+        />
+      )}
+
       {/* Macro & Micro Status Banner */}
       <VCard variant="default" elevation={2} style={styles.mainCard}>
         <View style={styles.statusRow}>
@@ -346,7 +369,7 @@ export const BookingDetailsScreen: React.FC = () => {
         ]}
       >
         <VText variant="labelMedium" color="textMuted" style={{ marginBottom: spacing.md }}>
-          🕉️ {pick("अनुष्ठान प्रगति ट्रैकर", "Ritual Fulfillment Tracker")}
+          {pick("अनुष्ठान प्रगति ट्रैकर", "Ritual Fulfillment Tracker")}
         </VText>
         <StepProgress
           steps={fulfillmentSteps}
@@ -358,11 +381,11 @@ export const BookingDetailsScreen: React.FC = () => {
       {/* Pandit Profile Card */}
       <VCard variant="default" style={styles.sectionCard}>
         <VText variant="headlineSmall" color="textPrimary" style={styles.sectionTitle}>
-          Officiating Acharya
+          Officiating Pandit Ji
         </VText>
         <View style={styles.panditRow}>
           <VAvatar
-            name={booking.pandit?.display_name || "Acharya"}
+            name={booking.pandit?.display_name || "Pandit Ji"}
             uri={booking.pandit?.avatar_url || undefined}
             size="md"
             style={{ marginRight: spacing.md }}
@@ -415,8 +438,8 @@ export const BookingDetailsScreen: React.FC = () => {
 
             {booking.status === "confirmed" || booking.status === "in_progress" || booking.status === "rescheduled" ? (
               <VButton
-                title={loadingToken ? "Connecting to Sanctum..." : "Enter Live Video Sanctum 🎥"}
-                label={loadingToken ? "Connecting to Sanctum..." : "Enter Live Video Sanctum 🎥"}
+                title={loadingToken ? "Connecting to Sanctum..." : "Enter Live Video Sanctum"}
+                label={loadingToken ? "Connecting to Sanctum..." : "Enter Live Video Sanctum"}
                 variant="primary"
                 size="md"
                 onPress={handleJoinLive}
@@ -437,7 +460,7 @@ export const BookingDetailsScreen: React.FC = () => {
               {booking.location?.address_snapshot || `${booking.location?.city || "Home Residence"}`}
             </VText>
             <VText variant="caption" color="textMuted" style={styles.subTextSpacing}>
-              The Acharya will reach your address with complete samagri.
+              Pandit Ji will reach your address with complete samagri.
             </VText>
           </View>
         ) : (
@@ -597,14 +620,14 @@ export const BookingDetailsScreen: React.FC = () => {
           {!hasReviewed ? (
             <View>
               <VText variant="headlineSmall" color="textPrimary" style={styles.sectionTitle}>
-                Rate & Review Your Pandit
+                Rate & Review Your Pandit Ji
               </VText>
               <VText variant="bodyMedium" color="textMuted" style={styles.reviewPromptText}>
                 Your sacred ritual has been completed. Share your feedback to help other devotees in the Sanatan community.
               </VText>
               <VButton
-                title="Write Review & Rate Acharya ★"
-                label="Write Review & Rate Acharya ★"
+                title="Write Review & Rate Pandit Ji"
+                label="Write Review & Rate Pandit Ji"
                 variant="primary"
                 size="md"
                 onPress={() => setReviewModalVisible(true)}
@@ -693,11 +716,11 @@ export const BookingDetailsScreen: React.FC = () => {
         onSubmit={async (rating, comment) => {
           const success = await submitReview(rating, comment);
           if (success) {
-            Alert.alert("Sacred Feedback Received", "Thank you for reviewing your ritual with the Acharya.");
+            Alert.alert("Sacred Feedback Received", "Thank you for reviewing your ritual with Pandit Ji.");
           }
           return success;
         }}
-        panditName={booking.pandit?.display_name || "the Acharya"}
+        panditName={booking.pandit?.display_name || "Pandit Ji"}
         submitting={submittingReview}
       />
 
@@ -835,7 +858,7 @@ export const BookingDetailsScreen: React.FC = () => {
                 onChangeText={setRescheduleDateStr}
               />
               <VText variant="caption" color="textMuted">
-                Note: The Acharya must be available during the new time slot.
+                Note: Pandit Ji must be available during the new time slot.
               </VText>
 
               <View style={styles.modalActions}>

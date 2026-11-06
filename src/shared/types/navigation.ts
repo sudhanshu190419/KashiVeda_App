@@ -9,14 +9,15 @@ export type AuthStackParamList = {
 
 export type CustomerTabParamList = {
   Home: undefined;
-  Explore: undefined;
+  Explore: { initialTab?: "pujas" | "pandits"; serviceMode?: "home" | "temple" | "remote" } | undefined;
   Bookings: undefined;
   Kundli: undefined;
   Profile: undefined;
 };
 
 export type CustomerStackParamList = {
-  CustomerTabs: undefined;
+  CustomerTabs: { screen?: keyof CustomerTabParamList; params?: any } | undefined;
+  Panchang: undefined;
   PujaCategoryList: undefined;
   PujaList: {
     categoryId?: string;
@@ -91,6 +92,8 @@ export type CustomerStackParamList = {
     pujaName: string;
     panditName: string;
   };
+  SavedAddresses: undefined;
+  KundliProfiles: undefined;
 };
 
 export type PanditTabParamList = {

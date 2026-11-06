@@ -12,8 +12,8 @@ interface AppProvidersProps {
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <LanguageProvider>
+      <ThemeProvider initialColorScheme="light">
+        <LanguageProvider initialLanguage="en">
           <AuthProvider>{children}</AuthProvider>
         </LanguageProvider>
       </ThemeProvider>

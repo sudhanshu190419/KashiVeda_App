@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kashi Veda - Puja &amp; Pandit Screen Redesign (With 3 Videos &amp; Selection-Gated CTA)</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .font-serif-sacred {
+      font-family: 'Playfair Display', Georgia, serif;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-stone-900 text-stone-100 min-h-screen p-4 md:p-8">
+
+  <!-- Header Section -->
+  <header class="max-w-6xl mx-auto mb-8 text-center">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-950/60 border border-amber-600/30 text-amber-300 text-xs tracking-wider uppercase mb-3">
+      Up to 3 Videos • Selection-Gated Bottom Bar • 25% Escrow Advance
+    </div>
+    <h1 class="text-3xl md:text-4xl font-serif-sacred font-bold text-amber-100 mb-2">
+      Puja &amp; Pandit Ji Description Screens
+    </h1>
+    <p class="text-stone-400 max-w-3xl mx-auto text-sm leading-relaxed">
+      Bottom booking action bar shows <strong class="text-amber-200">only after user selects a format / puja</strong>. Videos support <strong class="text-amber-200">up to 3 recitation clips</strong> with minimal on-video title and quick switcher.
+    </p>
+
+    <!-- Global View Switcher -->
+    <div class="mt-6 flex flex-wrap justify-center gap-2">
+      <button onclick="switchView('side-by-side')" id="btn-side" class="px-4 py-2 rounded-lg text-xs font-semibold bg-amber-600 text-white shadow-sm transition">
+        Side-by-Side (Both Screens)
+      </button>
+      <button onclick="switchView('puja-only')" id="btn-puja" class="px-4 py-2 rounded-lg text-xs font-semibold bg-stone-800 hover:bg-stone-700 text-stone-300 transition">
+        Puja Description Screen
+      </button>
+      <button onclick="switchView('pandit-only')" id="btn-pandit" class="px-4 py-2 rounded-lg text-xs font-semibold bg-stone-800 hover:bg-stone-700 text-stone-300 transition">
+        Pandit Ji Profile Screen (3 Videos)
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Viewports Container -->
+  <main class="max-w-[1400px] mx-auto">
+    <div id="mockups-grid" class="grid grid-cols-1 md:grid-cols-2 gap-8 justify-items-center">
+
+      <!-- ======================================================= -->
+      <!-- VIEWPORT 1: PUJA DESCRIPTION SCREEN (PujaDetailScreen)   -->
+      <!-- ======================================================= -->
+      <div id="card-puja" class="w-full max-w-[400px] flex flex-col items-center">
+        <div class="text-center mb-3">
+          <span class="inline-block px-2.5 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 tracking-wide uppercase">
+            SCREEN 1
+          </span>
+          <h2 class="text-base font-semibold text-stone-200 mt-0.5">Puja Description Screen</h2>
+          <p class="text-xs text-stone-400">Card Hero Image • Selection-Gated Bottom Bar • Samagri</p>
+        </div>
+
+        <!-- Phone Frame -->
+        <div class="w-[375px] h-[812px] rounded-[48px] bg-black p-3.5 shadow-2xl border-4 border-stone-800 flex flex-col relative overflow-hidden">
+          <div class="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-5 bg-black rounded-full z-50"></div>
+
+          <!-- App Screen Body -->
+          <div class="w-full h-full rounded-[38px] bg-[#FFF8F4] text-[#1E1B18] flex flex-col overflow-hidden relative">
+
+            <!-- App Bar (Generic Title + Dynamic Customer City) -->
+            <div class="pt-8 pb-3 px-4 bg-[#FFF8F4] border-b border-[#EDE4D5] flex items-center justify-between shrink-0">
+              <button class="w-9 h-9 rounded-full bg-[#FAF2ED] border border-[#EDE4D5] flex items-center justify-center text-[#564338] hover:bg-[#F3E7DD] transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <h3 class="text-sm font-bold text-[#1E1B18]">Puja Details</h3>
+              <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FAF2ED] border border-[#EDE4D5]">
+                <svg class="w-3 h-3 text-[#B45309]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <span class="text-[11px] font-semibold text-[#564338]">New Delhi</span>
+              </div>
+            </div>
+
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto no-scrollbar pb-28">
+
+              <!-- HERO IMAGE BANNER (Exact same image as PujaCard) -->
+              <div class="w-full h-44 relative bg-stone-200 overflow-hidden">
+                <img 
+                  src="https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=750&q=80" 
+                  alt="Maha Rudrabhishek Puja" 
+                  class="w-full h-full object-cover"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+                <div class="absolute bottom-3 left-4 right-4 flex items-center justify-between text-white">
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#8B2500]/90 text-white uppercase tracking-wider backdrop-blur-xs">
+                    Vedic Puja
+                  </span>
+                  <span class="text-[11px] font-semibold text-white/90 bg-black/40 px-2 py-0.5 rounded-full backdrop-blur-xs">
+                    Approx. 60–90 Mins
+                  </span>
+                </div>
+              </div>
+
+              <!-- Main Content Area -->
+              <div class="px-4 pt-3.5 space-y-3.5">
+
+                <!-- Title & Description Card -->
+                <div class="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs">
+                  <h3 class="text-xl font-bold font-serif-sacred text-[#1E1B18] mb-1.5">
+                    Maha Rudrabhishek Puja
+                  </h3>
+                  <p class="text-xs text-[#564338] leading-relaxed">
+                    Sacred Shastric bath ceremony of the Shiva Lingam with 11 sacred Dravyas (Panchamrit, Sugarcane juice, Bilva leaves, and Ganga Jal) accompanied by chanting of Shukla Yajurveda Rudrashtadhyayi.
+                  </p>
+                </div>
+
+                <!-- Available Service Formats (Tap to Select) -->
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-[#1E1B18]">Select Service Format</h4>
+                    <span class="text-[10px] text-[#B45309] font-medium" id="puja-prompt-text">Tap format to book</span>
+                  </div>
+
+                  <div class="space-y-2">
+                    <!-- Mode 1: Home Puja (Active) -->
+                    <div onclick="selectPujaMode('home', 3500, 'Home Puja')" id="mode-home" class="p-3 rounded-xl border-2 border-[#B45309] bg-[#FAF2ED] transition cursor-pointer relative shadow-xs flex items-center justify-between">
+                      <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-white border border-[#EDE4D5] flex items-center justify-center text-[#B45309] shrink-0">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <span class="text-xs font-bold text-[#1E1B18] block">Home Puja</span>
+                          <span class="text-xs font-bold text-[#B45309]">Starting from ₹3,500</span>
+                        </div>
+                      </div>
+                      <div id="check-home" class="w-5 h-5 rounded-full bg-[#B45309] flex items-center justify-center text-white shrink-0">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                      </div>
+                    </div>
+
+                    <!-- Mode 2: Temple Puja -->
+                    <div onclick="selectPujaMode('temple', 4500, 'Temple Puja')" id="mode-temple" class="p-3 rounded-xl border border-[#EDE4D5] bg-white hover:bg-[#FAF2ED]/50 transition cursor-pointer relative shadow-xs flex items-center justify-between">
+                      <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-[#FAF2ED] border border-[#EDE4D5] flex items-center justify-center text-[#564338] shrink-0">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <span class="text-xs font-bold text-[#1E1B18] block">Temple Puja</span>
+                          <span class="text-xs font-bold text-[#B45309]">Starting from ₹4,500</span>
+                        </div>
+                      </div>
+                      <div id="check-temple" class="w-5 h-5 rounded-full border border-stone-300 flex items-center justify-center text-white shrink-0"></div>
+                    </div>
+
+                    <!-- Mode 3: Online Puja -->
+                    <div onclick="selectPujaMode('remote', 2100, 'Online Puja')" id="mode-remote" class="p-3 rounded-xl border border-[#EDE4D5] bg-white hover:bg-[#FAF2ED]/50 transition cursor-pointer relative shadow-xs flex items-center justify-between">
+                      <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-[#FAF2ED] border border-[#EDE4D5] flex items-center justify-center text-[#564338] shrink-0">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <span class="text-xs font-bold text-[#1E1B18] block">Online Puja</span>
+                          <span class="text-xs font-bold text-[#B45309]">Starting from ₹2,100</span>
+                        </div>
+                      </div>
+                      <div id="check-remote" class="w-5 h-5 rounded-full border border-stone-300 flex items-center justify-center text-white shrink-0"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Samagri Included (Clean Tags) -->
+                <div class="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs">
+                  <div class="flex items-center justify-between mb-2.5">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-[#1E1B18]">Samagri Included</h4>
+                    <span class="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Provided by Priest</span>
+                  </div>
+                  
+                  <div class="flex flex-wrap gap-1.5">
+                    <span class="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-[#FAF2ED] text-[#564338] border border-[#EDE4D5]">
+                      Gangajal (250 ml)
+                    </span>
+                    <span class="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-[#FAF2ED] text-[#564338] border border-[#EDE4D5]">
+                      Kashi Bhasma (50 g)
+                    </span>
+                    <span class="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-[#FAF2ED] text-[#564338] border border-[#EDE4D5]">
+                      Bilva Leaves (108 pcs)
+                    </span>
+                    <span class="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-[#FAF2ED] text-[#564338] border border-[#EDE4D5]">
+                      Panchamrit Dravyas
+                    </span>
+                    <span class="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-[#FAF2ED] text-[#564338] border border-[#EDE4D5]">
+                      Kumkum &amp; Chandan
+                    </span>
+                    <span class="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-[#FAF2ED] text-[#564338] border border-[#EDE4D5]">
+                      Janeu &amp; Kalawa
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Escrow Protection Badge -->
+                <div class="p-3 rounded-xl bg-[#FAF2ED] border border-[#EDE4D5] flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-emerald-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                    <span class="text-xs font-bold text-[#1E1B18]">100% Escrow Protection</span>
+                  </div>
+                  <span class="text-[11px] text-[#564338]">Released at Purnahuti</span>
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- Sticky Bottom Action Bar (Shows ONLY when format is selected) -->
+            <div id="puja-bottom-bar" class="absolute bottom-0 left-0 right-0 bg-[#FFF8F4] border-t border-[#EDE4D5] px-4 py-3 shadow-2xl z-40 transition-transform duration-300">
+              <div class="flex items-center justify-between mb-2">
+                <div>
+                  <span id="label-mode-summary" class="text-[10px] uppercase tracking-wider text-[#564338] font-bold block">HOME SERVICE DAKSHINA</span>
+                  <span id="price-summary" class="text-lg font-bold text-[#8B2500]">₹3,500</span>
+                </div>
+                <div class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#FAF2ED] border border-[#EDE4D5]">
+                  <span class="text-[10px] font-semibold text-emerald-800">100% Escrow Protected</span>
+                </div>
+              </div>
+              <button id="btn-schedule" class="w-full py-3 rounded-xl bg-[#8B2500] hover:bg-[#721F00] text-white text-xs font-bold uppercase tracking-wider shadow-md transition flex items-center justify-center gap-2">
+                <span>Schedule Home Puja</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ======================================================= -->
+      <!-- VIEWPORT 2: PANDIT JI PROFILE SCREEN (PanditDetailScreen) -->
+      <!-- ======================================================= -->
+      <div id="card-pandit" class="w-full max-w-[400px] flex flex-col items-center">
+        <div class="text-center mb-3">
+          <span class="inline-block px-2.5 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 tracking-wide uppercase">
+            SCREEN 2
+          </span>
+          <h2 class="text-base font-semibold text-stone-200 mt-0.5">Pandit Ji Profile Screen</h2>
+          <p class="text-xs text-stone-400">Up to 3 Videos • Selection-Gated 25% Advance Bar</p>
+        </div>
+
+        <!-- Phone Frame -->
+        <div class="w-[375px] h-[812px] rounded-[48px] bg-black p-3.5 shadow-2xl border-4 border-stone-800 flex flex-col relative overflow-hidden">
+          <div class="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-5 bg-black rounded-full z-50"></div>
+
+          <!-- App Screen Body -->
+          <div class="w-full h-full rounded-[38px] bg-[#FFF8F4] text-[#1E1B18] flex flex-col overflow-hidden relative">
+
+            <!-- App Bar -->
+            <div class="pt-8 pb-3 px-4 bg-[#FFF8F4] border-b border-[#EDE4D5] flex items-center justify-between shrink-0">
+              <button class="w-9 h-9 rounded-full bg-[#FAF2ED] border border-[#EDE4D5] flex items-center justify-center text-[#564338] hover:bg-[#F3E7DD] transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <h3 class="text-sm font-bold text-[#1E1B18]">Pandit Ji Profile</h3>
+              <button class="w-9 h-9 rounded-full bg-[#FAF2ED] border border-[#EDE4D5] flex items-center justify-center text-[#564338] hover:bg-[#F3E7DD] transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto no-scrollbar px-4 pt-3 pb-28 space-y-3.5">
+
+              <!-- Hero Profile Card (All-India Priest Context) -->
+              <div class="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs">
+                <div class="flex items-start gap-3.5">
+                  <!-- Avatar -->
+                  <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8B2500] to-[#B45309] text-white flex items-center justify-center font-serif-sacred text-2xl font-bold shrink-0 shadow-xs relative">
+                    <span>VS</span>
+                    <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-600 border-2 border-white flex items-center justify-center text-white">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                    </div>
+                  </div>
+
+                  <!-- Details -->
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-base font-bold font-serif-sacred text-[#1E1B18] truncate">
+                      Pt. Vidyadhar Shastri
+                    </h3>
+                    
+                    <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <span class="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                        Verified
+                      </span>
+                      <span class="text-xs text-[#564338] font-medium">New Delhi (NCR) • Pan-India</span>
+                    </div>
+
+                    <!-- Rating & Reviews -->
+                    <div class="flex items-center gap-1 mt-1.5 text-xs">
+                      <span class="text-amber-500 font-bold">★ 4.95</span>
+                      <span class="text-[#564338]">(142 reviews)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Credential Strip -->
+                <div class="grid grid-cols-3 gap-2 py-2.5 my-3 border-y border-[#F2ECE4] text-center">
+                  <div>
+                    <span class="text-[10px] uppercase text-[#564338] tracking-wider block font-semibold">Experience</span>
+                    <span class="text-xs font-bold text-[#1E1B18]">18 Years</span>
+                  </div>
+                  <div class="border-x border-[#F2ECE4]">
+                    <span class="text-[10px] uppercase text-[#564338] tracking-wider block font-semibold">Tradition</span>
+                    <span class="text-xs font-bold text-[#B45309] truncate block px-1">Shukla Yajurveda</span>
+                  </div>
+                  <div>
+                    <span class="text-[10px] uppercase text-[#564338] tracking-wider block font-semibold">Completed</span>
+                    <span class="text-xs font-bold text-[#1E1B18]">450+ Pujas</span>
+                  </div>
+                </div>
+
+                <!-- Bio -->
+                <p class="text-xs text-[#564338] leading-relaxed">
+                  Specializes in Mahamrityunjaya Anushthan, Rudrabhishek, and Griha Pravesh. Available for in-person ceremonies across Delhi NCR and live online pujas across India.
+                </p>
+
+                <!-- Languages Spoken -->
+                <div class="flex flex-wrap gap-1.5 mt-3 pt-2.5 border-t border-[#F2ECE4]">
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#FAF2ED] text-[#564338] border border-[#EDE4D5]">Sanskrit</span>
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#FAF2ED] text-[#564338] border border-[#EDE4D5]">Hindi</span>
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#FAF2ED] text-[#564338] border border-[#EDE4D5]">English</span>
+                </div>
+              </div>
+
+              <!-- ============================================== -->
+              <!-- VEDIC RECITATION VIDEOS SECTION (UP TO 3 CLIPS)-->
+              <!-- ============================================== -->
+              <div class="bg-white rounded-2xl p-3.5 border border-[#EDE4D5] shadow-xs">
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="text-xs font-bold uppercase tracking-wider text-[#1E1B18]">Vedic Recitation Video</h4>
+                  <span id="active-video-badge" class="text-[10px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                    Shri Rudram • 0:45
+                  </span>
+                </div>
+                
+                <!-- Main 16:9 Video Player -->
+                <div class="relative w-full aspect-video rounded-xl overflow-hidden bg-stone-900 border border-[#EDE4D5] shadow-inner">
+                  <!-- Video Poster -->
+                  <img 
+                    id="video-poster"
+                    src="https://images.unsplash.com/photo-1609842484439-4971c26f6323?auto=format&fit=crop&w=800&q=80" 
+                    alt="Vedic Recitation Video" 
+                    class="w-full h-full object-cover transition-opacity duration-300"
+                  />
+                  <!-- Gradient Scrim -->
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30 pointer-events-none"></div>
+
+                  <!-- Top Pill: Video Proof -->
+                  <div class="absolute top-2.5 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#8B2500]/90 text-white backdrop-blur-xs pointer-events-none">
+                    <svg class="w-3 h-3 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    <span>Vedic Video Proof</span>
+                  </div>
+
+                  <!-- Center 48dp Play Button -->
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <button 
+                      id="btn-video" 
+                      onclick="toggleVideo()" 
+                      class="w-12 h-12 rounded-full bg-[#8B2500]/95 hover:bg-[#721F00] text-white flex items-center justify-center shadow-xl transition transform active:scale-95 border border-white/20"
+                      aria-label="Play Video"
+                    >
+                      <svg id="video-icon-play" class="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                      </svg>
+                      <svg id="video-icon-pause" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                      </svg>
+                    </button>
+                  </div>
+
+                  <!-- Bottom: Just the Name of the Recitation + Time (Zero Clutter) -->
+                  <div class="absolute bottom-2 left-3 right-3 text-white pointer-events-none">
+                    <div class="flex items-center justify-between mb-1">
+                      <span id="video-title" class="text-xs font-bold text-white drop-shadow-xs">Shri Rudram</span>
+                      <span id="video-time" class="text-[10px] font-mono text-amber-300">0:18 / 0:45</span>
+                    </div>
+
+                    <!-- Progress Bar Track -->
+                    <div class="w-full bg-white/25 h-1.5 rounded-full overflow-hidden">
+                      <div id="video-progress" class="bg-[#B45309] h-full w-2/5 rounded-full transition-all duration-300"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 3-Video Switcher Strip (Quick 1-Tap Switching) -->
+                <div class="mt-2.5 pt-2.5 border-t border-[#EDE4D5]">
+                  <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-[#564338]">Select Recitation Sample (3 Available)</span>
+                  </div>
+                  <div class="grid grid-cols-3 gap-1.5" id="video-chips-container">
+                    <!-- Video 1 (Active) -->
+                    <button 
+                      onclick="selectVideo(0)" 
+                      id="chip-video-0" 
+                      class="px-2 py-1.5 rounded-lg text-left border-2 border-[#B45309] bg-[#FAF2ED] transition cursor-pointer"
+                    >
+                      <span class="text-[11px] font-bold text-[#1E1B18] block truncate">1. Shri Rudram</span>
+                      <span class="text-[10px] text-[#B45309] font-medium block">0:45 mins</span>
+                    </button>
+
+                    <!-- Video 2 -->
+                    <button 
+                      onclick="selectVideo(1)" 
+                      id="chip-video-1" 
+                      class="px-2 py-1.5 rounded-lg text-left border border-[#EDE4D5] bg-white hover:bg-[#FAF2ED]/50 transition cursor-pointer"
+                    >
+                      <span class="text-[11px] font-bold text-[#564338] block truncate">2. Mahamrityunjaya</span>
+                      <span class="text-[10px] text-[#564338] block">1:12 mins</span>
+                    </button>
+
+                    <!-- Video 3 -->
+                    <button 
+                      onclick="selectVideo(2)" 
+                      id="chip-video-2" 
+                      class="px-2 py-1.5 rounded-lg text-left border border-[#EDE4D5] bg-white hover:bg-[#FAF2ED]/50 transition cursor-pointer"
+                    >
+                      <span class="text-[11px] font-bold text-[#564338] block truncate">3. Shanti Path</span>
+                      <span class="text-[10px] text-[#564338] block">0:38 mins</span>
+                    </button>
+                  </div>
+                </div>
+
+
+              </div>
+
+              <!-- Pujas Offered & Dakshina (Tap to Select Offering) -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="text-xs font-bold uppercase tracking-wider text-[#1E1B18]">Select Puja to Book</h4>
+                  <span class="text-[10px] text-[#B45309] font-medium" id="pandit-prompt-text">Tap ritual below</span>
+                </div>
+
+                <div class="space-y-2">
+                  <!-- Offering 1 (Selected) -->
+                  <div onclick="selectPanditOffering('rudra', 3500, 'Rudrabhishek')" id="offering-rudra" class="p-3 rounded-xl border-2 border-[#B45309] bg-[#FAF2ED] transition cursor-pointer shadow-xs">
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                          <span class="text-xs font-bold text-[#1E1B18]">Maha Rudrabhishek</span>
+                          <span class="text-[10px] text-[#564338]">90 mins</span>
+                        </div>
+                        <div class="flex items-center gap-2 mt-2 pt-1.5 border-t border-[#E8DDD1] text-[11px]">
+                          <span class="text-[#564338]">Home: <strong class="text-[#8B2500]">₹3,500</strong></span>
+                          <span class="text-stone-300">•</span>
+                          <span class="text-[#564338]">Temple: <strong class="text-[#8B2500]">₹4,500</strong></span>
+                          <span class="text-stone-300">•</span>
+                          <span class="text-[#564338]">Online: <strong class="text-[#8B2500]">₹2,100</strong></span>
+                        </div>
+                      </div>
+                      <div id="offering-check-rudra" class="w-5 h-5 rounded-full bg-[#B45309] flex items-center justify-center text-white shrink-0 ml-2 mt-0.5">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Offering 2 -->
+                  <div onclick="selectPanditOffering('shanti', 2800, 'Navgrah Shanti')" id="offering-shanti" class="p-3 rounded-xl border border-[#EDE4D5] bg-white hover:bg-[#FAF2ED]/50 transition cursor-pointer shadow-xs">
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                          <span class="text-xs font-bold text-[#1E1B18]">Navgrah Shanti Havan</span>
+                          <span class="text-[10px] text-[#564338]">120 mins</span>
+                        </div>
+                        <div class="flex items-center gap-2 mt-2 pt-1.5 border-t border-[#F2ECE4] text-[11px]">
+                          <span class="text-[#564338]">Home: <strong class="text-[#8B2500]">₹2,800</strong></span>
+                          <span class="text-stone-300">•</span>
+                          <span class="text-[#564338]">Temple: <strong class="text-[#8B2500]">₹3,500</strong></span>
+                          <span class="text-stone-300">•</span>
+                          <span class="text-[#564338]">Online: <strong class="text-[#8B2500]">₹1,800</strong></span>
+                        </div>
+                      </div>
+                      <div id="offering-check-shanti" class="w-5 h-5 rounded-full border border-stone-300 flex items-center justify-center text-white shrink-0 ml-2 mt-0.5"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Devotee Reviews -->
+              <div class="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs">
+                <div class="flex items-center justify-between mb-2.5">
+                  <h4 class="text-xs font-bold uppercase tracking-wider text-[#1E1B18]">Devotee Reviews (142)</h4>
+                  <span class="text-xs font-bold text-[#B45309]">★ 4.95</span>
+                </div>
+
+                <div class="space-y-2.5">
+                  <div class="p-2.5 rounded-xl bg-[#FAF2ED]/70 border border-[#EDE4D5]">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-xs font-bold text-[#1E1B18]">Rajesh K. (Delhi)</span>
+                      <span class="text-[10px] text-[#564338]">2 days ago</span>
+                    </div>
+                    <p class="text-[11px] text-[#564338] leading-snug">
+                      Pundit ji performed the Rudrabhishek with pure Sanskrit pronunciation and explained every step clearly.
+                    </p>
+                  </div>
+
+                  <div class="p-2.5 rounded-xl bg-[#FAF2ED]/70 border border-[#EDE4D5]">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-xs font-bold text-[#1E1B18]">Meenakshi S. (Bengaluru)</span>
+                      <span class="text-[10px] text-[#564338]">1 week ago</span>
+                    </div>
+                    <p class="text-[11px] text-[#564338] leading-snug">
+                      Attended online puja from Bangalore. The video connection and sankalp were smooth and spiritual.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Sticky Bottom Action Bar (Shows ONLY when an offering is selected) -->
+            <div id="pandit-bottom-bar" class="absolute bottom-0 left-0 right-0 bg-[#FFF8F4] border-t border-[#EDE4D5] px-4 py-3 shadow-2xl z-40 transition-transform duration-300">
+              <div class="flex items-center justify-between mb-2">
+                <div>
+                  <span class="text-[10px] uppercase tracking-wider text-[#564338] font-bold block">25% ESCROW ADVANCE</span>
+                  <span id="pandit-advance-summary" class="text-lg font-bold text-[#8B2500]">₹875</span>
+                  <span id="pandit-total-summary" class="text-[10px] text-[#564338] block">(Total Dakshina: ₹3,500)</span>
+                </div>
+                <div class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#FAF2ED] border border-[#EDE4D5]">
+                  <span class="text-[10px] font-semibold text-emerald-800">75% Purnahuti Release</span>
+                </div>
+              </div>
+              <button class="w-full py-3 rounded-xl bg-[#8B2500] hover:bg-[#721F00] text-white text-xs font-bold uppercase tracking-wider shadow-md transition flex items-center justify-center gap-2">
+                <span id="btn-pandit-book-label">Book Rudrabhishek</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Interactive JavaScript Logic -->
+  <script>
+    // 3 Video clips dataset
+    const videoList = [
+      {
+        title: "Shri Rudram",
+        duration: "0:45",
+        durationSecs: 45,
+        poster: "https://images.unsplash.com/photo-1609842484439-4971c26f6323?auto=format&fit=crop&w=800&q=80"
+      },
+      {
+        title: "Mahamrityunjaya Japa",
+        duration: "1:12",
+        durationSecs: 72,
+        poster: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80"
+      },
+      {
+        title: "Shanti &amp; Sankalp Path",
+        duration: "0:38",
+        durationSecs: 38,
+        poster: "https://images.unsplash.com/photo-1567157577867-05ccb1388e66?auto=format&fit=crop&w=800&q=80"
+      }
+    ];
+
+    let currentVideoIdx = 0;
+    let isVideoPlaying = false;
+    let videoTimer = null;
+    let currentSeconds = 18;
+
+    function selectVideo(idx) {
+      currentVideoIdx = idx;
+      const v = videoList[idx];
+
+      // Update active badge & video player title
+      document.getElementById('active-video-badge').innerHTML = `${v.title} • ${v.duration}`;
+      document.getElementById('video-title').innerHTML = v.title;
+      document.getElementById('video-poster').src = v.poster;
+
+      // Reset timer & progress
+      currentSeconds = 0;
+      document.getElementById('video-progress').style.width = '0%';
+      document.getElementById('video-time').innerText = `0:00 / ${v.duration}`;
+
+      // Update chips styling
+      [0, 1, 2].forEach(i => {
+        const chip = document.getElementById('chip-video-' + i);
+        if (i === idx) {
+          chip.className = "px-2 py-1.5 rounded-lg text-left border-2 border-[#B45309] bg-[#FAF2ED] transition cursor-pointer";
+          chip.querySelector('span:first-child').className = "text-[11px] font-bold text-[#1E1B18] block truncate";
+          chip.querySelector('span:last-child').className = "text-[10px] text-[#B45309] font-medium block";
+        } else {
+          chip.className = "px-2 py-1.5 rounded-lg text-left border border-[#EDE4D5] bg-white hover:bg-[#FAF2ED]/50 transition cursor-pointer";
+          chip.querySelector('span:first-child').className = "text-[11px] font-bold text-[#564338] block truncate";
+          chip.querySelector('span:last-child').className = "text-[10px] text-[#564338] block";
+        }
+      });
+
+      // Pause playback if active
+      if (isVideoPlaying) {
+        toggleVideo();
+      }
+    }
+
+    function toggleVideo() {
+      isVideoPlaying = !isVideoPlaying;
+      const playIcon = document.getElementById('video-icon-play');
+      const pauseIcon = document.getElementById('video-icon-pause');
+      const progress = document.getElementById('video-progress');
+      const time = document.getElementById('video-time');
+      const currentMax = videoList[currentVideoIdx].durationSecs;
+      const durationStr = videoList[currentVideoIdx].duration;
+
+      if (isVideoPlaying) {
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+
+        videoTimer = setInterval(() => {
+          currentSeconds++;
+          if (currentSeconds > currentMax) {
+            currentSeconds = 0;
+          }
+          const pct = (currentSeconds / currentMax) * 100;
+          progress.style.width = pct + '%';
+          const mins = Math.floor(currentSeconds / 60);
+          const secs = currentSeconds % 60;
+          time.innerText = `${mins}:${secs < 10 ? '0' : ''}${secs} / ${durationStr}`;
+        }, 1000);
+      } else {
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+        if (videoTimer) clearInterval(videoTimer);
+      }
+    }
+
+    function switchView(view) {
+      const cardPuja = document.getElementById('card-puja');
+      const cardPandit = document.getElementById('card-pandit');
+      const btnSide = document.getElementById('btn-side');
+      const btnPuja = document.getElementById('btn-puja');
+      const btnPandit = document.getElementById('btn-pandit');
+      const grid = document.getElementById('mockups-grid');
+
+      [btnSide, btnPuja, btnPandit].forEach(b => {
+        b.className = "px-4 py-2 rounded-lg text-xs font-semibold bg-stone-800 hover:bg-stone-700 text-stone-300 transition";
+      });
+
+      if (view === 'side-by-side') {
+        cardPuja.classList.remove('hidden');
+        cardPandit.classList.remove('hidden');
+        grid.className = "grid grid-cols-1 md:grid-cols-2 gap-8 justify-items-center";
+        btnSide.className = "px-4 py-2 rounded-lg text-xs font-semibold bg-amber-600 text-white shadow-sm transition";
+      } else if (view === 'puja-only') {
+        cardPuja.classList.remove('hidden');
+        cardPandit.classList.add('hidden');
+        grid.className = "grid grid-cols-1 gap-8 justify-items-center";
+        btnPuja.className = "px-4 py-2 rounded-lg text-xs font-semibold bg-amber-600 text-white shadow-sm transition";
+      } else if (view === 'pandit-only') {
+        cardPuja.classList.add('hidden');
+        cardPandit.classList.remove('hidden');
+        grid.className = "grid grid-cols-1 gap-8 justify-items-center";
+        btnPandit.className = "px-4 py-2 rounded-lg text-xs font-semibold bg-amber-600 text-white shadow-sm transition";
+      }
+    }
+
+    // Puja Format Selection (Gating Bottom Bar)
+    let selectedPujaModeValue = 'home';
+    function selectPujaMode(mode, price, title) {
+      selectedPujaModeValue = mode;
+      const modes = ['home', 'temple', 'remote'];
+      modes.forEach(m => {
+        const el = document.getElementById('mode-' + m);
+        const check = document.getElementById('check-' + m);
+        if (m === mode) {
+          el.className = "p-3 rounded-xl border-2 border-[#B45309] bg-[#FAF2ED] transition cursor-pointer relative shadow-xs flex items-center justify-between";
+          check.className = "w-5 h-5 rounded-full bg-[#B45309] flex items-center justify-center text-white shrink-0";
+          check.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>';
+        } else {
+          el.className = "p-3 rounded-xl border border-[#EDE4D5] bg-white hover:bg-[#FAF2ED]/50 transition cursor-pointer relative shadow-xs flex items-center justify-between";
+          check.className = "w-5 h-5 rounded-full border border-stone-300 flex items-center justify-center text-white shrink-0";
+          check.innerHTML = '';
+        }
+      });
+
+      // Show bottom bar
+      const bar = document.getElementById('puja-bottom-bar');
+      bar.classList.remove('translate-y-full', 'hidden');
+      document.getElementById('label-mode-summary').innerText = title.toUpperCase() + ' DAKSHINA';
+      document.getElementById('price-summary').innerText = '₹' + price.toLocaleString('en-IN');
+      document.getElementById('btn-schedule').innerHTML = '<span>Schedule ' + title + '</span><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>';
+      document.getElementById('puja-prompt-text').innerText = 'Selected: ' + title;
+    }
+
+    // Pandit Offering Selection (Gating Bottom Bar)
+    let selectedPanditOfferingKey = 'rudra';
+    function selectPanditOffering(offering, total, name) {
+      selectedPanditOfferingKey = offering;
+      const offerings = ['rudra', 'shanti'];
+      offerings.forEach(o => {
+        const el = document.getElementById('offering-' + o);
+        const check = document.getElementById('offering-check-' + o);
+        if (o === offering) {
+          el.className = "p-3 rounded-xl border-2 border-[#B45309] bg-[#FAF2ED] transition cursor-pointer shadow-xs";
+          check.className = "w-5 h-5 rounded-full bg-[#B45309] flex items-center justify-center text-white shrink-0 ml-2 mt-0.5";
+          check.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>';
+        } else {
+          el.className = "p-3 rounded-xl border border-[#EDE4D5] bg-white hover:bg-[#FAF2ED]/50 transition cursor-pointer shadow-xs";
+          check.className = "w-5 h-5 rounded-full border border-stone-300 flex items-center justify-center text-white shrink-0 ml-2 mt-0.5";
+          check.innerHTML = '';
+        }
+      });
+
+      // Show bottom bar & calculate 25% authoritative escrow advance
+      const bar = document.getElementById('pandit-bottom-bar');
+      bar.classList.remove('translate-y-full', 'hidden');
+      const advance = Math.round(total * 0.25);
+      document.getElementById('pandit-advance-summary').innerText = '₹' + advance.toLocaleString('en-IN');
+      document.getElementById('pandit-total-summary').innerText = '(Total Dakshina: ₹' + total.toLocaleString('en-IN') + ')';
+      document.getElementById('btn-pandit-book-label').innerText = 'Book ' + name;
+      document.getElementById('pandit-prompt-text').innerText = 'Selected: ' + name;
+    }
+  </script>
+</body>
+</html>

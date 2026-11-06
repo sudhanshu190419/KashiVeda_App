@@ -681,7 +681,7 @@ export const PanditApplicationWizardScreen: React.FC = () => {
           <Input
             value={email}
             onChangeText={setEmail}
-            placeholder="acharya@kashiveda.org"
+            placeholder="panditji@kashiveda.org"
             keyboardType="email-address"
           />
         </Card>

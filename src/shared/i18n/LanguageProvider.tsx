@@ -9,7 +9,7 @@ import React, {
 import { getString, Language, StringKey } from './strings';
 
 export interface LanguageContextValue {
-  /** Active locale. Hindi is the default for Kashi Veda. */
+  /** Active locale. English is the default for Kashi Veda. */
   language: Language;
   setLanguage: (language: Language) => void;
   toggleLanguage: () => void;
@@ -25,18 +25,18 @@ export interface LanguageProviderProps {
 }
 
 export const defaultLanguageContext: LanguageContextValue = {
-  language: 'hi',
+  language: 'en',
   setLanguage: () => {},
   toggleLanguage: () => {},
-  t: (key: StringKey) => getString(key, 'hi'),
-  pick: (hi: string, en: string) => hi,
+  t: (key: StringKey) => getString(key, 'en'),
+  pick: (hi: string, en: string) => en,
 };
 
 export const LanguageContext = createContext<LanguageContextValue>(defaultLanguageContext);
 
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({
   children,
-  initialLanguage = 'hi',
+  initialLanguage = 'en',
 }) => {
   const [language, setLanguage] = useState<Language>(initialLanguage);
 

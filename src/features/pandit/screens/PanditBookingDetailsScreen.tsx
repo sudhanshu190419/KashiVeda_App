@@ -301,7 +301,7 @@ export const PanditBookingDetailsScreen: React.FC = () => {
               <View style={styles.remoteTextWrap}>
                 <Text variant="bodyMedium" color={themeColors.textPrimary}>LiveKit Cloud HD Room</Text>
                 <Text variant="caption" color={themeColors.textMuted}>
-                  Acharyas can join the room 30 minutes before the scheduled start time.
+                  Pandit Ji can join the room 30 minutes before the scheduled start time.
                 </Text>
               </View>
             </View>

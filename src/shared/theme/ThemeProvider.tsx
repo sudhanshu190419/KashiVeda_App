@@ -43,7 +43,7 @@ export const ThemeContext = createContext<Theme>(defaultTheme);
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   children,
-  initialColorScheme = 'system',
+  initialColorScheme = 'light',
 }) => {
   const systemColorScheme = useColorScheme();
   const [mode, setMode] = useState<ThemeMode>(initialColorScheme);

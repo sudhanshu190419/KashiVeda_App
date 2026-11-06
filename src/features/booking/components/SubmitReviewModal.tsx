@@ -70,10 +70,10 @@ export const SubmitReviewModal: React.FC<SubmitReviewModalProps> = ({
         <Card variant="elevated" style={styles.modalCard}>
           {/* Header */}
           <Text variant="h2" align="center" style={styles.title}>
-            Rate Your Pandit
+            Rate Your Pandit Ji
           </Text>
           <Text variant="caption" color={colors.textSecondary} align="center" style={styles.subtitle}>
-            Share your sacred experience with {panditName || "the Acharya"}
+            Share your sacred experience with {panditName || "Pandit Ji"}
           </Text>
 
           {/* Interactive Star Rating Selector */}

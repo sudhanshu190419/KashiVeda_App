@@ -85,9 +85,7 @@ export const BookingSuccessScreen: React.FC = () => {
       <View style={styles.container}>
         {/* Sacred Celebration Banner */}
         <View style={styles.celebrationHeader}>
-          <VText variant="displayHero" align="center" style={styles.bellIcon}>
-            🔔
-          </VText>
+          
           <VText variant="displayHero" color="brandPrimary" align="center" style={styles.mainTitle}>
             Sankalp Confirmed!
           </VText>
@@ -118,8 +116,8 @@ export const BookingSuccessScreen: React.FC = () => {
           </View>
 
           <View style={styles.detailRow}>
-            <VText variant="caption" color="textMuted">Acharya</VText>
-            <VText variant="bodyMedium" weight="600">{booking.pandit?.display_name || "Assigned Pandit"}</VText>
+            <VText variant="caption" color="textMuted">Pandit Ji</VText>
+            <VText variant="bodyMedium" weight="600">{booking.pandit?.display_name || "Assigned Pandit Ji"}</VText>
           </View>
 
           <View style={styles.detailRow}>
@@ -179,7 +177,7 @@ export const BookingSuccessScreen: React.FC = () => {
               status="confirmed"
               amountInr={booking.advance_amount}
               message={pick(
-                "50% एस्क्रो सुरक्षा: पूर्णाहूति के उपरांत ही दक्षिणा आचार्य को अंतरित होगी।",
+                "50% एस्क्रो सुरक्षा: पूर्णाहूति के उपरांत ही दक्षिणा पंडित जी को अंतरित होगी।",
                 "50% RBI Escrow Protection: Funds held securely until Vedic Purnahuti verification."
               )}
             />
@@ -199,13 +197,13 @@ export const BookingSuccessScreen: React.FC = () => {
           ]}
         >
           <VText variant="labelMedium" color="brandPrimary" style={{ marginBottom: 4 }}>
-            🕉️ {pick("दर्शन व तैयारी निर्देश", "Ritual Instructions")}
+            {pick("दर्शन व तैयारी निर्देश", "Ritual Instructions")}
           </VText>
           <VText variant="caption" color="textMuted">
             {booking.service_mode === "home"
               ? pick(
-                  "आचार्य जी संपूर्ण वैदिक सामग्री के साथ निर्धारित समय पर आपके निवास स्थान पहुंचेंगे।",
-                  "The Acharya will arrive at your residence with complete consecrated samagri 15 minutes before the Muhurat."
+                  "पंडित जी संपूर्ण वैदिक सामग्री के साथ निर्धारित समय पर आपके निवास स्थान पहुंचेंगे।",
+                  "Pandit Ji will arrive at your residence with complete consecrated samagri 15 minutes before the Muhurat."
                 )
               : booking.service_mode === "temple"
               ? pick(

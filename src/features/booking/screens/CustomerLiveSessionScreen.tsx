@@ -276,7 +276,7 @@ export const CustomerLiveSessionScreen: React.FC = () => {
                   color={colors.textPrimary}
                   style={styles.waitingTitle}
                 >
-                  {pick("आचार्य जी के जुड़ने की प्रतीक्षा", "Waiting for Acharya to join")}
+                  {pick("पंडित जी के जुड़ने की प्रतीक्षा", "Waiting for Pandit Ji to join")}
                 </Text>
                 <Text
                   variant="caption"
